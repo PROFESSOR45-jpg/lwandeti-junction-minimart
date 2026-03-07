@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Lwandeti Junction Minimart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .preview-img { max-width: 200px; max-height: 200px; object-fit: cover; }
+        
+        .storefront-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://files.catbox.moe/4ika9g.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            z-index: -2;
+        }
+        
+        .storefront-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(6, 78, 59, 0.75) 50%, rgba(20, 83, 45, 0.8) 100%);
+            z-index: -1;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .hero-text { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        .sync-status.show { transform: translateX(0); }
+        .sync-status.success { background: #10b981; }
+        .sync-status.error { background: #ef4444; }
+        .sync-status.syncing { background: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Sync Status Notification -->
+    <div id="syncStatus" class="sync-status">
+        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+        <span>Saving...</span>
+    </div>
+
+    <!-- Storefront Background -->
+    <div class="storefront-bg"></div>
+    <div class="storefront-overlay"></div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center relative z-10">
+        <div class="absolute top-0 left-0 w-full p-8 text-center">
+            <div class="hero-text text-white">
+                <h1 class="text-4xl md:text-6xl font-bold mb-4">Lwandeti Junction Minimart</h1>
+                <p class="text-xl md:text-2xl text-emerald-100 mb-2">Your Trusted Neighborhood Store</p>
+                <p class="text-lg text-emerald-200"><i class="fas fa-map-marker-alt mr-2"></i>Eldoret-Malaba Road, Kakamega County, Kenya</p>
+                <div class="mt-6 flex justify-center gap-4 text-sm">
+                    <span class="bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm">
+                        <i class="fas fa-clock mr-2"></i>Open 7:00 AM - 9:00 PM
+                    </span>
+                    <span class="bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm">
+                        <i class="fas fa-phone mr-2"></i>0117 352700
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md mt-32">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-2xl mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Admin Panel</h2>
+                <p class="text-gray-500">Secure Access Only</p>
+            </div>
+            <div class="space-y-4">
+                <input type="password" id="password" placeholder="Enter password" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 transition">
+                <button onclick="login()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login
+                </button>
+                <p class="text-center text-sm text-gray-500">Default: admin123</p>
+            </div>
+        </div>
+        
+        <div class="absolute bottom-8 left-0 w-full text-center px-4">
+            <p class="text-white/80 text-sm italic">"Serving the Lwandeti community with quality products since day one"</p>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden min-h-screen relative z-10">
+        <!-- Header -->
+        <header class="bg-emerald-900/95 backdrop-blur-md text-white shadow-lg sticky top-0 z-50 border-b border-emerald-700/50">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold">Admin Dashboard</h1>
+                        <p class="text-sm text-emerald-200">Manage Products</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden sm:flex items-center gap-2 bg-emerald-800/80 px-3 py-1 rounded-lg backdrop-blur-sm border border-emerald-600/50">
+                        <i class="fas fa-cloud text-blue-400"></i>
+                        <span class="text-sm font-semibold">Cloud Sync Active</span>
+                    </div>
+                    <a href="index.html" target="_blank" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition backdrop-blur-sm border border-white/10">
+                        <i class="fas fa-external-link-alt mr-2"></i>View Site
+                    </a>
+                    <button onclick="logout()" class="px-4 py-2 bg-red-500/90 rounded-lg hover:bg-red-600 transition backdrop-blur-sm border border-red-400/50">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid lg:grid-cols-3 gap-8">
+                
+                <!-- Add Product Form -->
+                <div class="lg:col-span-1">
+                    <div class="glass-panel rounded-2xl shadow-lg p-6 sticky top-24">
+                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                            <i class="fas fa-plus-circle text-emerald-600"></i>
+                            Add New Product
+                        </h2>
+                        
+                        <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+                                <input type="text" id="prodName" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="e.g., Coca Cola 2L">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Price (KSh) *</label>
+                                    <input type="number" id="prodPrice" required min="1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="150">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Old Price</label>
+                                    <input type="number" id="prodOldPrice" min="1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="200">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
+                                <input type="text" id="prodUnit" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="e.g., per bottle, per kg">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                                <select id="prodCategory" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                                    <option value="">Select Category</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                                <select id="prodBadge" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                                    <option value="">None</option>
+                                    <option value="new">New</option>
+                                    <option value="sale">Sale</option>
+                                    <option value="popular">Popular</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                                <div class="space-y-2">
+                                    <input type="file" id="prodImageFile" accept="image/*" class="w-full text-sm bg-white/50 p-2 rounded-lg border border-gray-300" onchange="previewImage(this)">
+                                    <p class="text-xs text-gray-500">Or use image URL:</p>
+                                    <input type="url" id="prodImageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none text-sm bg-white/80" placeholder="https://example.com/image.jpg" oninput="previewUrl(this.value)">
+                                </div>
+                                <div id="imagePreview" class="mt-2 hidden">
+                                    <img id="previewImg" src="" class="preview-img rounded-lg border shadow-md">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea id="prodDesc" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none bg-white/80" placeholder="Brief description..."></textarea>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="prodPopular" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                                <label for="prodPopular" class="text-sm text-gray-700">Mark as Popular</label>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="prodStock" checked class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                                <label for="prodStock" class="text-sm text-gray-700">In Stock</label>
+                            </div>
+
+                            <button type="submit" id="saveBtn" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                                <i class="fas fa-save"></i> Save Product
+                            </button>
+                            
+                            <button type="button" onclick="resetForm()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition border border-gray-300">
+                                Clear Form
+                            </button>
+                        </form>
+
+                        <div class="mt-6 p-4 bg-blue-50/90 backdrop-blur-sm rounded-lg border border-blue-200">
+                            <p class="text-sm text-blue-800">
+                                <i class="fas fa-cloud mr-1"></i>
+                                <strong>Cloud Database:</strong> Products are saved to Firebase and sync instantly to the homepage.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products List -->
+                <div class="lg:col-span-2">
+                    <div class="glass-panel rounded-2xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold flex items-center gap-2 text-gray-800">
+                                <i class="fas fa-list text-emerald-600"></i>
+                                Current Products
+                            </h2>
+                            <div class="flex gap-2">
+                                <select id="filterCategory" onchange="filterProducts()" class="px-4 py-2 rounded-lg border border-gray-300 text-sm bg-white/80 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+                                    <option value="">All Categories</option>
+                                </select>
+                                <input type="text" id="searchProducts" placeholder="Search..." oninput="searchProductsList()" class="px-4 py-2 rounded-lg border border-gray-300 text-sm bg-white/80 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <div id="productsList" class="space-y-3 max-h-[600px] overflow-y-auto">
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-spinner fa-spin mr-2"></i> Loading products...
+                            </div>
+                        </div>
+
+                        <div class="mt-6 p-4 bg-gray-50/80 backdrop-blur-sm rounded-lg border border-gray-200">
+                            <h3 class="font-bold mb-2 text-gray-800">Database Actions</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="exportJSON()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-md hover:shadow-lg">
+                                    <i class="fas fa-download mr-2"></i>Export to JSON
+                                </button>
+                                <button onclick="importJSON()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md hover:shadow-lg">
+                                    <i class="fas fa-upload mr-2"></i>Import JSON
+                                </button>
+                                <button onclick="seedFromJSON()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-md hover:shadow-lg">
+                                    <i class="fas fa-database mr-2"></i>Seed from JSON
+                                </button>
+                                <input type="file" id="importFile" accept=".json" class="hidden" onchange="handleImport(event)">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Changes sync automatically to all connected devices via Firebase
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-white/20">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Edit Product</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-4">
+                <input type="hidden" id="editId">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                    <input type="text" id="editName" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price (KSh)</label>
+                        <input type="number" id="editPrice" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Old Price</label>
+                        <input type="number" id="editOldPrice" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                    <input type="text" id="editUnit" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="e.g., per bottle, per kg">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select id="editCategory" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80"></select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                    <select id="editBadge" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80">
+                        <option value="">None</option>
+                        <option value="new">New</option>
+                        <option value="sale">Sale</option>
+                        <option value="popular">Popular</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                    <div class="space-y-2">
+                        <input type="file" id="editImageFile" accept="image/*" class="w-full text-sm bg-white/50 p-2 rounded-lg border border-gray-300" onchange="previewEditImage(this)">
+                        <p class="text-xs text-gray-500">Or use image URL:</p>
+                        <input type="url" id="editImageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 text-sm bg-white/80" placeholder="https://example.com/image.jpg" oninput="previewEditUrl(this.value)">
+                    </div>
+                    <div id="editImagePreview" class="mt-2 hidden">
+                        <img id="editPreviewImg" src="" class="preview-img rounded-lg border shadow-md">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="editDesc" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white/80" placeholder="Brief description..."></textarea>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="editPopular" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                        <label for="editPopular" class="text-sm text-gray-700">Popular</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="editStock" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                        <label for="editStock" class="text-sm text-gray-700">In Stock</label>
+                    </div>
+                </div>
+                
+                <button type="submit" id="updateBtn" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    <i class="fas fa-save mr-2"></i>Update Product
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
+            projectId: "lwandeti-junction-minimart",
+            storageBucket: "lwandeti-junction-minimart.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        
+        let products = [];
+        let categories = [];
+        let editingId = null;
+        const ADMIN_PASSWORD = 'admin123';
+        let unsubscribeProducts = null;
+
+        // Default categories from products.json
+        const defaultCategories = [
+            {id: 'gas', name: 'Gas & Cylinders', icon: 'fa-fire', color: 'from-orange-500 to-red-600', image: 'https://images.unsplash.com/photo-1605112442948-526c502f5115?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1605112442948-526c502f5115?w=400&h=400&fit=crop'},
+            {id: 'furniture', name: 'Furniture & Bedding', icon: 'fa-bed', color: 'from-amber-600 to-yellow-700', image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=400&h=400&fit=crop'},
+            {id: 'food', name: 'Food & Groceries', icon: 'fa-shopping-basket', color: 'from-green-500 to-emerald-600', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop'},
+            {id: 'cooking', name: 'Cooking Oil & Fats', icon: 'fa-oil-can', color: 'from-yellow-400 to-orange-500', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&h=400&fit=crop'},
+            {id: 'stationery', name: 'Stationery & School', icon: 'fa-pencil-alt', color: 'from-blue-400 to-indigo-500', image: 'https://images.unsplash.com/photo-1515079424831-8fe44f7ec841?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1515079424831-8fe44f7ec841?w=400&h=400&fit=crop'},
+            {id: 'personal', name: 'Personal Care', icon: 'fa-spa', color: 'from-pink-400 to-rose-500', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop'},
+            {id: 'household', name: 'Household Items', icon: 'fa-home', color: 'from-teal-400 to-cyan-500', image: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=400&h=400&fit=crop'},
+            {id: 'beverages', name: 'Beverages & Drinks', icon: 'fa-wine-bottle', color: 'from-purple-400 to-violet-500', image: 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=400&h=400&fit=crop'},
+            {id: 'cleaning', name: 'Cleaning & Detergents', icon: 'fa-soap', color: 'from-cyan-400 to-blue-500', image: 'https://images.unsplash.com/photo-1583947581924-860bda6a26df?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1583947581924-860bda6a26df?w=400&h=400&fit=crop'},
+            {id: 'baby', name: 'Baby Products', icon: 'fa-baby', color: 'from-sky-300 to-blue-400', image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400&h=400&fit=crop'},
+            {id: 'electronics', name: 'Electronics & Accessories', icon: 'fa-plug', color: 'from-gray-600 to-gray-800', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop'},
+            {id: 'clothing', name: 'Clothing & Apparel', icon: 'fa-tshirt', color: 'from-indigo-400 to-purple-500', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop', defaultProductImage: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop'}
+        ];
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCategories();
+            if (localStorage.getItem('adminLoggedIn') === 'true') {
+                showDashboard();
+            }
+        });
+
+        async function initializeCategories() {
+            // Check if categories exist in Firestore
+            const catsSnapshot = await db.collection('categories').get();
+            
+            if (catsSnapshot.empty) {
+                // Seed categories
+                const batch = db.batch();
+                defaultCategories.forEach(cat => {
+                    const ref = db.collection('categories').doc(cat.id);
+                    batch.set(ref, cat);
+                });
+                await batch.commit();
+                categories = defaultCategories;
+            } else {
+                categories = [];
+                catsSnapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
+            }
+        }
+
+        // ============================================
+        // AUTH FUNCTIONS
+        // ============================================
+
+        function isAdmin() {
+            return localStorage.getItem('adminLoggedIn') === 'true';
+        }
+
+        function requireAdmin() {
+            if (!isAdmin()) {
+                alert('🔒 Access Denied: Admin authentication required. Please login.');
+                logout();
+                return false;
+            }
+            return true;
+        }
+
+        function login() {
+            const pwd = document.getElementById('password').value;
+            if (pwd === ADMIN_PASSWORD) {
+                localStorage.setItem('adminLoggedIn', 'true');
+                showDashboard();
+                showSyncStatus('Login successful', 'success');
+            } else {
+                alert('❌ Wrong password! Access denied.');
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLoggedIn');
+            if (unsubscribeProducts) unsubscribeProducts();
+            location.reload();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            populateCategories();
+            startRealtimeProducts();
+        }
+
+        // ============================================
+        // REALTIME PRODUCTS LISTENER
+        // ============================================
+
+        function startRealtimeProducts() {
+            unsubscribeProducts = db.collection('products')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    products = [];
+                    snapshot.forEach((doc) => {
+                        products.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderProductsList();
+                }, (error) => {
+                    console.error('Error fetching products:', error);
+                    showSyncStatus('Error loading products', 'error');
+                });
+        }
+
+        // ============================================
+        // PRODUCT MANAGEMENT
+        // ============================================
+
+        function populateCategories() {
+            const selects = ['prodCategory', 'editCategory', 'filterCategory'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Select Category</option>';
+                
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    select.appendChild(option);
+                });
+                
+                if (currentValue) select.value = currentValue;
+            });
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('imagePreview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function previewUrl(url) {
+            if (url) {
+                document.getElementById('previewImg').src = url;
+                document.getElementById('imagePreview').classList.remove('hidden');
+            }
+        }
+
+        function previewEditImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('editPreviewImg').src = e.target.result;
+                    document.getElementById('editImagePreview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function previewEditUrl(url) {
+            if (url) {
+                document.getElementById('editPreviewImg').src = url;
+                document.getElementById('editImagePreview').classList.remove('hidden');
+            }
+        }
+
+        async function saveProduct() {
+            if (!requireAdmin()) return;
+
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            
+            showSyncStatus('Saving to cloud...', 'syncing');
+
+            try {
+                const categoryId = document.getElementById('prodCategory').value;
+                const category = categories.find(c => c.id === categoryId);
+                
+                let imageUrl = document.getElementById('previewImg').src;
+                
+                // Handle file upload if present
+                const fileInput = document.getElementById('prodImageFile');
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const storageRef = storage.ref(`products/${Date.now()}_${file.name}`);
+                    await storageRef.put(file);
+                    imageUrl = await storageRef.getDownloadURL();
+                }
+
+                const newProduct = {
+                    name: document.getElementById('prodName').value,
+                    price: parseInt(document.getElementById('prodPrice').value),
+                    oldPrice: parseInt(document.getElementById('prodOldPrice').value) || null,
+                    unit: document.getElementById('prodUnit').value,
+                    category: categoryId,
+                    badge: document.getElementById('prodBadge').value,
+                    description: document.getElementById('prodDesc').value,
+                    popular: document.getElementById('prodPopular').checked,
+                    inStock: document.getElementById('prodStock').checked,
+                    image: imageUrl || category?.defaultProductImage || 'https://via.placeholder.com/400',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('products').add(newProduct);
+                
+                showSyncStatus('Product saved! Synced to cloud.', 'success');
+                resetForm();
+                
+            } catch (error) {
+                console.error('Error saving product:', error);
+                showSyncStatus('Error saving product', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Product';
+            }
+        }
+
+        function renderProductsList(filtered = products) {
+            const container = document.getElementById('productsList');
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">No products found. Add your first product!</p>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const cat = categories.find(c => c.id === p.category);
+                const badgeHtml = p.badge ? `
+                    <span class="inline-block px-2 py-0.5 ${p.badge === 'sale' ? 'bg-orange-100 text-orange-600' : p.badge === 'new' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'} text-xs rounded-full font-medium">
+                        ${p.badge}
+                    </span>
+                ` : '';
+                
+                return `
+                    <div class="flex items-center gap-4 p-4 bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition shadow-sm border border-gray-100">
+                        <img src="${p.image}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0 shadow-md" onerror="this.src='${cat?.defaultProductImage || 'https://via.placeholder.com/400'}'">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-gray-900 truncate">${p.name}</h4>
+                            <p class="text-sm text-gray-500">KSh ${p.price} ${p.oldPrice ? `<span class="line-through text-gray-400">KSh ${p.oldPrice}</span>` : ''} • ${cat?.name || p.category}</p>
+                            <div class="flex gap-2 mt-1">${badgeHtml}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editProduct('${p.id}')" class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center justify-center transition shadow-sm" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 flex items-center justify-center transition shadow-sm" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editProduct(id) {
+            if (!requireAdmin()) return;
+
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            editingId = id;
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editPrice').value = product.price;
+            document.getElementById('editOldPrice').value = product.oldPrice || '';
+            document.getElementById('editUnit').value = product.unit || '';
+            document.getElementById('editCategory').value = product.category;
+            document.getElementById('editBadge').value = product.badge || '';
+            document.getElementById('editDesc').value = product.description || '';
+            document.getElementById('editPopular').checked = product.popular || false;
+            document.getElementById('editStock').checked = product.inStock !== false;
+            
+            if (product.image) {
+                document.getElementById('editPreviewImg').src = product.image;
+                document.getElementById('editImagePreview').classList.remove('hidden');
+                document.getElementById('editImageUrl').value = product.image;
+            } else {
+                document.getElementById('editImagePreview').classList.add('hidden');
+                document.getElementById('editImageUrl').value = '';
+            }
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function updateProduct() {
+            if (!requireAdmin()) return;
+
+            const updateBtn = document.getElementById('updateBtn');
+            updateBtn.disabled = true;
+            updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+            
+            showSyncStatus('Updating product...', 'syncing');
+
+            try {
+                let newImage = document.getElementById('editPreviewImg').src;
+                
+                // Handle new file upload if present
+                const fileInput = document.getElementById('editImageFile');
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const storageRef = storage.ref(`products/${Date.now()}_${file.name}`);
+                    await storageRef.put(file);
+                    newImage = await storageRef.getDownloadURL();
+                }
+
+                const updatedData = {
+                    name: document.getElementById('editName').value,
+                    price: parseInt(document.getElementById('editPrice').value),
+                    oldPrice: parseInt(document.getElementById('editOldPrice').value) || null,
+                    unit: document.getElementById('editUnit').value,
+                    category: document.getElementById('editCategory').value,
+                    badge: document.getElementById('editBadge').value,
+                    description: document.getElementById('editDesc').value,
+                    popular: document.getElementById('editPopular').checked,
+                    inStock: document.getElementById('editStock').checked,
+                    image: newImage,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('products').doc(editingId).update(updatedData);
+                
+                showSyncStatus('Product updated successfully!', 'success');
+                closeEditModal();
+                
+            } catch (error) {
+                console.error('Error updating product:', error);
+                showSyncStatus('Error updating product', 'error');
+            } finally {
+                updateBtn.disabled = false;
+                updateBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Update Product';
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingId = null;
+            document.getElementById('editForm').reset();
+            document.getElementById('editImagePreview').classList.add('hidden');
+        }
+
+        async function deleteProduct(id) {
+            if (!requireAdmin()) return;
+            if (!confirm('⚠️ Are you sure you want to delete this product?')) return;
+            
+            showSyncStatus('Deleting...', 'syncing');
+            
+            try {
+                await db.collection('products').doc(id).delete();
+                showSyncStatus('Product deleted', 'success');
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                showSyncStatus('Error deleting product', 'error');
+            }
+        }
+
+        function filterProducts() {
+            const cat = document.getElementById('filterCategory').value;
+            const filtered = cat ? products.filter(p => p.category === cat) : products;
+            renderProductsList(filtered);
+        }
+
+        function searchProductsList() {
+            const query = document.getElementById('searchProducts').value.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+            renderProductsList(filtered);
+        }
+
+        function resetForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('previewImg').src = '';
+        }
+
+        // ============================================
+        // IMPORT/EXPORT FUNCTIONS
+        // ============================================
+
+        function exportJSON() {
+            if (!requireAdmin()) return;
+
+            const data = {
+                storeInfo: {
+                    name: "Lwandeti Junction Minimart",
+                    phone: "0117 352700",
+                    whatsapp: "254117352700",
+                    email: "junctionsupa@gmail.com",
+                    address: "Lwandeti Junction, Kenya",
+                    hours: "7:00 AM - 9:00 PM",
+                    currency: "KSh"
+                },
+                categories: categories,
+                products: products,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lwandeti-products-backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showSyncStatus('Database exported!', 'success');
+        }
+
+        function importJSON() {
+            if (!requireAdmin()) return;
+            document.getElementById('importFile').click();
+        }
+
+        async function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showSyncStatus('Importing data...', 'syncing');
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.products && Array.isArray(data.products)) {
+                        const batch = db.batch();
+                        
+                        data.products.forEach(product => {
+                            const ref = db.collection('products').doc();
+                            batch.set(ref, {
+                                ...product,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+                        
+                        await batch.commit();
+                        showSyncStatus(`Imported ${data.products.length} products!`, 'success');
+                    }
+                    
+                } catch (err) {
+                    console.error('Import error:', err);
+                    showSyncStatus('Error importing file', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        async function seedFromJSON() {
+            if (!confirm('This will add all products from products.json to the database. Continue?')) return;
+            
+            showSyncStatus('Seeding database...', 'syncing');
+            
+            try {
+                // Fetch products.json
+                const response = await fetch('products.json');
+                const data = await response.json();
+                
+                const batch = db.batch();
+                
+                // Seed categories if empty
+                const catsSnapshot = await db.collection('categories').get();
+                if (catsSnapshot.empty) {
+                    data.categories.forEach(cat => {
+                        const ref = db.collection('categories').doc(cat.id);
+                        batch.set(ref, cat);
+                    });
+                }
+                
+                // Seed products
+                data.products.forEach(product => {
+                    const ref = db.collection('products').doc(product.id.toString());
+                    batch.set(ref, {
+                        ...product,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                
+                await batch.commit();
+                showSyncStatus(`Seeded ${data.products.length} products!`, 'success');
+                
+            } catch (error) {
+                console.error('Seeding error:', error);
+                showSyncStatus('Error seeding database', 'error');
+            }
+        }
+
+        function showSyncStatus(message, type) {
+            const status = document.getElementById('syncStatus');
+            status.className = `sync-status ${type}`;
+            status.innerHTML = type === 'syncing' 
+                ? `<i class="fas fa-circle-notch fa-spin mr-2"></i><span>${message}</span>`
+                : `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation-circle'} mr-2"></i><span>${message}</span>`;
+            
+            status.classList.add('show');
+            
+            if (type !== 'syncing') {
+                setTimeout(() => status.classList.remove('show'), 3000);
+            }
+        }
+
+        // Security observer
+        document.addEventListener('DOMContentLoaded', function() {
+            const editModal = document.getElementById('editModal');
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (!editModal.classList.contains('hidden') && !isAdmin()) {
+                            editModal.classList.add('hidden');
+                            alert('🔒 Unauthorized access attempt detected.');
+                            logout();
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(editModal, { attributes: true });
+        });
+    </script>
+</body>
+</html>
