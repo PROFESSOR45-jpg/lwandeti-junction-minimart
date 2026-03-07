@@ -384,16 +384,17 @@
 
     <script>
         // ============================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION - UPDATED WITH YOUR CREDENTIALS
         // ============================================
         
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
+            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
             projectId: "lwandeti-junction-minimart",
-            storageBucket: "lwandeti-junction-minimart.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
+            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+            messagingSenderId: "282672112956",
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
+            measurementId: "G-C3RV1N7D2N"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -438,11 +439,9 @@
         });
 
         async function initializeCategories() {
-            // Check if categories exist in Firestore
             const catsSnapshot = await db.collection('categories').get();
             
             if (catsSnapshot.empty) {
-                // Seed categories
                 const batch = db.batch();
                 defaultCategories.forEach(cat => {
                     const ref = db.collection('categories').doc(cat.id);
@@ -592,7 +591,6 @@
                 
                 let imageUrl = document.getElementById('previewImg').src;
                 
-                // Handle file upload if present
                 const fileInput = document.getElementById('prodImageFile');
                 if (fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
@@ -709,7 +707,6 @@
             try {
                 let newImage = document.getElementById('editPreviewImg').src;
                 
-                // Handle new file upload if present
                 const fileInput = document.getElementById('editImageFile');
                 if (fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
@@ -866,13 +863,11 @@
             showSyncStatus('Seeding database...', 'syncing');
             
             try {
-                // Fetch products.json
                 const response = await fetch('products.json');
                 const data = await response.json();
                 
                 const batch = db.batch();
                 
-                // Seed categories if empty
                 const catsSnapshot = await db.collection('categories').get();
                 if (catsSnapshot.empty) {
                     data.categories.forEach(cat => {
@@ -881,7 +876,6 @@
                     });
                 }
                 
-                // Seed products
                 data.products.forEach(product => {
                     const ref = db.collection('products').doc(product.id.toString());
                     batch.set(ref, {
