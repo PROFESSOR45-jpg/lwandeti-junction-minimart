@@ -77,20 +77,6 @@ firebase deploy
 2. Enable GitHub Pages in repository settings
 3. Site will be live at `username.github.io/repo-name`
 
-## 🔐 Admin Access
-
-- **URL**: `your-site.com/admin.html`
-- **Password**: `admin123`
-- **Hidden Link**: Bottom-right corner of homepage (invisible dot)
-
-## 📱 How It Works
-
-### Adding Products (Admin)
-1. Login to admin panel
-2. Fill product form (name, price, category, image)
-3. Click "Save Product"
-4. Product appears instantly on homepage
-
 ### Real-time Updates
 - Admin adds/edits/deletes product → Homepage updates automatically
 - No page refresh needed
@@ -149,12 +135,6 @@ Edit in `admin.html` and `index.html`:
 - Phone: `0117 352700`
 - WhatsApp: `254117352700`
 - Email: `junctionsupa@gmail.com`
-
-### Change Admin Password
-In `admin.html`, find:
-```javascript
-const ADMIN_PASSWORD = 'admin123';
-```
 
 ### Add/Edit Categories
 Modify the `defaultCategories` array in `admin.html`
