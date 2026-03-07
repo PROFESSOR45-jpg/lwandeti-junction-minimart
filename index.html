@@ -285,17 +285,17 @@
 
     <script>
         // ============================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION - UPDATED WITH YOUR CREDENTIALS
         // ============================================
         
-        // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
+            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
             projectId: "lwandeti-junction-minimart",
-            storageBucket: "lwandeti-junction-minimart.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
+            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+            messagingSenderId: "282672112956",
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
+            measurementId: "G-C3RV1N7D2N"
         };
 
         // Initialize Firebase
@@ -354,29 +354,32 @@
         }
 
         async function seedDatabaseFromJSON() {
-            // This will be populated with your products.json data
-            const initialProducts = []; // Will be filled from products.json
-            const initialCategories = []; // Will be filled from products.json
-            
-            // Batch write products
-            const batch = db.batch();
-            
-            initialProducts.forEach(product => {
-                const ref = db.collection('products').doc(product.id.toString());
-                batch.set(ref, {
-                    ...product,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            try {
+                const response = await fetch('products.json');
+                const data = await response.json();
+                
+                // Batch write categories
+                const batch = db.batch();
+                
+                data.categories.forEach(category => {
+                    const ref = db.collection('categories').doc(category.id);
+                    batch.set(ref, category);
                 });
-            });
-            
-            initialCategories.forEach(category => {
-                const ref = db.collection('categories').doc(category.id);
-                batch.set(ref, category);
-            });
-            
-            await batch.commit();
-            console.log('✅ Database seeded successfully');
+                
+                data.products.forEach(product => {
+                    const ref = db.collection('products').doc(product.id.toString());
+                    batch.set(ref, {
+                        ...product,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                
+                await batch.commit();
+                console.log('✅ Database seeded successfully');
+            } catch (error) {
+                console.error('Seeding error:', error);
+            }
         }
 
         function startRealtimeListeners() {
@@ -421,7 +424,6 @@
             indicator.style.background = 'rgba(16, 185, 129, 0.9)';
             setTimeout(() => {
                 indicator.classList.remove('show');
-                // Reset to default state
                 setTimeout(() => {
                     indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i><span>Syncing database...</span>';
                     indicator.style.background = 'rgba(16, 185, 129, 0.9)';
@@ -430,7 +432,6 @@
         }
 
         function loadFromLocalFallback() {
-            // Fallback to localStorage if Firebase fails
             const savedCats = localStorage.getItem('lwandeti_categories_db');
             const savedProducts = localStorage.getItem('lwandeti_products_db');
             
@@ -456,7 +457,6 @@
             updateCartUI();
         });
 
-        // Cleanup listeners on page unload
         window.addEventListener('beforeunload', () => {
             if (unsubscribeProducts) unsubscribeProducts();
             if (unsubscribeCategories) unsubscribeCategories();
@@ -538,7 +538,7 @@
             `;
 
             footerCats.innerHTML = storeData.categories.slice(0, 5).map(c => `
-                <li><button onclick="router('products', {category: '${c.id}'})" class="text-gray-400 hover:text-white transition">${c.name}</button></li>
+                <li><button onclick="router('products', {category: '${c.id}'}" class="text-gray-400 hover:text-white transition">${c.name}</button></li>
             `).join('');
         }
 
@@ -604,7 +604,7 @@
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                             ${storeData.categories.map(cat => `
-                                <button onclick="router('products', {category: '${cat.id}'})" class="group bg-gradient-to-br ${cat.color} rounded-2xl p-6 text-white text-center shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                                <button onclick="router('products', {category: '${cat.id}'}" class="group bg-gradient-to-br ${cat.color} rounded-2xl p-6 text-white text-center shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-110 transition">
                                         <i class="fas ${cat.icon}"></i>
                                     </div>
