@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK v9 Compat (for browser direct usage) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
@@ -54,6 +54,7 @@
             backdrop-filter: blur(10px);
         }
         .sync-indicator.show { display: flex; animation: slideIn 0.3s ease; }
+        .sync-indicator.error { background: rgba(239, 68, 68, 0.9); }
         @keyframes slideIn {
             from { transform: translateX(100px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -68,9 +69,27 @@
             animation: spin 1s ease-in-out infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .offline-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f59e0b;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            z-index: 1000;
+            display: none;
+            font-weight: 600;
+        }
+        .offline-banner.show { display: block; }
     </style>
 </head>
 <body class="bg-gray-50">
+    <!-- Offline Indicator -->
+    <div id="offlineBanner" class="offline-banner">
+        <i class="fas fa-wifi-slash mr-2"></i> You are offline. Using cached data.
+    </div>
 
     <!-- Database Sync Indicator -->
     <div id="syncIndicator" class="sync-indicator shadow-lg">
@@ -285,7 +304,7 @@
 
     <script>
         // ============================================
-        // FIREBASE CONFIGURATION - UPDATED WITH YOUR CREDENTIALS
+        // FIREBASE CONFIGURATION - YOUR CREDENTIALS
         // ============================================
         
         const firebaseConfig = {
@@ -298,9 +317,19 @@
             measurementId: "G-C3RV1N7D2N"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase using compat SDK (global firebase object)
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        // Enable offline persistence (optional but recommended)
+        db.enablePersistence({ synchronizeTabs: true })
+            .catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code == 'unimplemented') {
+                    console.log('Browser does not support offline persistence');
+                }
+            });
 
         // ============================================
         // GLOBAL STATE
@@ -323,6 +352,24 @@
         let searchQuery = '';
         let unsubscribeProducts = null;
         let unsubscribeCategories = null;
+        let isOnline = navigator.onLine;
+
+        // ============================================
+        // NETWORK STATUS MONITORING
+        // ============================================
+
+        window.addEventListener('online', () => {
+            isOnline = true;
+            document.getElementById('offlineBanner').classList.remove('show');
+            showToast('Back online! Syncing data...');
+            initializeDatabase(); // Reconnect to Firestore
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            document.getElementById('offlineBanner').classList.add('show');
+            showToast('You are offline. Using cached data.');
+        });
 
         // ============================================
         // FIREBASE DATABASE FUNCTIONS
@@ -331,16 +378,19 @@
         async function initializeDatabase() {
             const indicator = document.getElementById('syncIndicator');
             indicator.classList.add('show');
+            indicator.classList.remove('error');
             indicator.querySelector('span').textContent = 'Connecting to cloud...';
 
             try {
-                // Check if products collection exists and has data
-                const productsSnapshot = await db.collection('products').limit(1).get();
+                // Check if we have cached data first
+                const cachedCats = localStorage.getItem('lwandeti_categories_db');
+                const cachedProducts = localStorage.getItem('lwandeti_products_db');
                 
-                if (productsSnapshot.empty) {
-                    // First time setup - load from products.json
-                    indicator.querySelector('span').textContent = 'Initializing database...';
-                    await seedDatabaseFromJSON();
+                if (cachedCats && cachedProducts) {
+                    storeData.categories = JSON.parse(cachedCats);
+                    storeData.products = JSON.parse(cachedProducts);
+                    renderNavigation();
+                    router('home');
                 }
 
                 // Start real-time listeners
@@ -348,56 +398,14 @@
                 
             } catch (error) {
                 console.error('Database initialization error:', error);
-                showToast('⚠️ Using offline mode');
-                loadFromLocalFallback();
-            }
-        }
-
-        async function seedDatabaseFromJSON() {
-            try {
-                const response = await fetch('products.json');
-                const data = await response.json();
-                
-                // Batch write categories
-                const batch = db.batch();
-                
-                data.categories.forEach(category => {
-                    const ref = db.collection('categories').doc(category.id);
-                    batch.set(ref, category);
-                });
-                
-                data.products.forEach(product => {
-                    const ref = db.collection('products').doc(product.id.toString());
-                    batch.set(ref, {
-                        ...product,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
-                
-                await batch.commit();
-                console.log('✅ Database seeded successfully');
-            } catch (error) {
-                console.error('Seeding error:', error);
+                showSyncError('Connection failed. Using offline mode.');
+                if (!storeData.categories.length) {
+                    loadFromLocalFallback();
+                }
             }
         }
 
         function startRealtimeListeners() {
-            // Listen to products
-            unsubscribeProducts = db.collection('products')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot((snapshot) => {
-                    storeData.products = [];
-                    snapshot.forEach((doc) => {
-                        storeData.products.push({ id: doc.id, ...doc.data() });
-                    });
-                    updateCategoryCounts();
-                    refreshCurrentView();
-                    showSyncComplete();
-                }, (error) => {
-                    console.error('Products listener error:', error);
-                });
-
             // Listen to categories
             unsubscribeCategories = db.collection('categories')
                 .onSnapshot((snapshot) => {
@@ -405,10 +413,43 @@
                     snapshot.forEach((doc) => {
                         storeData.categories.push({ id: doc.id, ...doc.data() });
                     });
+                    
+                    // Cache locally
+                    localStorage.setItem('lwandeti_categories_db', JSON.stringify(storeData.categories));
+                    
                     renderNavigation();
+                    updateCategoryCounts();
                     refreshCurrentView();
                 }, (error) => {
                     console.error('Categories listener error:', error);
+                    showSyncError('Sync error');
+                });
+
+            // Listen to products
+            unsubscribeProducts = db.collection('products')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    storeData.products = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        storeData.products.push({ 
+                            id: doc.id, 
+                            ...data,
+                            // Ensure price is number
+                            price: Number(data.price) || 0,
+                            oldPrice: data.oldPrice ? Number(data.oldPrice) : null
+                        });
+                    });
+                    
+                    // Cache locally
+                    localStorage.setItem('lwandeti_products_db', JSON.stringify(storeData.products));
+                    
+                    updateCategoryCounts();
+                    refreshCurrentView();
+                    showSyncComplete();
+                }, (error) => {
+                    console.error('Products listener error:', error);
+                    showSyncError('Products sync failed');
                 });
         }
 
@@ -416,6 +457,8 @@
             storeData.categories.forEach(cat => {
                 cat.count = storeData.products.filter(p => p.category === cat.id).length;
             });
+            // Update cache with counts
+            localStorage.setItem('lwandeti_categories_db', JSON.stringify(storeData.categories));
         }
 
         function showSyncComplete() {
@@ -431,6 +474,15 @@
             }, 1500);
         }
 
+        function showSyncError(message) {
+            const indicator = document.getElementById('syncIndicator');
+            indicator.classList.add('error');
+            indicator.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${message}</span>`;
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
         function loadFromLocalFallback() {
             const savedCats = localStorage.getItem('lwandeti_categories_db');
             const savedProducts = localStorage.getItem('lwandeti_products_db');
@@ -438,8 +490,13 @@
             if (savedCats) storeData.categories = JSON.parse(savedCats);
             if (savedProducts) storeData.products = JSON.parse(savedProducts);
             
-            renderNavigation();
-            router('home');
+            if (storeData.categories.length || storeData.products.length) {
+                renderNavigation();
+                router('home');
+                showToast('Loaded from local cache');
+            } else {
+                showToast('No data available. Please check connection.');
+            }
         }
 
         function refreshCurrentView() {
@@ -453,6 +510,10 @@
         // ============================================
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Check initial online status
+            if (!navigator.onLine) {
+                document.getElementById('offlineBanner').classList.add('show');
+            }
             initializeDatabase();
             updateCartUI();
         });
@@ -538,7 +599,7 @@
             `;
 
             footerCats.innerHTML = storeData.categories.slice(0, 5).map(c => `
-                <li><button onclick="router('products', {category: '${c.id}'}" class="text-gray-400 hover:text-white transition">${c.name}</button></li>
+                <li><button onclick="router('products', {category: '${c.id}'})" class="text-gray-400 hover:text-white transition">${c.name}</button></li>
             `).join('');
         }
 
@@ -604,12 +665,12 @@
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                             ${storeData.categories.map(cat => `
-                                <button onclick="router('products', {category: '${cat.id}'}" class="group bg-gradient-to-br ${cat.color} rounded-2xl p-6 text-white text-center shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                                <button onclick="router('products', {category: '${cat.id}'})" class="group bg-gradient-to-br ${cat.color} rounded-2xl p-6 text-white text-center shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-110 transition">
                                         <i class="fas ${cat.icon}"></i>
                                     </div>
                                     <h3 class="font-bold text-xl mb-2">${cat.name}</h3>
-                                    <p class="text-white/80 text-sm">${cat.count} Products</p>
+                                    <p class="text-white/80 text-sm">${cat.count || 0} Products</p>
                                 </button>
                             `).join('')}
                         </div>
@@ -766,7 +827,7 @@
                                 <span class="text-emerald-600 font-bold text-xl">KSh ${product.price}</span>
                                 ${oldPrice}
                             </div>
-                            <span class="text-xs text-gray-500">${product.unit}</span>
+                            <span class="text-xs text-gray-500">${product.unit || 'each'}</span>
                         </div>
                         <button onclick="addToCart('${product.id}')" class="w-full bg-gray-100 hover:bg-emerald-600 hover:text-white text-gray-900 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 text-sm">
                             <i class="fas fa-cart-plus"></i> Add to Cart
@@ -821,10 +882,10 @@
                             </div>
                             <div class="bg-white rounded-2xl p-8 shadow-sm">
                                 <h2 class="text-2xl font-bold mb-8">Send Message</h2>
-                                <form onsubmit="event.preventDefault(); showToast('Message sent!'); this.reset();" class="space-y-6">
-                                    <input type="text" placeholder="Your Name" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <input type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <textarea placeholder="Message" required rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none"></textarea>
+                                <form onsubmit="event.preventDefault(); submitContactForm(this);" class="space-y-6">
+                                    <input type="text" name="name" placeholder="Your Name" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
+                                    <input type="email" name="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
+                                    <textarea name="message" placeholder="Message" required rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none"></textarea>
                                     <button type="submit" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition">
                                         Send Message
                                     </button>
@@ -834,6 +895,24 @@
                     </div>
                 </section>
             `;
+        }
+
+        async function submitContactForm(form) {
+            const formData = {
+                name: form.name.value,
+                email: form.email.value,
+                message: form.message.value,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            try {
+                await db.collection('messages').add(formData);
+                showToast('Message sent successfully!');
+                form.reset();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('Failed to send message. Please try again.');
+            }
         }
 
         function renderAbout() {
@@ -990,10 +1069,10 @@
                         <h4 class="font-semibold text-gray-900 text-sm line-clamp-2">${item.name}</h4>
                         <p class="text-emerald-600 font-bold">KSh ${item.price}</p>
                         <div class="flex items-center gap-2 mt-2">
-                            <button onclick="updateQuantity('${item.id}', -1)" class="w-8 h-8 rounded bg-white border border-gray-200">-</button>
-                            <span class="w-8 text-center">${item.quantity}</span>
-                            <button onclick="updateQuantity('${item.id}', 1)" class="w-8 h-8 rounded bg-white border border-gray-200">+</button>
-                            <button onclick="removeFromCart('${item.id}')" class="ml-auto text-red-500"><i class="fas fa-trash"></i></button>
+                            <button onclick="updateQuantity('${item.id}', -1)" class="w-8 h-8 rounded bg-white border border-gray-200 hover:bg-gray-100">-</button>
+                            <span class="w-8 text-center font-semibold">${item.quantity}</span>
+                            <button onclick="updateQuantity('${item.id}', 1)" class="w-8 h-8 rounded bg-white border border-gray-200 hover:bg-gray-100">+</button>
+                            <button onclick="removeFromCart('${item.id}')" class="ml-auto text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 </div>
@@ -1010,6 +1089,7 @@
             if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 overlay.classList.add('hidden');
+                setTimeout(() => overlay.classList.add('opacity-0'), 300);
             } else {
                 sidebar.classList.add('open');
                 overlay.classList.remove('hidden');
