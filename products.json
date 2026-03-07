@@ -1,9 +1,0 @@
-
-# Save the products.json file directly from the uploaded content
-import shutil
-
-# Copy the uploaded file to output
-shutil.copy('/mnt/kimi/upload/products.json', '/mnt/kimi/output/products.json')
-
-print("✅ products.json copied successfully")
-print("📄 This file contains your initial product data for seeding the database")
