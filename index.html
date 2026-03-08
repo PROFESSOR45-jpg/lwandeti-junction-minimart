@@ -21,7 +21,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.5s ease; }
         
-        /* Hero Section Styling */
         .hero-bg {
             background-image: url('https://files.catbox.moe/4ika9g.jpg');
             background-size: cover; 
@@ -39,7 +38,6 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* Indicators */
         .sync-indicator {
             position: fixed; top: 80px; right: 20px; background: #10b981; color: white;
             padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 100;
@@ -111,7 +109,7 @@
         
         <nav class="bg-emerald-600 text-white overflow-x-auto whitespace-nowrap">
             <div class="container mx-auto px-4 flex items-center" id="desktopNav">
-                </div>
+            </div>
         </nav>
     </header>
 
@@ -154,7 +152,7 @@
                 <div>
                     <h4 class="font-bold mb-4 text-white">Quick Links</h4>
                     <ul class="text-gray-400 text-sm space-y-2" id="footerCats">
-                        </ul>
+                    </ul>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-white">Service Hours</h4>
@@ -194,14 +192,12 @@
 
         // --- INITIALIZATION ---
         function init() {
-            // Listen to Categories
             db.collection('categories').onSnapshot(snap => {
                 storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderNavigation();
                 if(currentRoute === 'home') router('home');
             });
 
-            // Listen to Products
             db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
                 storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 const sync = document.getElementById('syncIndicator');
@@ -223,8 +219,12 @@
                 </button>
             `).join('');
 
-            nav.innerHTML = `<button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>` + catsHtml;
-            foot.innerHTML = storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
+            nav.innerHTML = `
+                <button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>
+                <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All Products</button>
+            ` + catsHtml;
+
+            foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
         }
 
         function router(route, param = null) {
@@ -234,6 +234,8 @@
 
             if(route === 'home') {
                 app.innerHTML = renderHome();
+            } else if (route === 'all') {
+                app.innerHTML = renderAllProductsView();
             } else if (route === 'category') {
                 app.innerHTML = renderCategoryView(param);
             } else if (route === 'search') {
@@ -254,7 +256,7 @@
                             <h1 class="text-5xl md:text-7xl font-extrabold mb-6 text-shadow">LWANDETI JUNCTION<br><span class="text-yellow-400">MINIMART</span></h1>
                             <p class="text-xl mb-10 max-w-2xl mx-auto text-gray-100">Your number one stop for quality groceries and household essentials. Shop online and pick up at the junction!</p>
                             <div class="flex flex-wrap justify-center gap-4">
-                                <button onclick="window.scrollTo(0, 800)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full font-bold shadow-xl transition transform hover:scale-105">Start Shopping</button>
+                                <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full font-bold shadow-xl transition transform hover:scale-105">View All Products</button>
                                 <a href="https://wa.me/254117352700" class="bg-white/20 backdrop-blur px-8 py-4 rounded-full font-bold border border-white/30 hover:bg-white/30 transition">Contact Us</a>
                             </div>
                         </div>
@@ -268,6 +270,9 @@
                         </h2>
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                             ${featured.map(p => renderProductCard(p)).join('')}
+                        </div>
+                        <div class="mt-12">
+                            <button onclick="router('all')" class="bg-gray-100 hover:bg-gray-200 text-emerald-800 font-bold px-8 py-3 rounded-full transition">See Everything We Have <i class="fas fa-arrow-right ml-2"></i></button>
                         </div>
                     </div>
                 </section>
@@ -294,6 +299,25 @@
                         </div>
                     </div>
                 </section>
+            `;
+        }
+
+        function renderAllProductsView() {
+            return `
+                <div class="container mx-auto px-4 py-12">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b pb-6">
+                        <h2 class="text-3xl font-bold text-gray-800 uppercase tracking-tight">
+                            <i class="fas fa-store text-emerald-600 mr-2"></i>
+                            All Products
+                        </h2>
+                        <span class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full font-bold text-sm">
+                            ${storeData.products.length} Items found
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        ${storeData.products.map(p => renderProductCard(p)).join('')}
+                    </div>
+                </div>
             `;
         }
 
@@ -441,9 +465,7 @@
             `;
         }
 
-        // --- START APP ---
         init();
-
     </script>
 </body>
 </html>
