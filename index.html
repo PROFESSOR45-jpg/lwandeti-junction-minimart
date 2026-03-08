@@ -21,30 +21,55 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.5s ease; }
         
+        /* Hero Section Styling */
         .hero-bg {
             background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover; background-position: center; background-attachment: fixed;
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: fixed;
+            position: relative;
         }
-        .hero-overlay { background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(6, 78, 59, 0.7) 50%, rgba(217, 119, 6, 0.6) 100%); }
+        .hero-overlay { 
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(6, 78, 59, 0.7) 50%, rgba(217, 119, 6, 0.6) 100%); 
+        }
         .text-shadow { text-shadow: 2px 2px 8px rgba(0,0,0,0.5); }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Indicators */
         .sync-indicator {
             position: fixed; top: 80px; right: 20px; background: #10b981; color: white;
             padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 100;
-            display: none; align-items: center; gap: 6px;
+            display: none; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         .sync-indicator.show { display: flex; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100px); } to { transform: translateX(0); } }
+        
         .loading-spinner {
             width: 40px; height: 40px; border: 4px solid #f3f3f3;
             border-top: 4px solid #059669; border-radius: 50%; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .offline-banner {
+            position: fixed; top: 0; left: 0; right: 0; background: #f59e0b;
+            color: white; text-align: center; padding: 8px; z-index: 1000;
+            display: none; font-weight: 600;
+        }
+        .offline-banner.show { display: block; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <div id="syncIndicator" class="sync-indicator shadow-lg">
-        <i class="fas fa-sync-alt fa-spin"></i><span>Updating Shop...</span>
+    <div id="offlineBanner" class="offline-banner">
+        <i class="fas fa-wifi-slash mr-2"></i> You are offline. Using cached data.
+    </div>
+
+    <div id="syncIndicator" class="sync-indicator">
+        <i class="fas fa-sync-alt fa-spin"></i><span>Syncing Shop...</span>
     </div>
 
     <a href="admin.html" style="position: fixed; bottom: 0; right: 0; width: 20px; height: 20px; z-index: 999; opacity: 0;">.</a>
@@ -62,23 +87,30 @@
     <header class="sticky top-0 z-40 glass border-b shadow-sm">
         <div class="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
             <a href="#" onclick="router('home')" class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white"><i class="fas fa-store"></i></div>
-                <h1 class="text-xl font-bold text-emerald-900 hidden sm:block">LWANDETI JUNCTION</h1>
+                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-store text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-emerald-900 leading-none">LWANDETI JUNCTION</h1>
+                    <p class="text-[10px] text-emerald-600 font-bold tracking-widest mt-1">MINIMART</p>
+                </div>
             </a>
 
-            <div class="flex-1 max-w-md relative">
-                <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Search groceries..." class="w-full pl-10 pr-4 py-2 rounded-full border focus:ring-2 focus:ring-emerald-500 outline-none">
+            <div class="flex-1 max-w-md relative hidden md:block">
+                <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" placeholder="Search products..." class="w-full pl-10 pr-4 py-2 rounded-full border focus:ring-2 focus:ring-emerald-500 outline-none">
                 <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
             </div>
 
-            <button onclick="toggleCart()" class="relative p-2 text-gray-600">
-                <i class="fas fa-shopping-cart text-2xl"></i>
-                <span id="cartBadge" class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
-            </button>
+            <div class="flex items-center gap-6">
+                <button onclick="toggleCart()" class="relative p-2 text-gray-600 hover:text-emerald-600 transition">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
+                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                </button>
+            </div>
         </div>
         
         <nav class="bg-emerald-600 text-white overflow-x-auto whitespace-nowrap">
-            <div class="container mx-auto px-4 flex" id="categoryNav">
+            <div class="container mx-auto px-4 flex items-center" id="desktopNav">
                 </div>
         </nav>
     </header>
@@ -86,7 +118,7 @@
     <main id="app" class="min-h-screen">
         <div class="flex flex-col items-center justify-center min-h-[60vh]">
             <div class="loading-spinner"></div>
-            <p class="mt-4 text-gray-500 font-medium">Loading items from cloud...</p>
+            <p class="mt-4 text-gray-500 font-medium">Connecting to shop...</p>
         </div>
     </main>
 
@@ -102,8 +134,8 @@
                 <span>Total:</span>
                 <span id="cartTotal" class="text-emerald-700">KSh 0</span>
             </div>
-            <button onclick="checkout()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 flex items-center justify-center gap-2">
-                <i class="fab fa-whatsapp"></i> Complete via WhatsApp
+            <button onclick="checkout()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-lg transition">
+                <i class="fab fa-whatsapp text-xl"></i> Complete via WhatsApp
             </button>
         </div>
     </div>
@@ -111,6 +143,35 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 opacity-0 transition-all pointer-events-none">
         <span id="toastMsg">Added to cart!</span>
     </div>
+
+    <footer class="bg-gray-900 text-white pt-16 pb-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div class="col-span-1 md:col-span-1">
+                    <h3 class="text-xl font-bold text-emerald-400 mb-4 uppercase">Lwandeti Junction</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Your trusted neighborhood supermarket providing quality products at affordable prices right at the junction.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4 text-white">Quick Links</h4>
+                    <ul class="text-gray-400 text-sm space-y-2" id="footerCats">
+                        </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4 text-white">Service Hours</h4>
+                    <p class="text-gray-400 text-sm">Mon - Sat: 7:00 AM - 9:00 PM</p>
+                    <p class="text-gray-400 text-sm">Sun: 8:00 AM - 8:00 PM</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4 text-white">Contact Info</h4>
+                    <p class="text-gray-400 text-sm">Lwandeti Junction, Webuye-Eldoret Hwy</p>
+                    <p class="text-emerald-400 font-bold mt-2">0117 352700</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-xs text-gray-500">
+                &copy; 2026 Lwandeti Junction Minimart. All Rights Reserved.
+            </div>
+        </div>
+    </footer>
 
     <script>
         // --- FIREBASE SETUP ---
@@ -127,78 +188,151 @@
         const db = firebase.firestore();
 
         // --- STATE ---
-        let allProducts = [];
+        let storeData = { categories: [], products: [] };
         let cart = JSON.parse(localStorage.getItem('lwandeti_cart')) || [];
-        const categories = [
-            { id: 'all', name: 'All Items', icon: 'fa-border-all' },
-            { id: 'food_staples', name: 'Food Staples', icon: 'fa-wheat-awn' },
-            { id: 'beverages', name: 'Beverages', icon: 'fa-bottle-water' },
-            { id: 'personal_care', name: 'Hygiene', icon: 'fa-pump-soap' },
-            { id: 'household', name: 'Household', icon: 'fa-house-chimney' }
-        ];
+        let currentRoute = 'home';
 
-        // --- CORE LOGIC: REAL-TIME SYNC ---
-        function initApp() {
-            renderNav();
-            updateCartUI();
-            
-            // Listen to Firestore changes
-            db.collection('products').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Show "Update" indicator briefly
+        // --- INITIALIZATION ---
+        function init() {
+            // Listen to Categories
+            db.collection('categories').onSnapshot(snap => {
+                storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderNavigation();
+                if(currentRoute === 'home') router('home');
+            });
+
+            // Listen to Products
+            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
+                storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 const sync = document.getElementById('syncIndicator');
                 sync.classList.add('show');
                 setTimeout(() => sync.classList.remove('show'), 2000);
-                
-                router('home');
+                router(currentRoute);
             });
+
+            updateCartUI();
         }
 
-        function renderNav() {
-            const nav = document.getElementById('categoryNav');
-            nav.innerHTML = categories.map(c => `
-                <button onclick="filterByCategory('${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
-                    <i class="fas ${c.icon}"></i> ${c.name}
+        function renderNavigation() {
+            const nav = document.getElementById('desktopNav');
+            const foot = document.getElementById('footerCats');
+            
+            const catsHtml = storeData.categories.map(c => `
+                <button onclick="router('category', '${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
+                    <i class="fas ${c.icon || 'fa-tag'}"></i> ${c.name}
                 </button>
             `).join('');
+
+            nav.innerHTML = `<button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>` + catsHtml;
+            foot.innerHTML = storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
         }
 
-        function router(view, filter = 'all') {
+        function router(route, param = null) {
+            currentRoute = route;
             const app = document.getElementById('app');
-            let displayProducts = allProducts;
+            window.scrollTo(0,0);
 
-            if(filter !== 'all') {
-                displayProducts = allProducts.filter(p => p.category === filter);
+            if(route === 'home') {
+                app.innerHTML = renderHome();
+            } else if (route === 'category') {
+                app.innerHTML = renderCategoryView(param);
+            } else if (route === 'search') {
+                app.innerHTML = renderSearchView(param);
             }
+        }
 
-            app.innerHTML = `
-                <div class="container mx-auto px-4 py-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-shopping-basket text-emerald-600"></i>
-                        ${filter === 'all' ? 'Fresh Stock' : filter.replace('_', ' ')}
-                    </h2>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        ${displayProducts.map(p => `
-                            <div class="product-card bg-white rounded-xl overflow-hidden flex flex-col">
-                                <div class="h-40 bg-gray-100 relative">
-                                    <img src="${p.image || 'https://via.placeholder.com/300?text=Lwandeti'}" class="w-full h-full object-cover">
-                                    ${p.popular ? '<span class="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded">POPULAR</span>' : ''}
-                                </div>
-                                <div class="p-4 flex-1 flex flex-col">
-                                    <h3 class="font-bold text-gray-800 text-sm line-clamp-2 mb-2 uppercase">${p.name}</h3>
-                                    <div class="mt-auto">
-                                        <div class="flex items-baseline gap-1">
-                                            <span class="text-emerald-700 font-extrabold text-lg">KSh ${p.price}</span>
-                                            <span class="text-gray-400 text-[10px]">/${p.unit || 'pc'}</span>
-                                        </div>
-                                        <button onclick="addToCart('${p.id}')" class="w-full mt-3 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">
-                                            <i class="fas fa-cart-plus mr-1"></i> ADD TO CART
-                                        </button>
-                                    </div>
+        // --- RENDERERS ---
+        function renderHome() {
+            const featured = storeData.products.filter(p => p.popular).slice(0, 8);
+            
+            return `
+                <section class="hero-bg min-h-[85vh] flex items-center">
+                    <div class="hero-overlay absolute inset-0"></div>
+                    <div class="container mx-auto px-4 relative z-10 text-center text-white">
+                        <div class="animate-fade">
+                            <span class="bg-yellow-500 text-emerald-900 px-4 py-1 rounded-full font-bold text-xs uppercase mb-6 inline-block">Always Fresh, Always Low Prices</span>
+                            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 text-shadow">LWANDETI JUNCTION<br><span class="text-yellow-400">MINIMART</span></h1>
+                            <p class="text-xl mb-10 max-w-2xl mx-auto text-gray-100">Your number one stop for quality groceries and household essentials. Shop online and pick up at the junction!</p>
+                            <div class="flex flex-wrap justify-center gap-4">
+                                <button onclick="window.scrollTo(0, 800)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full font-bold shadow-xl transition transform hover:scale-105">Start Shopping</button>
+                                <a href="https://wa.me/254117352700" class="bg-white/20 backdrop-blur px-8 py-4 rounded-full font-bold border border-white/30 hover:bg-white/30 transition">Contact Us</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="py-16 bg-white">
+                    <div class="container mx-auto px-4 text-center">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-12 flex items-center justify-center gap-3">
+                            <i class="fas fa-fire text-orange-500"></i> Popular Right Now
+                        </h2>
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            ${featured.map(p => renderProductCard(p)).join('')}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="py-16 bg-emerald-50">
+                    <div class="container mx-auto px-4">
+                        <div class="grid md:grid-cols-2 gap-12 items-center">
+                            <div class="relative">
+                                <img src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=800" class="rounded-3xl shadow-2xl rotate-2">
+                                <div class="absolute -bottom-6 -right-6 bg-yellow-400 p-8 rounded-2xl shadow-xl hidden md:block">
+                                    <p class="text-emerald-900 font-black text-3xl">EST. 2024</p>
+                                    <p class="text-emerald-800 font-bold">Serving Lwandeti</p>
                                 </div>
                             </div>
-                        `).join('')}
+                            <div class="space-y-6">
+                                <h2 class="text-4xl font-bold text-emerald-900">Why shop at Lwandeti Junction?</h2>
+                                <p class="text-gray-600 leading-relaxed text-lg">We prioritize quality and hygiene. Every product on our shelves is carefully selected to ensure your family gets the best value and health.</p>
+                                <ul class="space-y-4">
+                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Fresh Daily Stock</li>
+                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Wholesale & Retail Prices</li>
+                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Easy WhatsApp Ordering</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+
+        function renderCategoryView(catId) {
+            const filtered = storeData.products.filter(p => p.category === catId);
+            const category = storeData.categories.find(c => c.id === catId);
+            
+            return `
+                <div class="container mx-auto px-4 py-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase tracking-tight">
+                        <i class="fas ${category?.icon || 'fa-shopping-basket'} text-emerald-600 mr-2"></i>
+                        ${category?.name || 'Products'}
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        ${filtered.map(p => renderProductCard(p)).join('')}
+                    </div>
+                    ${filtered.length === 0 ? '<div class="text-center py-20 text-gray-400">No items in this category yet.</div>' : ''}
+                </div>
+            `;
+        }
+
+        function renderProductCard(p) {
+            return `
+                <div class="product-card bg-white rounded-2xl overflow-hidden flex flex-col group">
+                    <div class="h-48 bg-gray-100 relative overflow-hidden">
+                        <img src="${p.image || 'https://via.placeholder.com/300?text=Lwandeti'}" class="w-full h-full object-cover transition-transform group-hover:scale-110">
+                        ${p.popular ? '<span class="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">POPULAR</span>' : ''}
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-1">${p.name}</h3>
+                        <div class="mt-auto">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-emerald-700 font-extrabold text-xl">KSh ${p.price}</span>
+                                <span class="text-gray-400 text-[10px]">/${p.unit || 'pc'}</span>
+                            </div>
+                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-3 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition flex items-center justify-center gap-2 text-xs">
+                                <i class="fas fa-cart-plus"></i> ADD TO CART
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -206,7 +340,7 @@
 
         // --- CART LOGIC ---
         function addToCart(id) {
-            const p = allProducts.find(item => item.id === id);
+            const p = storeData.products.find(item => item.id === id);
             const exists = cart.find(item => item.id === id);
             
             if(exists) {
@@ -236,16 +370,16 @@
                 total += (item.price * item.qty);
                 count += item.qty;
                 return `
-                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-lg">
-                        <img src="${item.image}" class="w-12 h-12 rounded object-cover">
+                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <img src="${item.image}" class="w-14 h-14 rounded-lg object-cover">
                         <div class="flex-1">
-                            <h4 class="text-xs font-bold uppercase">${item.name}</h4>
+                            <h4 class="text-xs font-bold uppercase truncate w-32">${item.name}</h4>
                             <p class="text-emerald-600 font-bold">KSh ${item.price}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 border rounded">-</button>
-                            <span class="text-sm font-bold">${item.qty}</span>
-                            <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 border rounded">+</button>
+                            <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 flex items-center justify-center border rounded-full bg-white">-</button>
+                            <span class="text-sm font-bold w-4 text-center">${item.qty}</span>
+                            <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 flex items-center justify-center border rounded-full bg-white">+</button>
                         </div>
                     </div>
                 `;
@@ -263,26 +397,9 @@
             saveCart();
         }
 
-        function handleSearch(val) {
-            const query = val.toLowerCase();
-            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
-            renderResults(filtered);
-        }
-
-        function renderResults(list) {
-            // Re-uses the router logic but for filtered list
-            router('home'); // Simple trigger
-        }
-
-        function filterByCategory(id) {
-            router('home', id);
-        }
-
         function toggleCart() {
-            const sidebar = document.getElementById('cartSidebar');
-            const overlay = document.getElementById('cartOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('hidden');
+            document.getElementById('cartSidebar').classList.toggle('open');
+            document.getElementById('cartOverlay').classList.toggle('hidden');
         }
 
         function showToast(msg) {
@@ -293,23 +410,40 @@
             setTimeout(() => {
                 t.style.opacity = '0';
                 t.style.transform = 'translate(-50%, 0)';
-            }, 2000);
+            }, 2500);
         }
 
         function checkout() {
             if(cart.length === 0) return alert("Your cart is empty!");
             
-            let text = `*New Order: Lwandeti Junction*%0A--------------------------%0A`;
-            cart.forEach(item => {
-                text += `• ${item.name} (x${item.qty}) - KSh ${item.price * item.qty}%0A`;
+            let text = `*ORDER FROM LWANDETI JUNCTION WEBSITE*%0A--------------------------%0A`;
+            cart.forEach((item, i) => {
+                text += `${i+1}. *${item.name}* (x${item.qty}) - KSh ${item.price * item.qty}%0A`;
             });
-            text += `--------------------------%0A*Total: ${document.getElementById('cartTotal').innerText}*`;
+            text += `--------------------------%0A*TOTAL: ${document.getElementById('cartTotal').innerText}*%0A%0A_Please confirm my order for collection._`;
             
             window.open(`https://wa.me/254117352700?text=${text}`);
         }
 
-        // --- START ---
-        initApp();
+        function handleSearch() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const results = storeData.products.filter(p => p.name.toLowerCase().includes(q));
+            
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="container mx-auto px-4 py-12">
+                    <h2 class="text-2xl font-bold mb-8 text-gray-800">Search Results for: "${q}"</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        ${results.map(p => renderProductCard(p)).join('')}
+                    </div>
+                    ${results.length === 0 ? '<div class="text-center py-20">No matching products found.</div>' : ''}
+                </div>
+            `;
+        }
+
+        // --- START APP ---
+        init();
+
     </script>
 </body>
 </html>
