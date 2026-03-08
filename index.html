@@ -51,7 +51,7 @@
 <body class="bg-gray-50">
 
     <div id="syncIndicator" class="sync-indicator">
-        <i class="fas fa-sync-alt fa-spin"></i><span>Syncing Shop...</span>
+        <i class="fas fa-sync-alt fa-spin"></i><span>Updating Shop Content...</span>
     </div>
 
     <div class="bg-emerald-900 text-white text-sm py-2">
@@ -77,7 +77,7 @@
             </a>
 
             <div class="flex-1 max-w-md relative hidden md:block">
-                <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" placeholder="Search products..." class="w-full pl-10 pr-4 py-2 rounded-full border focus:ring-2 focus:ring-emerald-500 outline-none">
+                <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" placeholder="Search products or categories..." class="w-full pl-10 pr-4 py-2 rounded-full border focus:ring-2 focus:ring-emerald-500 outline-none">
                 <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
             </div>
 
@@ -169,17 +169,17 @@
         let currentRoute = 'home';
         let currentParam = null;
 
-        // --- INITIALIZATION ---
+        // --- INITIALIZATION & AUTO-SYNC ---
         function init() {
-            // Fetch Categories
+            // SYNC CATEGORIES: Watch for additions/edits
             db.collection('categories').onSnapshot(snap => {
                 storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderNavigation();
-                // Refresh current view to update names/icons if they changed
-                router(currentRoute, currentParam);
+                // Refresh current view if we are on a category or searching
+                if(currentRoute !== 'home') router(currentRoute, currentParam);
             });
 
-            // Fetch Products
+            // SYNC PRODUCTS: Watch for new stock
             db.collection('products').onSnapshot(snap => {
                 storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 
@@ -197,19 +197,24 @@
             const nav = document.getElementById('desktopNav');
             const foot = document.getElementById('footerCats');
             
+            // This part creates the dynamic buttons for every category in the DB
             const catsHtml = storeData.categories.map(c => `
                 <button onclick="router('category', '${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
                     <i class="fas ${c.icon || 'fa-tag'}"></i> ${c.name}
                 </button>
             `).join('');
 
-            nav.innerHTML = `
-                <button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>
-                <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All</button>
-            ` + catsHtml;
+            if(nav) {
+                nav.innerHTML = `
+                    <button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>
+                    <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All</button>
+                ` + catsHtml;
+            }
 
-            foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + 
-                storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
+            if(foot) {
+                foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + 
+                    storeData.categories.slice(0,8).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
+            }
         }
 
         function router(route, param = null) {
@@ -240,7 +245,7 @@
                         <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 px-8 py-4 rounded-full font-bold shadow-xl transition">Shop Now</button>
                     </div>
                 </section>
-                <section class="py-16 container mx-auto px-4">
+                <section class="py-16 container mx-auto px-4 animate-fade">
                     <h2 class="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
                         <i class="fas fa-star text-yellow-500"></i> Popular Products
                     </h2>
@@ -253,7 +258,7 @@
 
         function renderAllProductsView() {
             return `
-                <div class="container mx-auto px-4 py-12">
+                <div class="container mx-auto px-4 py-12 animate-fade">
                     <h2 class="text-3xl font-bold mb-8 uppercase tracking-tight">All Products</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${storeData.products.map(p => renderProductCard(p)).join('')}
@@ -263,20 +268,26 @@
         }
 
         function renderCategoryView(catId) {
-            // CRITICAL: Ensure the product.category matches the category.id from Firestore
-            const filtered = storeData.products.filter(p => p.category === catId);
+            // Match product's category string to category document ID
+            const filtered = storeData.products.filter(p => String(p.category) === String(catId));
             const category = storeData.categories.find(c => c.id === catId);
             
             return `
-                <div class="container mx-auto px-4 py-12">
+                <div class="container mx-auto px-4 py-12 animate-fade">
                     <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase flex items-center gap-3">
                         <i class="fas ${category?.icon || 'fa-shopping-basket'} text-emerald-600"></i>
                         ${category?.name || 'Category'}
                     </h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        ${filtered.map(p => renderProductCard(p)).join('')}
-                    </div>
-                    ${filtered.length === 0 ? '<div class="text-center py-20 text-gray-400">Coming soon to this category!</div>' : ''}
+                    ${filtered.length > 0 ? `
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            ${filtered.map(p => renderProductCard(p)).join('')}
+                        </div>
+                    ` : `
+                        <div class="text-center py-20 text-gray-400">
+                            <i class="fas fa-box-open text-5xl mb-4"></i>
+                            <p>No products found in this category yet.</p>
+                        </div>
+                    `}
                 </div>
             `;
         }
@@ -285,7 +296,9 @@
             return `
                 <div class="product-card bg-white rounded-2xl overflow-hidden flex flex-col group">
                     <div class="h-48 bg-gray-100 relative">
-                        <img src="${p.image || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                        <img src="${p.image || 'https://via.placeholder.com/300'}" 
+                             onerror="this.src='https://via.placeholder.com/300?text=No+Image'"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                     </div>
                     <div class="p-4 flex-1 flex flex-col">
                         <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-2">${p.name}</h3>
@@ -300,9 +313,41 @@
             `;
         }
 
-        // --- CART & SEARCH UTILS ---
+        // --- ENHANCED SEARCH ---
+        function handleSearch() {
+            const input = document.getElementById('searchInput');
+            const q = input.value.trim().toLowerCase();
+            if(q) {
+                router('search', q);
+            }
+        }
+
+        function renderSearchView(q) {
+            // Searches by Name OR Category Name
+            const results = storeData.products.filter(p => {
+                const cat = storeData.categories.find(c => c.id === p.category);
+                const catName = cat ? cat.name.toLowerCase() : '';
+                return p.name.toLowerCase().includes(q) || catName.includes(q);
+            });
+
+            return `
+                <div class="container mx-auto px-4 py-12 animate-fade">
+                    <div class="flex justify-between items-center mb-8">
+                        <h2 class="text-2xl font-bold">Search results for "${q}"</h2>
+                        <button onclick="router('all')" class="text-emerald-600 font-bold">Show All</button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        ${results.map(p => renderProductCard(p)).join('')}
+                    </div>
+                    ${results.length === 0 ? '<div class="text-center py-20 text-gray-400">Nothing found matching that search.</div>' : ''}
+                </div>
+            `;
+        }
+
+        // --- CART UTILS ---
         function addToCart(id) {
             const p = storeData.products.find(item => item.id === id);
+            if(!p) return;
             const exists = cart.find(item => item.id === id);
             exists ? exists.qty++ : cart.push({ ...p, qty: 1 });
             saveCart();
@@ -319,6 +364,8 @@
             const badge = document.getElementById('cartBadge');
             const totalEl = document.getElementById('cartTotal');
             let total = 0, count = 0;
+
+            if(!itemsCont) return;
 
             itemsCont.innerHTML = cart.map(item => {
                 total += (item.price * item.qty);
@@ -362,23 +409,6 @@
             document.getElementById('toastMsg').innerText = msg;
             t.style.opacity = '1';
             setTimeout(() => t.style.opacity = '0', 2000);
-        }
-
-        function handleSearch() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            router('search', q);
-        }
-
-        function renderSearchView(q) {
-            const results = storeData.products.filter(p => p.name.toLowerCase().includes(q));
-            return `
-                <div class="container mx-auto px-4 py-12">
-                    <h2 class="text-2xl font-bold mb-8">Results for "${q}"</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        ${results.map(p => renderProductCard(p)).join('')}
-                    </div>
-                </div>
-            `;
         }
 
         function checkout() {
