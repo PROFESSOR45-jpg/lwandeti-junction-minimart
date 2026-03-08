@@ -6,16 +6,21 @@
     <title>Admin - Lwandeti Junction Minimart</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .preview-img { max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 8px; }
         .tab-btn.active { border-bottom: 3px solid #059669; color: #059669; }
-        .preview-img { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 8px; }
+        .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -26,52 +31,70 @@
     </div>
 
     <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-emerald-900 p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
-            <h1 class="text-2xl font-bold text-center mb-6">Admin Access</h1>
-            <input type="password" id="password" placeholder="Password" class="w-full px-5 py-4 rounded-2xl border-2 mb-4 outline-none focus:border-emerald-500">
-            <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold">Login</button>
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
+            <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Admin Login</h1>
+            <p class="text-sm text-gray-500 mb-6">Lwandeti Junction Minimart</p>
+            <input type="password" id="password" placeholder="Enter Password" class="w-full px-5 py-4 rounded-2xl border-2 mb-4 outline-none focus:border-emerald-500 transition-all">
+            <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 shadow-lg active:scale-95 transition-all">
+                Access Dashboard
+            </button>
         </div>
     </div>
 
     <div id="adminDashboard" class="hidden min-h-screen">
-        <header class="bg-emerald-800 text-white p-4 sticky top-0 z-40">
-            <div class="container mx-auto flex justify-between items-center">
-                <h1 class="font-bold">LWANDETI ADMIN</h1>
-                <button onclick="logout()" class="bg-red-500 p-2 rounded-lg"><i class="fas fa-lock"></i></button>
+        <header class="bg-emerald-800 text-white shadow-lg sticky top-0 z-40">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="font-bold tracking-tight">LWANDETI ADMIN</h1>
+                <div class="flex items-center gap-3">
+                    <button onclick="downloadPriceListPDF()" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition">
+                        <i class="fas fa-file-pdf text-red-400"></i> Export PDF
+                    </button>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition">
+                        <i class="fas fa-lock text-sm"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
         <div class="container mx-auto px-4 py-6">
-            <div class="flex gap-6 border-b mb-6 bg-white px-4 rounded-t-xl overflow-x-auto">
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-4 font-bold text-sm">Inventory</button>
-                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-4 font-bold text-sm">Category Manager</button>
+            <div class="flex gap-6 border-b mb-6 overflow-x-auto bg-white px-4 rounded-t-xl">
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-4 font-bold text-sm transition-all">Inventory</button>
+                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-4 font-bold text-sm transition-all">Categories & Subs</button>
+                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-4 font-bold text-sm transition-all">AI Mass Scanner</button>
             </div>
 
             <div id="view-inventory" class="tab-content">
                 <div class="grid lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-1">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-emerald-500">
-                            <h2 class="font-bold mb-4">Add New Product</h2>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-emerald-500 sticky top-24">
+                            <h2 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-plus text-emerald-600"></i> Add Product</h2>
                             <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
-                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-3 border rounded-xl text-sm">
+                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm outline-none focus:border-emerald-500">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="prodPrice" required placeholder="Price" class="w-full p-3 border rounded-xl text-sm">
-                                    <input type="text" id="prodUnit" required placeholder="Unit (kg, ml)" class="w-full p-3 border rounded-xl text-sm">
+                                    <input type="number" id="prodPrice" required placeholder="Retail Price" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm bg-emerald-50/50">
+                                    <input type="text" id="prodUnit" required placeholder="Unit (e.g. 1kg)" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
                                 </div>
-                                <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-3 border rounded-xl text-sm"></select>
-                                <select id="prodSubCategory" required class="w-full p-3 border rounded-xl text-sm">
-                                    <option value="">Select Sub-category</option>
-                                </select>
-                                <input type="url" id="prodImageUrl" placeholder="Image URL" class="w-full p-3 border rounded-xl text-sm">
-                                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Add Product</button>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm"></select>
+                                    <select id="prodSubCategory" required class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
+                                        <option value="">Sub-category</option>
+                                    </select>
+                                </div>
+                                <input type="url" id="prodImageUrl" placeholder="Image URL (Optional)" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
+                                <button type="submit" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all">Add to Inventory</button>
                             </form>
                         </div>
                     </div>
-
                     <div class="lg:col-span-2">
                         <div class="bg-white p-6 rounded-2xl shadow-sm">
-                            <input type="text" id="searchProducts" placeholder="Search..." oninput="renderProducts()" class="w-full p-3 border rounded-xl mb-4">
-                            <div id="productsList" class="space-y-2"></div>
+                            <div class="relative mb-6">
+                                <i class="fas fa-search absolute left-3 top-3.5 text-gray-300"></i>
+                                <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="w-full pl-10 pr-4 py-3 border-2 border-gray-50 rounded-xl text-sm focus:border-emerald-500 outline-none">
+                            </div>
+                            <div id="productsList" class="space-y-3"></div>
                         </div>
                     </div>
                 </div>
@@ -79,49 +102,88 @@
 
             <div id="view-categories" class="tab-content hidden">
                 <div class="grid md:grid-cols-2 gap-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm">
-                        <h2 class="font-bold text-lg mb-4">Add/Edit Category</h2>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm">
+                        <h2 class="font-bold text-lg mb-6" id="catFormTitle">Create/Edit Category</h2>
                         <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
                             <input type="hidden" id="catId">
-                            <input type="text" id="catName" required placeholder="Category Name (e.g. Beverages)" class="w-full p-3 border rounded-xl">
-                            <div>
-                                <label class="text-xs font-bold text-gray-400">SUB-CATEGORIES (Comma separated)</label>
-                                <textarea id="catSubs" placeholder="Soda, Juice, Water, Energy Drinks" class="w-full p-3 border rounded-xl h-24"></textarea>
+                            <input type="text" id="catName" required placeholder="Category Name (e.g. Beverages)" class="w-full p-4 border-2 border-gray-50 rounded-xl outline-none focus:border-emerald-500">
+                            <textarea id="catSubs" placeholder="Sub-categories (comma separated: Soda, Juice, Water)" class="w-full p-4 border-2 border-gray-50 rounded-xl text-sm h-24"></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category</button>
+                                <button type="button" onclick="resetCatForm()" class="px-6 bg-gray-100 rounded-xl font-medium">Reset</button>
                             </div>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category Structure</button>
                         </form>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm">
-                        <h2 class="font-bold mb-4">Current Structure</h2>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm">
+                        <h2 class="font-bold text-lg mb-6">Existing Structure</h2>
                         <div id="catAdminList" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-ai" class="tab-content hidden">
+                <div class="bg-white p-10 rounded-2xl shadow-sm border-t-4 border-purple-500 text-center">
+                    <div id="dropZone" class="border-4 border-dashed border-gray-100 rounded-3xl p-16 cursor-pointer hover:border-purple-300 transition-all bg-gray-50" onclick="document.getElementById('aiFileInput').click()">
+                        <input type="file" id="aiFileInput" class="hidden" accept="image/*,.pdf" multiple onchange="handleAIUpload(event)">
+                        <i class="fas fa-magic text-5xl text-purple-600 mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">Invoice & Receipt Scanner</h3>
+                        <p class="text-gray-400 max-w-xs mx-auto text-sm">Upload images, PDFs, or photos of written lists to auto-detect products.</p>
+                    </div>
+
+                    <div id="scanLoader" class="hidden mt-8">
+                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto mb-4"></div>
+                        <p class="text-purple-600 font-bold animate-pulse">Analyzing document... <span id="scanPercent">0</span>%</p>
+                    </div>
+
+                    <div id="aiReviewSection" class="hidden mt-10 text-left">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg">Detected Items (<span id="detectedCount">0</span>)</h3>
+                            <button onclick="saveAIScannedItems()" class="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">Confirm & Save All</button>
+                        </div>
+                        <div class="overflow-x-auto border rounded-2xl">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th class="p-4">Name</th>
+                                        <th class="p-4">Price</th>
+                                        <th class="p-4">Category</th>
+                                        <th class="p-4">Sub-Category</th>
+                                        <th class="p-4"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aiResultsTable" class="divide-y"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="editModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div id="editModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl">
-            <h3 class="font-bold text-xl mb-4">Edit Product</h3>
+            <h3 class="font-bold text-2xl mb-6">Edit Product</h3>
             <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-4">
                 <input type="hidden" id="editId">
-                <input type="text" id="editName" required class="w-full p-3 border rounded-xl">
+                <input type="text" id="editName" required class="w-full p-4 border-2 border-gray-50 rounded-2xl outline-none focus:border-emerald-500">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="editPrice" required class="w-full p-3 border rounded-xl">
-                    <input type="text" id="editUnit" required class="w-full p-3 border rounded-xl">
+                    <input type="number" id="editPrice" required class="w-full p-4 border-2 border-gray-50 rounded-2xl">
+                    <input type="text" id="editUnit" required class="w-full p-4 border-2 border-gray-50 rounded-2xl">
                 </div>
-                <select id="editCategory" required onchange="updateSubSelect('edit')" class="w-full p-3 border rounded-xl"></select>
-                <select id="editSubCategory" required class="w-full p-3 border rounded-xl"></select>
-                <div class="flex gap-2">
-                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">Update</button>
-                    <button type="button" onclick="closeEditModal()" class="px-6 bg-gray-200 rounded-xl">Cancel</button>
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="editCategory" required onchange="updateSubSelect('edit')" class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
+                    <select id="editSubCategory" required class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg">Update</button>
+                    <button type="button" onclick="closeEditModal()" class="px-8 bg-gray-100 rounded-2xl font-bold">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
@@ -133,14 +195,14 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let products = [], categories = [];
+        let products = [], categories = [], tempExtracted = [];
 
         // --- AUTH ---
         function login() {
             if(document.getElementById('password').value === 'admin123') {
                 sessionStorage.setItem('admin_auth', 'true');
                 showDashboard();
-            }
+            } else { alert('Wrong Password'); }
         }
         function logout() { sessionStorage.clear(); location.reload(); }
         if(sessionStorage.getItem('admin_auth')) showDashboard();
@@ -148,80 +210,52 @@
         function showDashboard() {
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
-            loadData();
+            syncData();
         }
 
-        // --- DATA LOADING ---
-        function loadData() {
+        // --- DATA SYNC ---
+        function syncData() {
             db.collection('categories').onSnapshot(snap => {
                 categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // If empty, seed initial data
-                if(categories.length === 0) seedCategories();
                 renderCategories();
-                updateCategorySelects();
+                updateSelects();
             });
-            db.collection('products').onSnapshot(snap => {
+            db.collection('products').orderBy('name').onSnapshot(snap => {
                 products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts();
             });
         }
 
-        async function seedCategories() {
-            const initial = [
-                { name: "Food", subs: ["Grains", "Spices", "Snacks", "Bakery", "Canned Goods"] },
-                { name: "Beverages", subs: ["Soft Drinks", "Water", "Juice", "Milk", "Tea & Coffee"] },
-                { name: "Household", subs: ["Detergents", "Cleaning Tools", "Toiletries", "Kitchenware"] },
-                { name: "Personal Care", subs: ["Skincare", "Haircare", "Oral Care", "Deodorants"] }
-            ];
-            for(let cat of initial) { await db.collection('categories').add(cat); }
+        // --- CATEGORY LOGIC ---
+        async function saveCategory() {
+            const id = document.getElementById('catId').value;
+            const data = {
+                name: document.getElementById('catName').value,
+                subs: document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s !== "")
+            };
+            if(id) await db.collection('categories').doc(id).update(data);
+            else await db.collection('categories').add(data);
+            resetCatForm();
+            showToast('Category Saved');
         }
 
-        // --- UI RENDERING ---
-        function renderProducts() {
-            const q = document.getElementById('searchProducts').value.toLowerCase();
-            const container = document.getElementById('productsList');
-            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
-            
-            container.innerHTML = filtered.map(p => `
-                <div class="flex items-center gap-4 p-3 bg-white border rounded-xl hover:shadow-md transition">
-                    <img src="${p.image || 'https://via.placeholder.com/50'}" class="w-12 h-12 object-cover rounded-lg">
-                    <div class="flex-1">
-                        <h4 class="font-bold text-sm">${p.name}</h4>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">${p.category} > ${p.subCategory || 'General'}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-emerald-600">KSh ${p.price}</p>
-                        <div class="flex gap-2 mt-1">
-                            <button onclick="openEditModal('${p.id}')" class="text-blue-500 text-xs"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteProduct('${p.id}')" class="text-red-400 text-xs"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+        function editCategory(id) {
+            const c = categories.find(x => x.id === id);
+            document.getElementById('catId').value = c.id;
+            document.getElementById('catName').value = c.name;
+            document.getElementById('catSubs').value = (c.subs || []).join(', ');
+            document.getElementById('catFormTitle').innerText = "Edit Category";
+            switchTab('categories');
         }
 
-        function renderCategories() {
-            const container = document.getElementById('catAdminList');
-            container.innerHTML = categories.map(c => `
-                <div class="p-4 bg-gray-50 rounded-xl border">
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-emerald-800">${c.name}</h4>
-                        <div class="flex gap-3">
-                            <button onclick="editCategory('${c.id}')" class="text-blue-600 text-xs font-bold">Edit</button>
-                            <button onclick="deleteCategory('${c.id}')" class="text-red-500 text-xs font-bold">Delete</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        ${(c.subs || []).map(s => `<span class="bg-white px-2 py-1 rounded-md border text-[10px] text-gray-500">${s}</span>`).join('')}
-                    </div>
-                </div>
-            `).join('');
+        function resetCatForm() {
+            document.getElementById('categoryForm').reset();
+            document.getElementById('catId').value = "";
+            document.getElementById('catFormTitle').innerText = "Create Category";
         }
 
-        // --- LOGIC: CATEGORY & SUB-CATEGORY ---
-        function updateCategorySelects() {
-            const selects = ['prodCategory', 'editCategory'];
-            selects.forEach(id => {
+        function updateSelects() {
+            ['prodCategory', 'editCategory'].forEach(id => {
                 const el = document.getElementById(id);
                 el.innerHTML = '<option value="">Select Category</option>' + 
                                categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
@@ -231,39 +265,14 @@
         function updateSubSelect(prefix, selectedSub = "") {
             const catName = document.getElementById(`${prefix}Category`).value;
             const subEl = document.getElementById(`${prefix}SubCategory`);
-            const category = categories.find(c => c.name === catName);
-            
-            if (category && category.subs) {
-                subEl.innerHTML = '<option value="">Select Sub-category</option>' + 
-                                  category.subs.map(s => `<option value="${s}" ${s === selectedSub ? 'selected' : ''}>${s}</option>`).join('');
-            } else {
-                subEl.innerHTML = '<option value="">N/A</option>';
-            }
+            const cat = categories.find(c => c.name === catName);
+            if(cat && cat.subs) {
+                subEl.innerHTML = '<option value="">Sub-category</option>' + 
+                                  cat.subs.map(s => `<option value="${s}" ${s===selectedSub ? 'selected':''}>${s}</option>`).join('');
+            } else { subEl.innerHTML = '<option value="">N/A</option>'; }
         }
 
-        // --- CRUD OPERATIONS ---
-        async function saveCategory() {
-            const id = document.getElementById('catId').value;
-            const name = document.getElementById('catName').value;
-            const subs = document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s !== "");
-            
-            const data = { name, subs };
-            if(id) await db.collection('categories').doc(id).update(data);
-            else await db.collection('categories').add(data);
-            
-            document.getElementById('categoryForm').reset();
-            document.getElementById('catId').value = "";
-            showToast("Category Updated");
-        }
-
-        function editCategory(id) {
-            const c = categories.find(x => x.id === id);
-            document.getElementById('catId').value = c.id;
-            document.getElementById('catName').value = c.name;
-            document.getElementById('catSubs').value = (c.subs || []).join(', ');
-            switchTab('categories');
-        }
-
+        // --- PRODUCT CRUD ---
         async function saveProduct() {
             const data = {
                 name: document.getElementById('prodName').value,
@@ -271,22 +280,12 @@
                 unit: document.getElementById('prodUnit').value,
                 category: document.getElementById('prodCategory').value,
                 subCategory: document.getElementById('prodSubCategory').value,
-                image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150'
+                image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('products').add(data);
             document.getElementById('productForm').reset();
-            showToast("Product Added");
-        }
-
-        function openEditModal(id) {
-            const p = products.find(x => x.id === id);
-            document.getElementById('editId').value = p.id;
-            document.getElementById('editName').value = p.name;
-            document.getElementById('editPrice').value = p.price;
-            document.getElementById('editUnit').value = p.unit;
-            document.getElementById('editCategory').value = p.category;
-            updateSubSelect('edit', p.subCategory);
-            document.getElementById('editModal').classList.remove('hidden');
+            showToast('Product Added');
         }
 
         async function updateProduct() {
@@ -299,25 +298,205 @@
                 subCategory: document.getElementById('editSubCategory').value
             });
             closeEditModal();
-            showToast("Product Updated");
+            showToast('Updated Successfully');
         }
 
-        // --- HELPERS ---
+        async function deleteProduct(id) {
+            if(confirm('Delete product?')) await db.collection('products').doc(id).delete();
+        }
+
+        // --- AI MASS SCANNER LOGIC ---
+        async function handleAIUpload(e) {
+            const files = Array.from(e.target.files);
+            if(!files.length) return;
+
+            document.getElementById('scanLoader').classList.remove('hidden');
+            document.getElementById('aiReviewSection').classList.add('hidden');
+            tempExtracted = [];
+
+            for(let i=0; i < files.length; i++) {
+                const res = await Tesseract.recognize(files[i], 'eng');
+                processText(res.data.text);
+                document.getElementById('scanPercent').innerText = Math.round(((i+1)/files.length)*100);
+            }
+
+            document.getElementById('scanLoader').classList.add('hidden');
+            renderAITable();
+        }
+
+        function processText(text) {
+            const lines = text.split('\n');
+            const priceRegex = /(.+?)\s+[\.\-\_]*\s*(\d{2,5})$/;
+
+            lines.forEach(l => {
+                const match = l.match(priceRegex);
+                if(match && match[1].trim().length > 2) {
+                    const name = match[1].trim();
+                    const price = parseFloat(match[2]);
+                    const mapping = autoClassify(name);
+                    
+                    tempExtracted.push({
+                        name, price,
+                        category: mapping.cat,
+                        subCategory: mapping.sub,
+                        unit: 'pcs'
+                    });
+                }
+            });
+        }
+
+        function autoClassify(name) {
+            const low = name.toLowerCase();
+            let found = { cat: "Food", sub: "General" };
+            
+            categories.forEach(c => {
+                if(low.includes(c.name.toLowerCase())) found.cat = c.name;
+                (c.subs || []).forEach(s => {
+                    if(low.includes(s.toLowerCase())) {
+                        found.cat = c.name;
+                        found.sub = s;
+                    }
+                });
+            });
+            return found;
+        }
+
+        function renderAITable() {
+            const tbody = document.getElementById('aiResultsTable');
+            document.getElementById('detectedCount').innerText = tempExtracted.length;
+            document.getElementById('aiReviewSection').classList.remove('hidden');
+
+            tbody.innerHTML = tempExtracted.map((item, i) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3"><input type="text" value="${item.name}" onchange="tempExtracted[${i}].name=this.value" class="w-full bg-transparent border-b"></td>
+                    <td class="p-3"><input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=this.value" class="w-20 bg-transparent border-b"></td>
+                    <td class="p-3">
+                        <select onchange="updateTempRowCat(${i}, this.value)" class="text-xs border p-1 rounded">
+                            ${categories.map(c => `<option value="${c.name}" ${item.category===c.name?'selected':''}>${c.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="p-3" id="aiSubCell-${i}">
+                        ${renderTempSubSelect(i, item.category, item.subCategory)}
+                    </td>
+                    <td class="p-3 text-red-500 cursor-pointer" onclick="removeTempItem(${i})"><i class="fas fa-trash"></i></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTempSubSelect(i, catName, currentSub) {
+            const cat = categories.find(c => c.name === catName);
+            const subs = cat ? cat.subs : [];
+            return `
+                <select onchange="tempExtracted[${i}].subCategory=this.value" class="text-xs border p-1 rounded">
+                    ${subs.map(s => `<option value="${s}" ${s===currentSub?'selected':''}>${s}</option>`).join('')}
+                </select>`;
+        }
+
+        function updateTempRowCat(i, newCat) {
+            tempExtracted[i].category = newCat;
+            const cat = categories.find(c => c.name === newCat);
+            tempExtracted[i].subCategory = (cat && cat.subs) ? cat.subs[0] : "General";
+            document.getElementById(`aiSubCell-${i}`).innerHTML = renderTempSubSelect(i, newCat, tempExtracted[i].subCategory);
+        }
+
+        async function saveAIScannedItems() {
+            const batch = db.batch();
+            tempExtracted.forEach(item => {
+                const ref = db.collection('products').doc();
+                batch.set(ref, { ...item, image: 'https://via.placeholder.com/150', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+            await batch.commit();
+            tempExtracted = [];
+            document.getElementById('aiReviewSection').classList.add('hidden');
+            showToast('Mass Upload Success!');
+            switchTab('inventory');
+        }
+
+        function removeTempItem(i) {
+            tempExtracted.splice(i, 1);
+            renderAITable();
+        }
+
+        // --- GENERAL UI ---
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-${tab}`).classList.add('active');
         }
+
+        function renderProducts() {
+            const q = document.getElementById('searchProducts').value.toLowerCase();
+            const container = document.getElementById('productsList');
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+            
+            container.innerHTML = filtered.map(p => `
+                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl hover:border-emerald-200 transition group">
+                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl shadow-sm">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800 text-sm">${p.name}</h4>
+                        <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-bold uppercase">${p.category} > ${p.subCategory}</span>
+                    </div>
+                    <div class="text-right mr-4">
+                        <p class="font-bold text-emerald-600">KSh ${p.price}</p>
+                        <p class="text-[9px] text-gray-400">Unit: ${p.unit}</p>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="openEditModal('${p.id}')" class="w-8 h-8 text-blue-600 bg-blue-50 rounded-lg"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 text-red-500 bg-red-50 rounded-lg"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('catAdminList');
+            container.innerHTML = categories.map(c => `
+                <div class="p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-200 transition">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-bold text-gray-800">${c.name}</span>
+                        <div class="flex gap-2">
+                            <button onclick="editCategory('${c.id}')" class="text-blue-500 text-xs font-bold">Edit</button>
+                            <button onclick="deleteCategory('${c.id}')" class="text-red-400 text-xs font-bold">Delete</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                        ${(c.subs || []).map(s => `<span class="text-[9px] bg-white px-2 py-1 rounded border text-gray-400">#${s}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openEditModal(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editPrice').value = p.price;
+            document.getElementById('editUnit').value = p.unit;
+            document.getElementById('editCategory').value = p.category;
+            updateSubSelect('edit', p.subCategory);
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
         function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
-        async function deleteProduct(id) { if(confirm('Delete?')) await db.collection('products').doc(id).delete(); }
-        async function deleteCategory(id) { if(confirm('Delete category?')) await db.collection('categories').doc(id).delete(); }
+
+        async function downloadPriceListPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Lwandeti Junction Minimart - Price List", 14, 15);
+            const data = products.map(p => [p.name, p.category, p.subCategory, `KSh ${p.price}`]);
+            doc.autoTable({ head: [['Name', 'Category', 'Sub-Cat', 'Price']], body: data, startY: 20 });
+            doc.save('PriceList.pdf');
+        }
+
         function showToast(m) {
             const t = document.getElementById('toast');
             document.getElementById('toastMessage').innerText = m;
             t.classList.remove('hidden');
             setTimeout(() => t.classList.add('hidden'), 3000);
         }
+
+        async function deleteCategory(id) { if(confirm('Delete category?')) await db.collection('categories').doc(id).delete(); }
     </script>
 </body>
 </html>
