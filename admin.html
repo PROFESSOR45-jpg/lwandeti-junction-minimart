@@ -6,1501 +6,332 @@
     <title>Admin - Lwandeti Junction Minimart</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PDF.js for PDF processing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Tesseract.js for OCR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .preview-img { max-width: 200px; max-height: 200px; object-fit: cover; }
-        .category-badge {
-            transition: all 0.2s;
-        }
-        .category-badge:hover {
-            transform: translateY(-2px);
-        }
-        .price-input {
-            background: linear-gradient(to right, #ecfdf5 0%, #ffffff 100%);
-        }
-        .wholesale-input {
-            background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
-        }
-        .drop-zone {
-            border: 3px dashed #cbd5e1;
-            transition: all 0.3s;
-        }
-        .drop-zone.drag-over {
-            border-color: #10b981;
-            background-color: #ecfdf5;
-        }
-        .extracted-item {
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .processing-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        .firebase-status {
-            transition: all 0.3s;
-        }
-        .firebase-status.connected {
-            background-color: #dcfce7;
-            color: #166534;
-            border-color: #166534;
-        }
-        .firebase-status.disconnected {
-            background-color: #fee2e2;
-            color: #991b1b;
-            border-color: #991b1b;
-        }
-        .sync-indicator {
-            animation: spin 2s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .toast {
-            animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .loading-skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .preview-img { max-width: 150px; border-radius: 8px; margin-top: 10px; }
+        .drop-zone { border: 2px dashed #cbd5e1; transition: 0.3s; }
+        .drop-zone.drag-over { border-color: #10b981; background: #ecfdf5; }
+        .sync-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100">
+<body>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-3 toast">
-        <i class="fas fa-check-circle text-emerald-400"></i>
-        <span id="toastMessage">Operation successful</span>
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3">
+        <i class="fas fa-cloud-upload-alt text-emerald-400"></i>
+        <span id="toastMessage">Syncing...</span>
     </div>
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-2xl mx-auto mb-4">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-900">Admin Panel</h1>
-                <p class="text-gray-500">Lwandeti Junction Minimart</p>
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+            <div class="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4 shadow-lg">
+                <i class="fas fa-store"></i>
             </div>
-            <div class="space-y-4">
-                <input type="password" id="password" placeholder="Enter password" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                <button onclick="login()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition">
-                    Login
-                </button>
-                <p class="text-center text-sm text-gray-500">Default: admin123</p>
-            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Minimart Admin</h1>
+            <p class="text-gray-500 mb-6 text-sm">Lwandeti Junction Cloud Access</p>
+            <input type="password" id="password" placeholder="Admin Password" class="w-full px-4 py-3 rounded-xl border mb-4 focus:ring-2 focus:ring-emerald-500 outline-none">
+            <button onclick="login()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all">Login</button>
         </div>
     </div>
 
-    <!-- Admin Dashboard -->
     <div id="adminDashboard" class="hidden min-h-screen">
-        <!-- Header -->
-        <header class="bg-emerald-800 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <header class="bg-emerald-900 text-white p-4 shadow-md sticky top-0 z-40">
+            <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cog"></i>
-                    </div>
+                    <div class="bg-white/10 p-2 rounded-lg"><i class="fas fa-terminal"></i></div>
                     <div>
-                        <h1 class="font-bold">Admin Dashboard</h1>
-                        <p class="text-sm text-emerald-200">Firebase Cloud Management</p>
+                        <h1 class="font-bold text-lg">Lwandeti Junction</h1>
+                        <p class="text-xs text-emerald-300 flex items-center gap-1">
+                            <span id="statusDot" class="w-2 h-2 rounded-full bg-red-500"></span> 
+                            <span id="statusText">Connecting...</span>
+                        </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <!-- Firebase Connection Status -->
-                    <div id="firebaseStatus" class="firebase-status disconnected flex items-center gap-2 px-3 py-1 rounded-full border text-sm">
-                        <i class="fas fa-circle text-xs"></i>
-                        <span id="firebaseStatusText">Offline</span>
-                    </div>
-                    <div id="pendingWrites" class="hidden px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm border border-yellow-300">
-                        <i class="fas fa-clock mr-1"></i> Syncing...
-                    </div>
-                    <a href="index.html" target="_blank" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
-                        <i class="fas fa-external-link-alt mr-2"></i>View Site
-                    </a>
-                    <button onclick="logout()" class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                    </button>
-                </div>
+                <button onclick="logout()" class="text-sm bg-red-500/20 hover:bg-red-500 px-4 py-2 rounded-lg transition-colors">Logout</button>
             </div>
         </header>
 
-        <div class="container mx-auto px-4 py-8">
+        <main class="container mx-auto px-4 py-8 grid lg:grid-cols-3 gap-8">
             
-            <!-- Loading State -->
-            <div id="initialLoading" class="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <i class="fas fa-sync sync-indicator text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-blue-900">Connecting to Firebase...</h4>
-                        <p class="text-sm text-blue-700">Loading your data from the cloud</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AI Mass Upload Section -->
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border-t-4 border-purple-500">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-purple-700">
-                            <i class="fas fa-robot"></i>
-                            AI Mass Upload
-                        </h2>
-                        <p class="text-sm text-gray-500 mt-1">Upload PDF or Images to auto-extract products using OCR</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="showUploadHelp()" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition">
-                            <i class="fas fa-question-circle mr-2"></i>Help
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Upload Zone -->
-                <div id="dropZone" class="drop-zone rounded-2xl p-8 text-center cursor-pointer mb-6" onclick="document.getElementById('fileInput').click()">
-                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg" multiple onchange="handleFileSelect(event)">
-                    <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-cloud-upload-alt text-3xl text-purple-600"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Drop files here or click to upload</h3>
-                    <p class="text-sm text-gray-500">Supports: PDF, PNG, JPG, JPEG</p>
-                    <p class="text-xs text-gray-400 mt-2">Maximum 10 files at once</p>
-                </div>
-
-                <!-- Processing Status -->
-                <div id="processingStatus" class="hidden mb-6">
-                    <div class="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center processing-pulse">
-                                <i class="fas fa-brain text-white text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-purple-900">AI Processing...</h4>
-                                <p class="text-sm text-purple-700" id="processingText">Initializing OCR engine</p>
-                            </div>
-                        </div>
-                        <div class="w-full bg-purple-200 rounded-full h-2">
-                            <div id="progressBar" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Extracted Products Preview -->
-                <div id="extractedProducts" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">
-                            <i class="fas fa-magic text-purple-600 mr-2"></i>
-                            Extracted Products (<span id="extractedCount">0</span>)
-                        </h3>
-                        <div class="flex gap-2">
-                            <button onclick="selectAllExtracted()" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
-                                Select All
-                            </button>
-                            <button onclick="clearExtracted()" class="px-3 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200">
-                                Clear All
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="extractedList" class="space-y-2 max-h-96 overflow-y-auto mb-4">
-                        <!-- Extracted items appear here -->
-                    </div>
-
-                    <div class="flex gap-3">
-                        <button onclick="confirmMassUpload()" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 transition flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i>
-                            Confirm & Add Selected (<span id="selectedCount">0</span>)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Upload Tips -->
-                <div class="mt-6 grid md:grid-cols-3 gap-4 text-sm">
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                        <i class="fas fa-file-invoice text-blue-600 text-xl mb-2"></i>
-                        <h4 class="font-semibold text-blue-900 mb-1">Invoices/Receipts</h4>
-                        <p class="text-blue-700 text-xs">Best for supplier invoices with itemized lists</p>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-                        <i class="fas fa-camera text-green-600 text-xl mb-2"></i>
-                        <h4 class="font-semibold text-green-900 mb-1">Shelf Photos</h4>
-                        <p class="text-green-700 text-xs">Take clear photos of product shelves with visible price tags</p>
-                    </div>
-                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-200">
-                        <i class="fas fa-list-alt text-orange-600 text-xl mb-2"></i>
-                        <h4 class="font-semibold text-orange-900 mb-1">Price Lists</h4>
-                        <p class="text-orange-700 text-xs">Excel/Word documents saved as PDF work best</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Categories Display -->
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold flex items-center gap-2">
-                        <i class="fas fa-tags text-emerald-600"></i>
-                        Categories
+            <section class="lg:col-span-1">
+                <div class="bg-white rounded-2xl shadow-sm border p-6 sticky top-24">
+                    <h2 class="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-emerald-600"></i> New Product
                     </h2>
-                    <div class="flex gap-2">
-                        <span class="text-sm text-gray-500" id="categoryCount">11 categories</span>
-                        <button onclick="syncCategoriesToFirebase()" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
-                            <i class="fas fa-sync"></i> Sync Categories
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="categoriesList" class="flex flex-wrap gap-3">
-                    <!-- Categories loaded here -->
-                </div>
-            </div>
-
-            <div class="grid lg:grid-cols-3 gap-8">
-                
-                <!-- Add Product Form -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-4">
-                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                            <i class="fas fa-plus-circle text-emerald-600"></i>
-                            Add New Product
-                        </h2>
+                    <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Name</label>
+                            <input type="text" id="prodName" required class="w-full px-4 py-2 rounded-lg border focus:border-emerald-500 outline-none transition-all">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Retail (KSh)</label>
+                                <input type="number" id="prodPrice" required class="w-full px-4 py-2 rounded-lg border focus:border-emerald-500 outline-none bg-emerald-50/30">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Wholesale</label>
+                                <input type="number" id="prodWholesalePrice" class="w-full px-4 py-2 rounded-lg border focus:border-emerald-500 outline-none bg-blue-50/30">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                            <select id="prodCategory" required class="w-full px-4 py-2 rounded-lg border focus:border-emerald-500 outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Unit (e.g., per kg)</label>
+                            <input type="text" id="prodUnit" required placeholder="per packet" class="w-full px-4 py-2 rounded-lg border outline-none">
+                        </div>
                         
-                        <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-                                <input type="text" id="prodName" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none" placeholder="e.g., Coca Cola 2L">
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Retail Price (KSh) *</label>
-                                    <input type="number" id="prodPrice" required min="1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none price-input" placeholder="150">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Wholesale Price (KSh)</label>
-                                    <input type="number" id="prodWholesalePrice" min="1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none wholesale-input" placeholder="120">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Old Price</label>
-                                    <input type="number" id="prodOldPrice" min="1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none" placeholder="200">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
-                                    <input type="text" id="prodUnit" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none" placeholder="per bottle">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                                <select id="prodCategory" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <option value="">Select Category</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                                <select id="prodBadge" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <option value="">None</option>
-                                    <option value="new">New</option>
-                                    <option value="sale">Sale</option>
-                                    <option value="popular">Popular</option>
-                                    <option value="out">Out of Stock</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
-                                <div class="space-y-2">
-                                    <input type="file" id="prodImageFile" accept="image/*" class="w-full text-sm" onchange="previewImage(this)">
-                                    <p class="text-xs text-gray-500">Or use image URL:</p>
-                                    <input type="url" id="prodImageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none text-sm" placeholder="https://example.com/image.jpg" oninput="previewUrl(this.value)">
-                                </div>
-                                <div id="imagePreview" class="mt-2 hidden">
-                                    <img id="previewImg" src="" class="preview-img rounded-lg border">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <textarea id="prodDesc" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-emerald-500 focus:outline-none" placeholder="Brief description..."></textarea>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="prodPopular" class="w-4 h-4 text-emerald-600 rounded">
-                                <label for="prodPopular" class="text-sm text-gray-700">Mark as Popular</label>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="prodStock" checked class="w-4 h-4 text-emerald-600 rounded">
-                                <label for="prodStock" class="text-sm text-gray-700">In Stock</label>
-                            </div>
-
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-save"></i> Save to Cloud
-                            </button>
-                            
-                            <button type="button" onclick="resetForm()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition">
-                                Clear Form
-                            </button>
-                        </form>
-
-                        <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <p class="text-sm text-blue-800">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                <strong>Note:</strong> Products are saved directly to Firebase Cloud with offline persistence enabled.
-                            </p>
+                        <div class="flex items-center gap-4 py-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="prodPopular" class="w-4 h-4 rounded text-emerald-600">
+                                <span class="text-sm font-medium">Popular Item</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="prodStock" checked class="w-4 h-4 rounded text-emerald-600">
+                                <span class="text-sm font-medium">In Stock</span>
+                            </label>
                         </div>
+
+                        <button type="submit" id="saveBtn" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i> Save to Cloud
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <div class="relative w-full md:w-64">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="searchInput" oninput="filterItems()" placeholder="Search products..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportData()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"><i class="fas fa-download mr-1"></i> Export JSON</button>
                     </div>
                 </div>
 
-                <!-- Products List -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold flex items-center gap-2">
-                                <i class="fas fa-list text-emerald-600"></i>
-                                Current Products
-                            </h2>
-                            <div class="flex gap-2">
-                                <select id="filterCategory" onchange="filterProducts()" class="px-4 py-2 rounded-lg border border-gray-300 text-sm">
-                                    <option value="">All Categories</option>
-                                </select>
-                                <input type="text" id="searchProducts" placeholder="Search..." oninput="searchProductsList()" class="px-4 py-2 rounded-lg border border-gray-300 text-sm">
-                            </div>
-                        </div>
-
-                        <div id="productsList" class="space-y-3 max-h-[600px] overflow-y-auto">
-                            <!-- Products loaded here via real-time listener -->
-                        </div>
-
-                        <div class="mt-6 grid grid-cols-2 gap-4">
-                            <div class="p-4 bg-gray-50 rounded-lg">
-                                <h3 class="font-bold mb-2">Data Export</h3>
-                                <button onclick="exportJSON()" class="w-full mb-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
-                                    <i class="fas fa-download mr-2"></i>Download JSON
-                                </button>
-                                <button onclick="copyToClipboard()" class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
-                                    <i class="fas fa-copy mr-2"></i>Copy JSON
-                                </button>
-                            </div>
-                            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                <h3 class="font-bold mb-2 text-blue-900">Firebase Cloud</h3>
-                                <p class="text-sm text-blue-700 mb-2">Real-time sync enabled</p>
-                                <div class="text-xs text-blue-600">
-                                    <i class="fas fa-check-circle mr-1"></i> Auto-syncs across all devices
-                                </div>
-                            </div>
-                        </div>
+                <div id="productsList" class="grid gap-3">
+                    <div class="text-center py-20 bg-white rounded-2xl border">
+                        <i class="fas fa-sync sync-spinner text-3xl text-emerald-500 mb-2"></i>
+                        <p class="text-gray-500">Synchronizing with Cloud Database...</p>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
     </div>
 
-    <!-- Edit Product Modal -->
-    <div id="editModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Edit Product</h3>
-                <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+    <div id="editModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Update Product</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
             </div>
             <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-4">
                 <input type="hidden" id="editId">
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                    <input type="text" id="editName" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500">
-                </div>
-
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Retail Price</label>
-                        <input type="number" id="editPrice" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 price-input">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Wholesale</label>
-                        <input type="number" id="editWholesalePrice" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 wholesale-input">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Old Price</label>
-                        <input type="number" id="editOldPrice" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
+                <input type="text" id="editName" required class="w-full p-3 border rounded-xl" placeholder="Name">
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                        <input type="text" id="editUnit" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select id="editCategory" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"></select>
-                    </div>
+                    <input type="number" id="editPrice" required class="p-3 border rounded-xl" placeholder="Retail">
+                    <input type="number" id="editWholesalePrice" class="p-3 border rounded-xl" placeholder="Wholesale">
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                    <select id="editBadge" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500">
-                        <option value="">None</option>
-                        <option value="new">New</option>
-                        <option value="sale">Sale</option>
-                        <option value="popular">Popular</option>
-                        <option value="out">Out of Stock</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
-                    <div class="space-y-2">
-                        <input type="file" id="editImageFile" accept="image/*" class="w-full text-sm" onchange="previewEditImage(this)">
-                        <p class="text-xs text-gray-500">Or use image URL:</p>
-                        <input type="url" id="editImageUrl" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500 text-sm" placeholder="https://example.com/image.jpg" oninput="previewEditUrl(this.value)">
-                    </div>
-                    <div id="editImagePreview" class="mt-2 hidden">
-                        <img id="editPreviewImg" src="" class="preview-img rounded-lg border">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="editDesc" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"></textarea>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="editPopular" class="w-4 h-4 text-emerald-600 rounded">
-                        <label for="editPopular" class="text-sm text-gray-700">Popular</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="editStock" class="w-4 h-4 text-emerald-600 rounded">
-                        <label for="editStock" class="text-sm text-gray-700">In Stock</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition">
-                    Update Product
-                </button>
+                <select id="editCategory" class="w-full p-3 border rounded-xl"></select>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">Update Cloud Data</button>
             </form>
         </div>
     </div>
 
     <script>
-        // Firebase Configuration
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
             projectId: "lwandeti-junction-minimart",
             storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
             messagingSenderId: "282672112956",
-            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
-            measurementId: "G-C3RV1N7D2N"
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39"
         };
 
-        // Initialize Firebase
-        let app, db, storage, auth;
-        let isFirebaseInitialized = false;
-        let isOnline = false;
-        let productsUnsubscribe = null;
-        let categoriesUnsubscribe = null;
-
-        // Global data arrays (populated from Firestore real-time listeners)
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // --- GLOBAL STATE ---
         let products = [];
-        let categories = [];
-        let editingId = null;
-        let extractedProducts = [];
-        let currentFiles = [];
-
-        // Your 11 specific categories with keywords for AI detection
-        const defaultCategories = [
-            { 
-                id: 'stationery', 
-                name: 'Stationery & Office Supplies', 
-                icon: 'fas fa-pen', 
-                keywords: ['pen', 'pencil', 'paper', 'notebook', 'eraser', 'stapler', 'file', 'folder', 'envelope', 'marker', 'tape', 'glue', 'scissors', 'ruler', 'calculator', 'ink', 'toner', 'desk', 'chair', 'office'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Stationery' 
-            },
-            { 
-                id: 'food_staples', 
-                name: 'Food Staples & Grains', 
-                icon: 'fas fa-wheat-awn', 
-                keywords: ['rice', 'maize', 'flour', 'sugar', 'salt', 'oil', 'beans', 'lentils', 'pasta', 'noodles', 'cereal', 'grain', 'wheat', 'ugali', 'posho', 'sembe'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Food+Staples' 
-            },
-            { 
-                id: 'household', 
-                name: 'Household Items & Furniture', 
-                icon: 'fas fa-couch', 
-                keywords: ['chair', 'table', 'bed', 'mattress', 'pillow', 'blanket', 'curtain', 'lamp', 'bulb', 'bucket', 'basin', 'jug', 'broom', 'mop', 'dustbin', 'hanger', 'mirror', 'frame', 'carpet', 'rug'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Household' 
-            },
-            { 
-                id: 'other', 
-                name: 'Other', 
-                icon: 'fas fa-box', 
-                keywords: ['misc', 'other', 'general'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Other' 
-            },
-            { 
-                id: 'personal_care', 
-                name: 'Personal Care & Hygiene', 
-                icon: 'fas fa-soap', 
-                keywords: ['soap', 'shampoo', 'toothpaste', 'toothbrush', 'lotion', 'cream', 'deodorant', 'perfume', 'tissue', 'sanitary', 'pad', 'razor', 'shaving', 'cream', 'facial', 'mask', 'hand', 'wash', 'sanitizer'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Personal+Care' 
-            },
-            { 
-                id: 'bakery', 
-                name: 'Bakery & Confectionery', 
-                icon: 'fas fa-cookie-bite', 
-                keywords: ['bread', 'cake', 'bun', 'mandazi', 'chapati', 'cookie', 'biscuit', 'cracker', 'sweet', 'candy', 'chocolate', 'pastry', 'donut', 'pie', 'pizza'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Bakery' 
-            },
-            { 
-                id: 'beverages', 
-                name: 'Beverages & Dairy', 
-                icon: 'fas fa-mug-hot', 
-                keywords: ['milk', 'yogurt', 'cheese', 'butter', 'juice', 'soda', 'water', 'tea', 'coffee', 'energy', 'drink', 'soda', 'coke', 'pepsi', 'fanta', 'sprite', 'wine', 'beer', 'alcohol'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Beverages' 
-            },
-            { 
-                id: 'hardware', 
-                name: 'Hardware & Packaging', 
-                icon: 'fas fa-box-open', 
-                keywords: ['nail', 'screw', 'bolt', 'wire', 'tape', 'rope', 'chain', 'lock', 'key', 'tool', 'hammer', 'saw', 'drill', 'paint', 'brush', 'pipe', 'fitting', 'valve', 'tank', 'container', 'box', 'bag', 'sack', 'wrapper'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Hardware' 
-            },
-            { 
-                id: 'accessories', 
-                name: 'Accessories & Miscellaneous', 
-                icon: 'fas fa-gem', 
-                keywords: ['watch', 'belt', 'wallet', 'bag', 'purse', 'jewelry', 'necklace', 'earring', 'ring', 'bracelet', 'sunglasses', 'umbrella', 'keychain', 'phone', 'case', 'charger', 'cable', 'battery'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Accessories' 
-            },
-            { 
-                id: 'agriculture', 
-                name: 'Agriculture & Garden Supplies', 
-                icon: 'fas fa-seedling', 
-                keywords: ['seed', 'fertilizer', 'pesticide', 'herbicide', 'tool', 'hoe', 'panga', 'spade', 'fork', 'watering', 'can', 'sprayer', 'glove', 'boot', 'seedling', 'pot', 'soil', 'manure', 'compost'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Agriculture' 
-            },
-            { 
-                id: 'baby_care', 
-                name: 'Baby Care Products', 
-                icon: 'fas fa-baby', 
-                keywords: ['diaper', 'wipe', 'formula', 'milk', 'pacifier', 'bottle', 'nipple', 'cream', 'powder', 'shampoo', 'soap', 'toy', 'stroller', 'carrier', 'blanket', 'bib', 'spoon', 'cup'],
-                defaultProductImage: 'https://via.placeholder.com/400?text=Baby+Care' 
-            }
+        const categories = [
+            { id: 'food_staples', name: 'Food Staples' },
+            { id: 'beverages', name: 'Beverages & Dairy' },
+            { id: 'personal_care', name: 'Hygiene & Care' },
+            { id: 'household', name: 'Household Items' },
+            { id: 'bakery', name: 'Bakery' },
+            { id: 'stationery', name: 'Stationery' },
+            { id: 'agriculture', name: 'Agriculture' },
+            { id: 'hardware', name: 'Hardware' }
         ];
 
-        // Check for existing session
-        if (localStorage.getItem('adminLoggedIn') === 'true') {
-            showDashboard();
-        }
-
+        // --- AUTH LOGIC ---
         function login() {
-            const pwd = document.getElementById('password').value;
-            if (pwd === 'admin123') {
-                localStorage.setItem('adminLoggedIn', 'true');
-                showDashboard();
+            if (document.getElementById('password').value === 'admin123') {
+                localStorage.setItem('isLogged', 'true');
+                initDashboard();
             } else {
-                alert('Wrong password!');
+                alert('Invalid Password');
             }
         }
 
         function logout() {
-            localStorage.removeItem('adminLoggedIn');
-            // Unsubscribe from Firestore listeners
-            if (productsUnsubscribe) productsUnsubscribe();
-            if (categoriesUnsubscribe) categoriesUnsubscribe();
+            localStorage.removeItem('isLogged');
             location.reload();
         }
 
-        function showDashboard() {
+        function initDashboard() {
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
-            
-            // Initialize Firebase
-            initializeFirebase();
+            setupCategories();
+            syncData();
         }
 
-        async function initializeFirebase() {
-            try {
-                app = firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                storage = firebase.storage();
-                auth = firebase.auth();
-                isFirebaseInitialized = true;
-                
-                // Enable offline persistence with multi-tab support [^1^][^3^]
-                try {
-                    await db.enablePersistence({ synchronizeTabs: true });
-                    console.log('Offline persistence enabled with multi-tab support');
-                } catch (err) {
-                    if (err.code === 'failed-precondition') {
-                        console.warn('Multiple tabs open, persistence enabled in first tab only');
-                    } else if (err.code === 'unimplemented') {
-                        console.warn('Browser does not support offline persistence');
-                    }
-                }
+        if (localStorage.getItem('isLogged')) initDashboard();
 
-                // Monitor connection state [^4^]
-                db.collection('.info/connected').onSnapshot((snap) => {
-                    isOnline = snap.data().connected;
-                    updateFirebaseStatus();
-                });
-
-                // Setup real-time listeners
-                setupRealtimeListeners();
+        // --- DATA SYNC (REAL-TIME) ---
+        function syncData() {
+            // Listen for changes in Firestore
+            db.collection('products').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProducts();
                 
-                updateFirebaseStatus();
-                showToast('Firebase connected successfully');
-                
-                // Hide loading indicator
-                document.getElementById('initialLoading').classList.add('hidden');
-                
-            } catch (error) {
-                console.error('Firebase initialization error:', error);
-                showToast('Firebase connection failed');
-                document.getElementById('initialLoading').classList.add('hidden');
-            }
+                // Update UI Status
+                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-500";
+                document.getElementById('statusText').innerText = "Live Synced";
+            }, (error) => {
+                console.error("Sync Error:", error);
+                document.getElementById('statusText').innerText = "Connection Lost";
+            });
         }
 
-        function updateFirebaseStatus() {
-            const statusEl = document.getElementById('firebaseStatus');
-            const statusText = document.getElementById('firebaseStatusText');
-            
-            if (isOnline && isFirebaseInitialized) {
-                statusEl.classList.remove('disconnected');
-                statusEl.classList.add('connected');
-                statusText.textContent = 'Online';
-            } else {
-                statusEl.classList.remove('connected');
-                statusEl.classList.add('disconnected');
-                statusText.textContent = isFirebaseInitialized ? 'Offline (Cached)' : 'Not Connected';
-            }
+        function setupCategories() {
+            const selects = ['prodCategory', 'editCategory'];
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                el.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            });
         }
 
-        function showPendingWritesIndicator(show) {
-            const indicator = document.getElementById('pendingWrites');
-            if (show) {
-                indicator.classList.remove('hidden');
-            } else {
-                indicator.classList.add('hidden');
-            }
-        }
-
-        // Setup real-time listeners for Firestore [^4^][^5^]
-        function setupRealtimeListeners() {
-            // Listen for products collection changes
-            productsUnsubscribe = db.collection('products')
-                .orderBy('name')
-                .onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
-                    // Check for pending writes [^5^]
-                    if (snapshot.metadata.hasPendingWrites) {
-                        showPendingWritesIndicator(true);
-                    } else {
-                        showPendingWritesIndicator(false);
-                    }
-                    
-                    // Process document changes
-                    products = [];
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        products.push({
-                            ...data,
-                            id: doc.id,
-                            price: data.price || 0,
-                            wholesalePrice: data.wholesalePrice || null,
-                            oldPrice: data.oldPrice || null
-                        });
-                    });
-                    
-                    renderProductsList();
-                    
-                    // Show source indicator
-                    const source = snapshot.metadata.fromCache ? 'local cache' : 'server';
-                    console.log(`Products loaded from ${source}:`, products.length);
-                }, (error) => {
-                    console.error('Products listener error:', error);
-                    showToast('Error loading products');
-                });
-
-            // Listen for categories collection changes
-            categoriesUnsubscribe = db.collection('categories')
-                .onSnapshot((snapshot) => {
-                    if (!snapshot.empty) {
-                        categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    } else {
-                        // If no categories in Firebase, use defaults and sync them
-                        categories = [...defaultCategories];
-                        syncCategoriesToFirebase();
-                    }
-                    
-                    populateCategories();
-                    renderCategoriesList();
-                }, (error) => {
-                    console.error('Categories listener error:', error);
-                    // Fallback to defaults
-                    categories = [...defaultCategories];
-                    populateCategories();
-                    renderCategoriesList();
-                });
-        }
-
-        // ==================== FIREBASE CRUD OPERATIONS ====================
-
-        async function syncCategoriesToFirebase() {
-            if (!isFirebaseInitialized) {
-                showToast('Firebase not initialized');
-                return;
-            }
-
-            try {
-                const batch = db.batch();
-                const categoriesRef = db.collection('categories');
-                
-                // Delete existing categories
-                const existing = await categoriesRef.get();
-                existing.docs.forEach(doc => batch.delete(doc.ref));
-                
-                // Add new categories
-                categories.forEach(cat => {
-                    const ref = categoriesRef.doc(cat.id);
-                    batch.set(ref, cat);
-                });
-                
-                await batch.commit();
-                showToast('Categories synced to Firebase');
-            } catch (error) {
-                console.error('Error syncing categories:', error);
-                showToast('Failed to sync categories');
-            }
-        }
-
+        // --- CRUD OPERATIONS ---
         async function saveProduct() {
-            const categoryId = document.getElementById('prodCategory').value;
-            if (!categoryId) {
-                alert('Please select a category');
-                return;
-            }
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
 
-            const newProduct = {
+            const payload = {
                 name: document.getElementById('prodName').value,
-                price: parseInt(document.getElementById('prodPrice').value),
-                wholesalePrice: parseInt(document.getElementById('prodWholesalePrice').value) || null,
-                oldPrice: parseInt(document.getElementById('prodOldPrice').value) || null,
+                price: Number(document.getElementById('prodPrice').value),
+                wholesalePrice: Number(document.getElementById('prodWholesalePrice').value) || null,
+                category: document.getElementById('prodCategory').value,
                 unit: document.getElementById('prodUnit').value,
-                category: categoryId,
-                badge: document.getElementById('prodBadge').value,
-                description: document.getElementById('prodDesc').value,
                 popular: document.getElementById('prodPopular').checked,
                 inStock: document.getElementById('prodStock').checked,
-                image: document.getElementById('previewImg').src || getCategoryImage(categoryId),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
             try {
-                // Add to Firestore - will trigger real-time listener [^7^]
-                const docRef = await db.collection('products').add(newProduct);
-                console.log('Product added with ID:', docRef.id);
-                
-                resetForm();
-                showToast('Product saved to cloud successfully!');
-            } catch (error) {
-                console.error('Error adding product:', error);
-                showToast('Error saving product: ' + error.message);
-            }
-        }
-
-        async function updateProduct() {
-            if (!editingId) return;
-
-            const imageUrl = document.getElementById('editImageUrl').value || document.getElementById('editPreviewImg').src;
-
-            const updatedProduct = {
-                name: document.getElementById('editName').value,
-                price: parseInt(document.getElementById('editPrice').value),
-                wholesalePrice: parseInt(document.getElementById('editWholesalePrice').value) || null,
-                oldPrice: parseInt(document.getElementById('editOldPrice').value) || null,
-                unit: document.getElementById('editUnit').value,
-                category: document.getElementById('editCategory').value,
-                badge: document.getElementById('editBadge').value,
-                description: document.getElementById('editDesc').value,
-                popular: document.getElementById('editPopular').checked,
-                inStock: document.getElementById('editStock').checked,
-                image: imageUrl || products.find(p => p.id === editingId)?.image,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            try {
-                // Update in Firestore - will trigger real-time listener [^7^]
-                await db.collection('products').doc(editingId.toString()).update(updatedProduct);
-                closeEditModal();
-                showToast('Product updated successfully!');
-            } catch (error) {
-                console.error('Error updating product:', error);
-                showToast('Error updating product: ' + error.message);
+                await db.collection('products').add(payload);
+                document.getElementById('productForm').reset();
+                showToast("Product added to Cloud!");
+            } catch (e) {
+                alert("Error: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save to Cloud';
             }
         }
 
         async function deleteProduct(id) {
-            if (!confirm('Are you sure you want to delete this product?')) return;
-
-            try {
-                // Delete from Firestore - will trigger real-time listener [^7^]
-                await db.collection('products').doc(id.toString()).delete();
-                showToast('Product deleted successfully!');
-            } catch (error) {
-                console.error('Error deleting product:', error);
-                showToast('Error deleting product: ' + error.message);
+            if (confirm("Permanently delete from Cloud?")) {
+                await db.collection('products').doc(id).delete();
+                showToast("Deleted successfully");
             }
         }
 
-        async function confirmMassUpload() {
-            const selected = extractedProducts.filter(p => p.selected);
-            if (selected.length === 0) {
-                alert('No products selected');
-                return;
-            }
-            
-            try {
-                const batch = db.batch();
-                const productsRef = db.collection('products');
-                
-                selected.forEach(p => {
-                    const newRef = productsRef.doc();
-                    batch.set(newRef, {
-                        name: p.name,
-                        price: p.price,
-                        wholesalePrice: p.wholesalePrice,
-                        oldPrice: p.oldPrice,
-                        unit: p.unit,
-                        category: p.category,
-                        badge: p.badge,
-                        description: p.description,
-                        popular: p.popular,
-                        inStock: p.inStock,
-                        image: p.image,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
-                
-                await batch.commit();
-                
-                // Clear extraction
-                extractedProducts = [];
-                document.getElementById('extractedProducts').classList.add('hidden');
-                document.getElementById('fileInput').value = '';
-                
-                showToast(`${selected.length} products added to cloud!`);
-            } catch (error) {
-                console.error('Error in mass upload:', error);
-                showToast('Error adding products: ' + error.message);
-            }
-        }
-
-        // ==================== REGULAR FUNCTIONS ====================
-
-        function populateCategories() {
-            const selects = ['prodCategory', 'editCategory', 'filterCategory'];
-            selects.forEach(id => {
-                const select = document.getElementById(id);
-                if (!select) return;
-                
-                const currentValue = select.value;
-                select.innerHTML = '<option value="">Select Category</option>';
-                
-                categories.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.name;
-                    select.appendChild(option);
-                });
-                
-                if (currentValue) select.value = currentValue;
-            });
-        }
-
-        function renderCategoriesList() {
-            const container = document.getElementById('categoriesList');
-            document.getElementById('categoryCount').textContent = `${categories.length} categories`;
-            
-            if (categories.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">No categories available</p>';
-                return;
-            }
-
-            container.innerHTML = categories.map(cat => `
-                <div class="category-badge flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200 cursor-default">
-                    <i class="${cat.icon || 'fas fa-tag'}"></i>
-                    <span class="font-medium">${cat.name}</span>
-                </div>
-            `).join('');
-        }
-
-        // AI Mass Upload Functions
-        function handleFileSelect(event) {
-            const files = Array.from(event.target.files);
-            if (files.length === 0) return;
-            
-            if (files.length > 10) {
-                alert('Maximum 10 files allowed at once');
-                return;
-            }
-
-            currentFiles = files;
-            processFiles(files);
-        }
-
-        const dropZone = document.getElementById('dropZone');
-        
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            const files = Array.from(e.dataTransfer.files).filter(f => 
-                f.type.includes('pdf') || f.type.includes('image')
-            );
-            if (files.length > 10) {
-                alert('Maximum 10 files allowed');
-                return;
-            }
-            currentFiles = files;
-            processFiles(files);
-        });
-
-        async function processFiles(files) {
-            document.getElementById('processingStatus').classList.remove('hidden');
-            document.getElementById('extractedProducts').classList.add('hidden');
-            extractedProducts = [];
-            
-            const progressBar = document.getElementById('progressBar');
-            const processingText = document.getElementById('processingText');
-            
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const progress = ((i + 1) / files.length) * 100;
-                progressBar.style.width = progress + '%';
-                processingText.textContent = `Processing ${file.name}... (${i + 1}/${files.length})`;
-                
-                try {
-                    if (file.type.includes('pdf')) {
-                        await processPDF(file);
-                    } else {
-                        await processImage(file);
-                    }
-                } catch (error) {
-                    console.error('Error processing file:', error);
-                }
-            }
-            
-            document.getElementById('processingStatus').classList.add('hidden');
-            displayExtractedProducts();
-        }
-
-        async function processPDF(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            
-            for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 2 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-                
-                const imageData = canvas.toDataURL('image/png');
-                await performOCR(imageData);
-            }
-        }
-
-        async function processImage(file) {
-            const reader = new FileReader();
-            return new Promise((resolve) => {
-                reader.onload = async (e) => {
-                    await performOCR(e.target.result);
-                    resolve();
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function performOCR(imageData) {
-            try {
-                const result = await Tesseract.recognize(
-                    imageData,
-                    'eng',
-                    { logger: m => console.log(m) }
-                );
-                
-                const text = result.data.text;
-                const lines = text.split('\n').filter(line => line.trim());
-                
-                lines.forEach(line => {
-                    const extracted = parseProductLine(line);
-                    if (extracted) {
-                        extractedProducts.push(extracted);
-                    }
-                });
-            } catch (error) {
-                console.error('OCR Error:', error);
-            }
-        }
-
-        function parseProductLine(line) {
-            const patterns = [
-                /([A-Za-z\s\w]+)\s+.*?(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})\s*(?:KSh|KS|KSH|\/=|=)?\s*$/,
-                /(?:\d+[\.\)]\s*)?([A-Za-z\s\w]+)[\s\-–]+(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})/,
-                /([A-Za-z\s\w]+)\s+(?:ws|wholesale|retail|rt)?\s*:?\s*(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})/i,
-                /([A-Za-z\s\w]+)\s*[@]\s*(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})/,
-            ];
-            
-            let match = null;
-            
-            for (const pattern of patterns) {
-                match = line.match(pattern);
-                if (match) break;
-            }
-            
-            if (!match) return null;
-            
-            let name = match[1].trim();
-            let priceStr = match[2].replace(/,/g, '');
-            let price = parseFloat(priceStr);
-            
-            if (!name || isNaN(price) || price < 1) return null;
-            
-            name = name.replace(/[^\w\s\-']/g, '').trim();
-            if (name.length < 2) return null;
-            
-            let wholesalePrice = null;
-            const wholesaleMatch = line.match(/(?:ws|wholesale|w\/s)[\s:]*(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})/i);
-            if (wholesaleMatch) {
-                wholesalePrice = parseFloat(wholesaleMatch[1].replace(/,/g, ''));
-            }
-            
-            const retailMatch = line.match(/(?:retail|rt|selling)[\s:]*(\d{1,3}(?:,\d{3})*\d*\.?\d{0,2})/i);
-            if (retailMatch && wholesalePrice) {
-                price = parseFloat(retailMatch[1].replace(/,/g, ''));
-            }
-            
-            const unitPatterns = [
-                /\b(pcs|pc|pieces|piece|pkt|packet|packets|box|boxes|kg|kgs|ltr|ltrs|liter|liters|ml|dozen|dzn|bundle|bdl|carton|ctn|tin|tins|bottle|bottles|jar|jars|sachet|sachets)\b/i
-            ];
-            
-            let unit = 'per item';
-            for (const unitPattern of unitPatterns) {
-                const unitMatch = line.match(unitPattern);
-                if (unitMatch) {
-                    unit = unitMatch[1].toLowerCase();
-                    if (unit === 'pc' || unit === 'pcs') unit = 'per piece';
-                    else if (unit === 'pkt') unit = 'per packet';
-                    else if (unit === 'kg' || unit === 'kgs') unit = 'per kg';
-                    else if (unit === 'ltr' || unit === 'ltrs') unit = 'per liter';
-                    else if (unit === 'dzn') unit = 'per dozen';
-                    else if (unit === 'bdl') unit = 'per bundle';
-                    else if (unit === 'ctn') unit = 'per carton';
-                    else unit = `per ${unit}`;
-                    break;
-                }
-            }
-            
-            const category = detectCategory(name + ' ' + line);
-            
-            return {
-                id: Date.now() + Math.random(),
-                name: name,
-                price: price,
-                wholesalePrice: wholesalePrice,
-                oldPrice: null,
-                unit: unit,
-                category: category,
-                badge: '',
-                description: `Extracted: ${line.substring(0, 50)}...`,
-                popular: false,
-                inStock: true,
-                image: getCategoryImage(category),
-                selected: true,
-                sourceLine: line
-            };
-        }
-
-        function detectCategory(text) {
-            const lowerText = text.toLowerCase();
-            let bestMatch = 'other';
-            let maxScore = 0;
-            
-            categories.forEach(cat => {
-                if (cat.id === 'other') return;
-                
-                let score = 0;
-                cat.keywords.forEach(keyword => {
-                    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-                    if (regex.test(lowerText)) {
-                        score += 1;
-                        if (lowerText.startsWith(keyword)) score += 2;
-                    }
-                });
-                
-                if (score > maxScore) {
-                    maxScore = score;
-                    bestMatch = cat.id;
-                }
-            });
-            
-            return bestMatch;
-        }
-
-        function displayExtractedProducts() {
-            const container = document.getElementById('extractedList');
-            const countSpan = document.getElementById('extractedCount');
-            const selectedSpan = document.getElementById('selectedCount');
-            
-            countSpan.textContent = extractedProducts.length;
-            selectedSpan.textContent = extractedProducts.filter(p => p.selected).length;
-            
-            if (extractedProducts.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 py-8">No products detected. Try clearer images.</p>';
-                document.getElementById('extractedProducts').classList.remove('hidden');
-                return;
-            }
-            
-            container.innerHTML = extractedProducts.map((p, index) => `
-                <div class="extracted-item flex items-center gap-3 p-3 bg-gray-50 rounded-lg border ${p.selected ? 'border-purple-300 bg-purple-50' : 'border-gray-200'}">
-                    <input type="checkbox" ${p.selected ? 'checked' : ''} onchange="toggleExtracted(${index})" class="w-5 h-5 text-purple-600 rounded">
-                    
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <input type="text" value="${p.name}" onchange="updateExtracted(${index}, 'name', this.value)" 
-                                class="font-semibold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-purple-500 focus:outline-none w-full">
-                        </div>
-                        <div class="flex items-center gap-2 mt-1 text-sm">
-                            <span class="text-gray-600">Retail:</span>
-                            <input type="number" value="${p.price}" onchange="updateExtracted(${index}, 'price', this.value)" 
-                                class="w-20 px-2 py-1 rounded border border-gray-300 text-sm">
-                            <span class="text-blue-600">Wholesale:</span>
-                            <input type="number" value="${p.wholesalePrice || ''}" onchange="updateExtracted(${index}, 'wholesalePrice', this.value)" 
-                                class="w-20 px-2 py-1 rounded border border-gray-300 text-sm" placeholder="-">
-                            <select onchange="updateExtracted(${index}, 'category', this.value)" class="text-xs border border-gray-300 rounded px-2 py-1">
-                                ${categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${c.name}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <button onclick="removeExtracted(${index})" class="text-red-500 hover:text-red-700">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
-            
-            document.getElementById('extractedProducts').classList.remove('hidden');
-        }
-
-        function toggleExtracted(index) {
-            extractedProducts[index].selected = !extractedProducts[index].selected;
-            updateSelectedCount();
-            displayExtractedProducts();
-        }
-
-        function updateExtracted(index, field, value) {
-            if (field === 'price' || field === 'wholesalePrice') {
-                extractedProducts[index][field] = value ? parseFloat(value) : null;
-            } else {
-                extractedProducts[index][field] = value;
-            }
-            updateSelectedCount();
-        }
-
-        function removeExtracted(index) {
-            extractedProducts.splice(index, 1);
-            displayExtractedProducts();
-        }
-
-        function selectAllExtracted() {
-            extractedProducts.forEach(p => p.selected = true);
-            displayExtractedProducts();
-        }
-
-        function clearExtracted() {
-            if (confirm('Clear all extracted products?')) {
-                extractedProducts = [];
-                document.getElementById('extractedProducts').classList.add('hidden');
-            }
-        }
-
-        function updateSelectedCount() {
-            document.getElementById('selectedCount').textContent = extractedProducts.filter(p => p.selected).length;
-        }
-
-        function showUploadHelp() {
-            alert(`AI Mass Upload Instructions:
-
-1. PDF Files: Upload supplier invoices, price lists, or catalogs
-2. Images: Take photos of shelf labels or handwritten lists
-3. Best Practices:
-   - Ensure text is clear and well-lit
-   - Include prices (retail and wholesale if available)
-   - Use high resolution images
-   
-The AI will detect products, prices, and auto-categorize them.`);
-        }
-
-        // Regular product functions
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewImg').src = e.target.result;
-                    document.getElementById('imagePreview').classList.remove('hidden');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function previewUrl(url) {
-            if (url) {
-                document.getElementById('previewImg').src = url;
-                document.getElementById('imagePreview').classList.remove('hidden');
-            }
-        }
-
-        function previewEditImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('editPreviewImg').src = e.target.result;
-                    document.getElementById('editImagePreview').classList.remove('hidden');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function previewEditUrl(url) {
-            if (url) {
-                document.getElementById('editPreviewImg').src = url;
-                document.getElementById('editImagePreview').classList.remove('hidden');
-            }
-        }
-
-        function getCategoryImage(catId) {
-            const cat = categories.find(c => c.id === catId);
-            return cat ? cat.defaultProductImage : 'https://via.placeholder.com/400';
-        }
-
-        function renderProductsList(filtered = products) {
-            const container = document.getElementById('productsList');
-            
-            if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 py-8">No products found</p>';
-                return;
-            }
-
-            container.innerHTML = filtered.map(p => {
-                const cat = categories.find(c => c.id === p.category);
-                let badgeClass = '';
-                let badgeText = p.badge;
-                
-                switch(p.badge) {
-                    case 'sale': badgeClass = 'bg-orange-100 text-orange-600'; break;
-                    case 'new': badgeClass = 'bg-emerald-100 text-emerald-600'; break;
-                    case 'popular': badgeClass = 'bg-purple-100 text-purple-600'; break;
-                    case 'out': badgeClass = 'bg-red-100 text-red-600'; badgeText = 'Out of Stock'; break;
-                    default: badgeClass = 'bg-gray-100 text-gray-600';
-                }
-
-                return `
-                    <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                        <img src="${p.image}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-semibold text-gray-900 truncate">${p.name}</h4>
-                            <p class="text-sm text-gray-500">
-                                Retail: KSh ${p.price} 
-                                ${p.wholesalePrice ? `<span class="text-blue-600 font-medium">| Wholesale: KSh ${p.wholesalePrice}</span>` : ''}
-                                ${p.oldPrice ? `<span class="line-through text-gray-400 text-xs">(was KSh ${p.oldPrice})</span>` : ''}
-                            </p>
-                            <p class="text-xs text-gray-400">${cat?.name || p.category} • ${p.unit}</p>
-                            <div class="flex gap-1 mt-1">
-                                ${p.badge ? `<span class="px-2 py-0.5 ${badgeClass} text-xs rounded-full">${badgeText}</span>` : ''}
-                                ${p.popular ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-600 text-xs rounded-full">Popular</span>' : ''}
-                                ${!p.inStock ? '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">Out of Stock</span>' : ''}
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="editProduct('${p.id}')" class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center justify-center">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 flex items-center justify-center">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function editProduct(id) {
-            const product = products.find(p => p.id === id);
-            if (!product) return;
-
-            editingId = id;
-            document.getElementById('editId').value = id;
-            document.getElementById('editName').value = product.name;
-            document.getElementById('editPrice').value = product.price;
-            document.getElementById('editWholesalePrice').value = product.wholesalePrice || '';
-            document.getElementById('editOldPrice').value = product.oldPrice || '';
-            document.getElementById('editUnit').value = product.unit;
-            document.getElementById('editCategory').value = product.category;
-            document.getElementById('editBadge').value = product.badge || '';
-            document.getElementById('editDesc').value = product.description || '';
-            document.getElementById('editPopular').checked = product.popular || false;
-            document.getElementById('editStock').checked = product.inStock !== false;
-
-            if (product.image) {
-                document.getElementById('editPreviewImg').src = product.image;
-                document.getElementById('editImagePreview').classList.remove('hidden');
-            }
-
+        function openEdit(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('editId').value = p.id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editPrice').value = p.price;
+            document.getElementById('editWholesalePrice').value = p.wholesalePrice || '';
+            document.getElementById('editCategory').value = p.category;
             document.getElementById('editModal').classList.remove('hidden');
         }
 
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-            editingId = null;
-        }
-
-        function resetForm() {
-            document.getElementById('productForm').reset();
-            document.getElementById('imagePreview').classList.add('hidden');
-            document.getElementById('previewImg').src = '';
-        }
-
-        function filterProducts() {
-            const categoryId = document.getElementById('filterCategory').value;
-            if (!categoryId) {
-                renderProductsList(products);
-                return;
-            }
-            const filtered = products.filter(p => p.category === categoryId);
-            renderProductsList(filtered);
-        }
-
-        function searchProductsList() {
-            const query = document.getElementById('searchProducts').value.toLowerCase();
-            if (!query) {
-                renderProductsList(products);
-                return;
-            }
-            const filtered = products.filter(p => 
-                p.name.toLowerCase().includes(query) || 
-                p.description?.toLowerCase().includes(query)
-            );
-            renderProductsList(filtered);
-        }
-
-        function exportJSON() {
+        async function updateProduct() {
+            const id = document.getElementById('editId').value;
             const data = {
-                storeInfo: {
-                    name: "Lwandeti Junction Minimart",
-                    phone: "0117 352700",
-                    whatsapp: "254117352700",
-                    email: "junctionsupa@gmail.com",
-                    address: "Lwandeti Junction, Kenya",
-                    hours: "7:00 AM - 9:00 PM",
-                    currency: "KSh"
-                },
-                categories: categories,
-                products: products,
-                lastUpdated: new Date().toISOString()
+                name: document.getElementById('editName').value,
+                price: Number(document.getElementById('editPrice').value),
+                wholesalePrice: Number(document.getElementById('editWholesalePrice').value) || null,
+                category: document.getElementById('editCategory').value,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            await db.collection('products').doc(id).update(data);
+            closeModal();
+            showToast("Cloud update successful");
+        }
+
+        // --- UI RENDERING ---
+        function renderProducts(data = products) {
+            const list = document.getElementById('productsList');
+            if (data.length === 0) {
+                list.innerHTML = '<div class="p-10 text-center text-gray-400 bg-white rounded-xl border">No products found.</div>';
+                return;
+            }
+
+            list.innerHTML = data.map(p => `
+                <div class="bg-white p-4 rounded-xl border flex justify-between items-center hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center font-bold">
+                            ${p.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">${p.name}</h4>
+                            <p class="text-xs text-gray-500">Retail: <span class="text-emerald-600 font-bold">KSh ${p.price}</span> | WS: KSh ${p.wholesalePrice || '--'}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openEdit('${p.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterItems() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+            renderProducts(filtered);
+        }
+
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(products, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `minimart-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = 'minimart_inventory.json';
             a.click();
-            URL.revokeObjectURL(url);
         }
-
-        function copyToClipboard() {
-            const data = {
-                storeInfo: {
-                    name: "Lwandeti Junction Minimart",
-                    phone: "0117 352700",
-                    whatsapp: "254117352700",
-                    email: "junctionsupa@gmail.com",
-                    address: "Lwandeti Junction, Kenya",
-                    hours: "7:00 AM - 9:00 PM",
-                    currency: "KSh"
-                },
-                categories: categories,
-                products: products,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-            showToast('JSON copied to clipboard!');
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (productsUnsubscribe) productsUnsubscribe();
-            if (categoriesUnsubscribe) categoriesUnsubscribe();
-        });
     </script>
 </body>
 </html>
