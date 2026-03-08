@@ -21,8 +21,9 @@
         .tab-btn.active { border-bottom: 3px solid #059669; color: #059669; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .upload-label { cursor: pointer; transition: all 0.3s; }
         .upload-label:hover { background: #ecfdf5; border-color: #10b981; }
+        .scan-row { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -77,7 +78,7 @@
                                     <select id="prodSubCategory" required class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm"><option value="">Sub-category</option></select>
                                 </div>
                                 <div class="flex flex-col gap-2">
-                                    <label class="upload-label flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-4 bg-gray-50/50">
+                                    <label class="upload-label flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-4 bg-gray-50/50 cursor-pointer">
                                         <i class="fas fa-cloud-upload-alt text-emerald-500 mb-1"></i>
                                         <span class="text-[10px] font-bold text-gray-400 uppercase" id="uploadStatus">Upload Photo</span>
                                         <input type="file" class="hidden" accept="image/*" onchange="uploadImage(this, 'prodImageUrl', 'uploadStatus')">
@@ -97,68 +98,66 @@
                 </div>
             </div>
 
-            <div id="view-categories" class="tab-content hidden">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div class="bg-white p-8 rounded-2xl shadow-sm">
-                        <h2 class="font-bold text-lg mb-6" id="catFormTitle">Manage Category</h2>
-                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
-                            <input type="hidden" id="catId">
-                            <input type="text" id="catName" required placeholder="Category Name" class="w-full p-4 border-2 border-gray-50 rounded-xl">
-                            <textarea id="catSubs" placeholder="Sub-categories (comma separated)" class="w-full p-4 border-2 border-gray-50 rounded-xl text-sm h-24"></textarea>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category</button>
-                        </form>
-                    </div>
-                    <div class="bg-white p-8 rounded-2xl shadow-sm"><div id="catAdminList" class="space-y-3"></div></div>
-                </div>
-            </div>
-
             <div id="view-ai" class="tab-content hidden">
                 <div class="bg-white p-6 md:p-10 rounded-2xl shadow-sm">
                     <div id="dropZone" class="border-4 border-dashed border-gray-100 rounded-3xl p-10 cursor-pointer hover:border-emerald-300 transition-all bg-gray-50 text-center" onclick="document.getElementById('aiFileInput').click()">
                         <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                        <i class="fas fa-images text-5xl text-emerald-600 mb-4"></i>
-                        <h3 class="text-xl font-bold">AI Mass Stock Scanner</h3>
-                        <p class="text-gray-400 text-sm">Select multiple photos. AI will extract items and list them below as it works.</p>
+                        <i class="fas fa-camera-retro text-5xl text-emerald-600 mb-4"></i>
+                        <h3 class="text-xl font-bold">Smart Stock Scanner</h3>
+                        <p class="text-gray-400 text-sm">Upload receipt photos or price lists. AI will read them in real-time.</p>
                     </div>
 
                     <div id="scanStatus" class="hidden mt-6 p-4 bg-emerald-50 rounded-2xl flex items-center justify-between border border-emerald-100">
                         <div class="flex items-center gap-3">
                             <div class="loader"></div>
-                            <span class="text-emerald-800 font-semibold text-sm" id="progressText">Processing...</span>
+                            <span class="text-emerald-800 font-semibold text-sm" id="progressText">Analyzing images...</span>
                         </div>
                         <span id="queueCount" class="bg-emerald-600 text-white text-xs px-3 py-1 rounded-full font-bold">0 Remaining</span>
                     </div>
 
-                    <div id="aiReviewSection" class="hidden mt-10 text-left">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div id="aiReviewSection" class="hidden mt-10">
+                        <div class="flex justify-between items-end mb-6">
                             <div>
-                                <h3 class="font-bold text-lg">Detected Items (<span id="detectedCount">0</span>)</h3>
-                                <p class="text-xs text-gray-400">Verify names and prices before saving to stock.</p>
+                                <h3 class="font-bold text-lg text-emerald-900">Detected Items (<span id="detectedCount">0</span>)</h3>
+                                <p class="text-xs text-gray-500 italic">Edit any mistakes below before saving.</p>
                             </div>
-                            <div class="flex gap-2 w-full md:w-auto">
-                                <button onclick="tempExtracted = []; renderAITable();" class="text-red-500 font-bold px-4 text-sm">Clear List</button>
-                                <button id="bulkSaveBtn" onclick="saveAIScannedItems(this)" class="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex-1 md:flex-none">
-                                    Confirm & Save All
-                                </button>
+                            <div class="flex gap-3">
+                                <button onclick="tempExtracted = []; renderAITable();" class="text-red-500 text-xs font-bold hover:underline">Clear All</button>
+                                <button id="bulkSaveBtn" onclick="saveAIScannedItems(this)" class="bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold shadow-md">Confirm & Save to Stock</button>
                             </div>
                         </div>
                         
-                        <div class="overflow-x-auto border rounded-2xl bg-white">
+                        <div class="overflow-x-auto border rounded-2xl bg-white shadow-sm">
                             <table class="w-full text-sm">
-                                <thead class="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+                                <thead class="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-widest font-bold">
                                     <tr>
-                                        <th class="p-4 text-left">Photo</th>
+                                        <th class="p-4 text-left">Source</th>
                                         <th class="p-4 text-left">Product Name</th>
                                         <th class="p-4 text-left">Price (KSh)</th>
                                         <th class="p-4 text-left">Category</th>
                                         <th class="p-4"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="aiResultsTable" class="divide-y divide-gray-50">
+                                <tbody id="aiResultsTable" class="divide-y divide-gray-100">
                                     </tbody>
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div id="view-categories" class="tab-content hidden">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm">
+                        <h2 class="font-bold text-lg mb-6">Manage Categories</h2>
+                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
+                            <input type="hidden" id="catId">
+                            <input type="text" id="catName" required placeholder="Category Name (e.g. Flour)" class="w-full p-4 border-2 border-gray-50 rounded-xl outline-none focus:border-emerald-500">
+                            <textarea id="catSubs" placeholder="Sub-categories (comma separated: 1kg, 2kg, etc)" class="w-full p-4 border-2 border-gray-50 rounded-xl text-sm h-24"></textarea>
+                            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm"><div id="catAdminList" class="space-y-3"></div></div>
                 </div>
             </div>
         </div>
@@ -178,13 +177,14 @@
                     <select id="editCategory" required onchange="updateSubSelect('edit')" class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
                     <select id="editSubCategory" required class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
                 </div>
-                <input type="url" id="editImageUrl" placeholder="Image URL" class="w-full p-4 border-2 border-gray-50 rounded-2xl">
+                <input type="url" id="editImageUrl" class="w-full p-4 border-2 border-gray-50 rounded-2xl">
                 <div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold">Update</button><button type="button" onclick="closeEditModal()" class="px-8 bg-gray-100 rounded-2xl font-bold">Cancel</button></div>
             </form>
         </div>
     </div>
 
     <script>
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
@@ -200,6 +200,7 @@
         let products = [], categories = [], tempExtracted = [];
         let ocrWorker = null;
 
+        // --- AUTH ---
         function login() { if(document.getElementById('password').value === 'admin123') { sessionStorage.setItem('admin_auth', 'true'); showDashboard(); } else { alert('Wrong Password'); } }
         function logout() { sessionStorage.clear(); location.reload(); }
         if(sessionStorage.getItem('admin_auth')) showDashboard();
@@ -208,9 +209,9 @@
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
             syncData();
-            initOCR();
         }
 
+        // --- OCR WORKER ---
         async function initOCR() {
             if (!ocrWorker) {
                 ocrWorker = await Tesseract.createWorker('eng');
@@ -229,6 +230,7 @@
             });
         }
 
+        // --- IMAGE HANDLING ---
         async function uploadImage(fileInput, targetUrlInputId, statusId) {
             const file = fileInput.files[0]; if(!file) return;
             const status = document.getElementById(statusId);
@@ -239,43 +241,11 @@
                 const url = await snapshot.ref.getDownloadURL();
                 document.getElementById(targetUrlInputId).value = url;
                 status.innerText = "Complete!";
-                showToast('Image Uploaded');
+                showToast('Image Ready');
             } catch (error) { status.innerText = "Failed"; }
         }
 
-        async function saveCategory() {
-            const id = document.getElementById('catId').value;
-            const name = document.getElementById('catName').value;
-            const data = {
-                name: name,
-                subs: document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s !== "")
-            };
-            if(id) await db.collection('categories').doc(id).update(data);
-            else await db.collection('categories').add(data);
-            document.getElementById('categoryForm').reset();
-            document.getElementById('catId').value = "";
-            showToast('Category Updated');
-        }
-
-        function updateSelects() {
-            ['prodCategory', 'editCategory'].forEach(id => {
-                const el = document.getElementById(id);
-                if(!el) return;
-                const currentVal = el.value;
-                el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-                el.value = currentVal;
-            });
-        }
-
-        function updateSubSelect(prefix, selectedSub = "") {
-            const catName = document.getElementById(`${prefix}Category`).value;
-            const subEl = document.getElementById(`${prefix}SubCategory`);
-            const cat = categories.find(c => c.name === catName);
-            if(cat && cat.subs) {
-                subEl.innerHTML = '<option value="">Sub-category</option>' + cat.subs.map(s => `<option value="${s}" ${s===selectedSub ? 'selected':''}>${s}</option>`).join('');
-            } else { subEl.innerHTML = '<option value="">N/A</option>'; }
-        }
-
+        // --- INVENTORY LOGIC ---
         async function saveProduct() {
             const data = {
                 name: document.getElementById('prodName').value,
@@ -291,63 +261,32 @@
             showToast('Product Added');
         }
 
-        async function updateProduct() {
-            const id = document.getElementById('editId').value;
-            await db.collection('products').doc(id).update({
-                name: document.getElementById('editName').value,
-                price: parseFloat(document.getElementById('editPrice').value),
-                unit: document.getElementById('editUnit').value,
-                category: document.getElementById('editCategory').value,
-                subCategory: document.getElementById('editSubCategory').value,
-                image: document.getElementById('editImageUrl').value
-            });
-            closeEditModal();
-            showToast('Updated');
-        }
-
         function renderProducts() {
             const q = document.getElementById('searchProducts').value.toLowerCase();
             const container = document.getElementById('productsList');
             const filtered = products.filter(p => p.name.toLowerCase().includes(q));
             container.innerHTML = filtered.map(p => `
-                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl group">
-                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl">
+                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl group transition-all hover:border-emerald-200">
+                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl shadow-sm">
                     <div class="flex-1">
                         <h4 class="font-bold text-sm text-gray-800">${p.name}</h4>
-                        <span class="text-[9px] uppercase font-bold text-gray-400">${p.category} > ${p.subCategory}</span>
+                        <span class="text-[9px] uppercase font-bold text-gray-400">${p.category} | ${p.subCategory}</span>
                     </div>
                     <div class="text-right mr-4 font-bold text-emerald-600">KSh ${p.price}</div>
                     <div class="flex gap-1">
-                        <button onclick="openEditModal('${p.id}')" class="p-2 text-blue-600 bg-blue-50 rounded-lg"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 bg-red-50 rounded-lg"><i class="fas fa-trash"></i></button>
+                        <button onclick="openEditModal('${p.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-400 hover:bg-red-50 rounded-lg"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>`).join('');
         }
 
-        function renderCategories() {
-            document.getElementById('catAdminList').innerHTML = categories.map(c => `
-                <div class="p-4 bg-gray-50 rounded-2xl border">
-                    <div class="flex justify-between mb-2"><span class="font-bold">${c.name}</span><div class="flex gap-2"><button onclick="editCategory('${c.id}')" class="text-blue-500 text-xs">Edit</button><button onclick="deleteCategory('${c.id}')" class="text-red-400 text-xs">Delete</button></div></div>
-                    <div class="flex flex-wrap gap-1">${(c.subs || []).map(s => `<span class="text-[8px] bg-white px-2 py-1 rounded border">#${s}</span>`).join('')}</div>
-                </div>`).join('');
-        }
-
-        function editCategory(id) { const c = categories.find(x => x.id === id); document.getElementById('catId').value = c.id; document.getElementById('catName').value = c.name; document.getElementById('catSubs').value = (c.subs || []).join(', '); }
-        function openEditModal(id) { const p = products.find(x => x.id === id); document.getElementById('editId').value = id; document.getElementById('editName').value = p.name; document.getElementById('editPrice').value = p.price; document.getElementById('editUnit').value = p.unit; document.getElementById('editCategory').value = p.category; updateSubSelect('edit', p.subCategory); document.getElementById('editImageUrl').value = p.image; document.getElementById('editModal').classList.remove('hidden'); }
-        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
-        function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toastMessage').innerText = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
-        function switchTab(tab) { document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden')); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById(`view-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.add('active'); }
-        async function deleteProduct(id) { if(confirm('Delete?')) await db.collection('products').doc(id).delete(); }
-        async function deleteCategory(id) { if(confirm('Delete?')) await db.collection('categories').doc(id).delete(); }
-        
-        // --- AI MASS SCANNER (UPDATED TO BE ADDITIVE & PARALLEL) ---
+        // --- AI MASS SCANNER (ROBUST & ADDITIVE) ---
         async function handleAIUpload(e) {
-            const files = Array.from(e.target.files); if(!files.length) return;
-            
-            // Show UI elements
+            const files = Array.from(e.target.files);
+            if(!files.length) return;
+
             document.getElementById('scanStatus').classList.remove('hidden');
             document.getElementById('aiReviewSection').classList.remove('hidden');
-            
             const progressLabel = document.getElementById('progressText');
             const queueLabel = document.getElementById('queueCount');
 
@@ -356,21 +295,22 @@
             let filesDone = 0;
             for(let f of files) {
                 filesDone++;
-                progressLabel.innerText = `Scanning: ${f.name.substring(0, 15)}...`;
-                queueLabel.innerText = `${files.length - filesDone} Files Left`;
+                progressLabel.innerText = `Analyzing: ${f.name.substring(0,10)}...`;
+                queueLabel.innerText = `${files.length - filesDone} Files Remaining`;
 
                 const tempUrl = URL.createObjectURL(f);
                 
                 try {
                     const { data: { text } } = await ocrWorker.recognize(f);
+                    console.log("Raw Scan:", text);
+
                     const lines = text.split('\n');
-                    // Improved regex to handle various separators
-                    const priceRegex = /(.+?)\s+[\.\-\_:\s]*\s*(\d{1,6}(?:\.\d{2})?)$/;
-                    
+                    // Regex improved for diverse price formats
+                    const priceRegex = /(.+?)\s+[\.\-\_:\s]*\s*(\d+(?:\.\d{1,2})?)$/;
+
                     lines.forEach(l => {
                         const match = l.match(priceRegex);
                         if(match && match[1].trim().length > 2) {
-                            // Append to the list instead of clearing
                             tempExtracted.push({ 
                                 name: match[1].trim(), 
                                 price: parseFloat(match[2]), 
@@ -382,17 +322,12 @@
                             });
                         }
                     });
-                    
-                    // Render list after EVERY file finishes so admin sees progress
-                    renderAITable();
-                    
-                } catch (err) {
-                    console.error("Scanning Error:", err);
-                }
+                    renderAITable(); // Add items to list immediately
+                } catch (err) { console.error("OCR Failure", err); }
             }
 
             document.getElementById('scanStatus').classList.add('hidden');
-            showToast(`Batch Scan Complete: Found ${tempExtracted.length} items.`);
+            showToast(`Scanned ${files.length} images.`);
         }
 
         function renderAITable() {
@@ -400,49 +335,48 @@
             document.getElementById('detectedCount').innerText = tempExtracted.length;
             
             if (tempExtracted.length === 0) {
-                container.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">Scan items to see them here...</td></tr>`;
+                container.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-gray-400">Processing images... please wait.</td></tr>`;
                 return;
             }
 
             container.innerHTML = tempExtracted.map((item, i) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-3">
-                        <img src="${item.tempUrl}" class="w-12 h-12 object-cover rounded-lg border shadow-sm">
-                    </td>
+                <tr class="scan-row group">
+                    <td class="p-3"><img src="${item.tempUrl}" class="w-10 h-10 object-cover rounded shadow-sm border"></td>
                     <td class="p-3">
                         <input value="${item.name}" onchange="tempExtracted[${i}].name=this.value" 
-                               class="w-full bg-white border border-transparent focus:border-emerald-300 rounded px-2 py-1 font-medium outline-none">
+                               class="w-full bg-transparent border-b border-transparent focus:border-emerald-300 outline-none font-medium">
                     </td>
                     <td class="p-3">
-                        <input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=parseFloat(this.value)" 
-                               class="w-24 bg-white border border-transparent focus:border-emerald-300 rounded px-2 py-1 font-bold text-emerald-600 outline-none text-lg">
+                        <div class="flex items-center gap-1 font-bold text-emerald-600">
+                            <span class="text-[10px]">KSh</span>
+                            <input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=parseFloat(this.value)" 
+                                   class="w-20 bg-transparent outline-none">
+                        </div>
                     </td>
                     <td class="p-3">
-                        <select onchange="tempExtracted[${i}].category=this.value" class="text-xs border rounded-lg p-2 bg-white outline-none">
+                        <select onchange="tempExtracted[${i}].category=this.value" class="text-xs border rounded p-1.5 outline-none focus:ring-1 focus:ring-emerald-500">
                             ${categories.map(c => `<option value="${c.name}" ${item.category === c.name ? 'selected':''}>${c.name}</option>`).join('')}
                         </select>
                     </td>
                     <td class="p-3 text-right">
-                        <button onclick="tempExtracted.splice(${i},1);renderAITable()" class="text-red-400 hover:text-red-600 transition-colors px-2">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        <button onclick="tempExtracted.splice(${i},1);renderAITable()" class="text-red-300 hover:text-red-500 px-2"><i class="fas fa-times-circle"></i></button>
                     </td>
                 </tr>`).join('');
         }
 
         async function saveAIScannedItems(btn) {
+            if(!tempExtracted.length) return;
             const originalText = btn.innerText;
-            btn.innerText = "Saving to Database...";
+            btn.innerText = "Uploading Images & Saving...";
             btn.disabled = true;
 
             try {
                 for (let item of tempExtracted) {
                     let finalUrl = 'https://via.placeholder.com/150';
-                    
                     if (item.file) {
-                        const ref = storage.ref('products/bulk_' + Date.now() + '_' + Math.random().toString(36).substring(7));
-                        const snapshot = await ref.put(item.file);
-                        finalUrl = await snapshot.ref.getDownloadURL();
+                        const ref = storage.ref('products/ai_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+                        const snap = await ref.put(item.file);
+                        finalUrl = await snap.ref.getDownloadURL();
                     }
 
                     await db.collection('products').add({
@@ -458,22 +392,72 @@
                 tempExtracted = [];
                 renderAITable();
                 document.getElementById('aiReviewSection').classList.add('hidden');
-                showToast('All items saved successfully!');
-            } catch (e) {
-                console.error(e);
-                showToast('Save Failed');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
+                showToast('Inventory Updated Successfully!');
+            } catch (e) { showToast('Error saving data'); }
+            finally { btn.innerText = originalText; btn.disabled = false; }
         }
-        
+
+        // --- CATEGORIES & HELPERS ---
+        async function saveCategory() {
+            const name = document.getElementById('catName').value;
+            const data = {
+                name: name,
+                subs: document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s !== "")
+            };
+            await db.collection('categories').add(data);
+            document.getElementById('categoryForm').reset();
+            showToast('Category Added');
+        }
+
+        function renderCategories() {
+            document.getElementById('catAdminList').innerHTML = categories.map(c => `
+                <div class="p-3 bg-gray-50 rounded-xl flex justify-between items-center border border-gray-100">
+                    <span class="font-bold text-sm text-gray-700">${c.name}</span>
+                    <button onclick="deleteCategory('${c.id}')" class="text-red-400 text-xs font-bold bg-white px-2 py-1 rounded-md shadow-sm">Delete</button>
+                </div>`).join('');
+        }
+
+        function updateSelects() {
+            ['prodCategory', 'editCategory'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.innerHTML = '<option value="">Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            });
+        }
+
+        function updateSubSelect(prefix, selectedSub = "") {
+            const catName = document.getElementById(`${prefix}Category`).value;
+            const subEl = document.getElementById(`${prefix}SubCategory`);
+            const cat = categories.find(c => c.name === catName);
+            if(cat && cat.subs) {
+                subEl.innerHTML = '<option value="">Sub-category</option>' + cat.subs.map(s => `<option value="${s}" ${s===selectedSub ? 'selected':''}>${s}</option>`).join('');
+            } else { subEl.innerHTML = '<option value="">N/A</option>'; }
+        }
+
+        function openEditModal(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editPrice').value = p.price;
+            document.getElementById('editUnit').value = p.unit;
+            document.getElementById('editCategory').value = p.category;
+            updateSubSelect('edit', p.subCategory);
+            document.getElementById('editImageUrl').value = p.image;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+        async function deleteProduct(id) { if(confirm('Remove item?')) await db.collection('products').doc(id).delete(); }
+        async function deleteCategory(id) { if(confirm('Delete Category?')) await db.collection('categories').doc(id).delete(); }
+        function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toastMessage').innerText = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
+        function switchTab(tab) { document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden')); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById(`view-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.add('active'); }
+
         async function downloadPriceListPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.text("Lwandeti Junction Minimart - Price List", 14, 15);
-            const data = products.map(p => [p.name, p.category, `KSh ${p.price}`]);
-            doc.autoTable({ head: [['Name', 'Category', 'Price']], body: data, startY: 20 });
-            doc.save('PriceList.pdf');
+            doc.setFontSize(18); doc.text("LWANDETI JUNCTION MINIMART", 14, 15);
+            doc.setFontSize(10); doc.text("Official Price List", 14, 22);
+            const data = products.map(p => [p.name, p.category, p.unit, `KSh ${p.price}`]);
+            doc.autoTable({ head: [['Product Name', 'Category', 'Unit', 'Retail Price']], body: data, startY: 30, theme: 'striped' });
+            doc.save('Lwandeti_Price_List.pdf');
         }
     </script>
 </body>
