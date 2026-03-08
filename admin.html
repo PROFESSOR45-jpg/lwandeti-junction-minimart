@@ -6,35 +6,47 @@
     <title>Admin - Lwandeti Junction Minimart</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         .preview-img { max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 8px; }
         .drop-zone { border: 3px dashed #cbd5e1; transition: all 0.3s; }
         .drop-zone.drag-over { border-color: #10b981; background-color: #ecfdf5; }
+        .tab-btn.active { border-bottom: 3px solid #059669; color: #059669; }
         .firebase-status.connected { background-color: #dcfce7; color: #166534; }
         .firebase-status.disconnected { background-color: #fee2e2; color: #991b1b; }
-        .tab-btn.active { border-bottom: 3px solid #059669; color: #059669; }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <div id="toast" class="hidden fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-3">
-        <i class="fas fa-check-circle text-emerald-400"></i>
+        <i id="toastIcon" class="fas fa-check-circle text-emerald-400"></i>
         <span id="toastMessage">Done</span>
     </div>
 
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-            <h1 class="text-2xl font-bold text-center mb-6 text-emerald-800">Minimart Admin</h1>
-            <input type="password" id="password" placeholder="Admin Password" class="w-full px-4 py-3 rounded-xl border mb-4 outline-none">
-            <button onclick="login()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Login</button>
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-emerald-900">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Admin Login</h1>
+                <p class="text-sm text-gray-500">Lwandeti Junction Minimart</p>
+            </div>
+            <input type="password" id="password" placeholder="Enter Admin Password" class="w-full px-5 py-4 rounded-2xl border-2 border-gray-100 mb-4 focus:border-emerald-500 outline-none transition-all">
+            <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 shadow-lg active:scale-95 transition-all">
+                Access Panel
+            </button>
         </div>
     </div>
 
@@ -42,53 +54,63 @@
         <header class="bg-emerald-800 text-white shadow-lg sticky top-0 z-40">
             <div class="container mx-auto px-4 py-4 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <h1 class="font-bold">Lwandeti Junction Panel</h1>
+                    <h1 class="font-bold tracking-tight">LWANDETI ADMIN</h1>
                     <div id="firebaseStatus" class="firebase-status disconnected px-3 py-0.5 rounded-full text-[10px] uppercase font-bold border">Offline</div>
                 </div>
-                <button onclick="logout()" class="text-xs opacity-70 hover:opacity-100">Logout</button>
+                <div class="flex items-center gap-3">
+                    <button onclick="downloadPriceListPDF()" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition">
+                        <i class="fas fa-file-pdf text-red-400"></i> Download Price List
+                    </button>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition" title="Lock & Logout">
+                        <i class="fas fa-lock text-sm"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
         <div class="container mx-auto px-4 py-6">
-            <div class="flex gap-6 border-b mb-6 overflow-x-auto">
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active pb-2 font-bold text-sm">Inventory</button>
-                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn pb-2 font-bold text-sm">Manage Categories</button>
-                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn pb-2 font-bold text-sm">AI Mass Upload</button>
+            <div class="flex gap-6 border-b mb-6 overflow-x-auto bg-white px-4 rounded-t-xl">
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-4 font-bold text-sm transition-all">Inventory</button>
+                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-4 font-bold text-sm transition-all">Categories</button>
+                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-4 font-bold text-sm transition-all">AI Scanner</button>
             </div>
 
             <div id="view-inventory" class="tab-content">
                 <div class="grid lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-1">
                         <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-emerald-500 sticky top-24">
-                            <h2 class="font-bold mb-4">Add Product</h2>
+                            <h2 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-plus text-emerald-600"></i> Add Product</h2>
                             <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
-                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-2 border rounded-lg text-sm">
+                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm outline-none focus:border-emerald-500">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="prodPrice" required placeholder="Retail (KSh)" class="w-full p-2 border rounded-lg text-sm bg-emerald-50">
-                                    <input type="number" id="prodWholesalePrice" placeholder="Wholesale" class="w-full p-2 border rounded-lg text-sm bg-blue-50">
+                                    <input type="number" id="prodPrice" required placeholder="Retail Price" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm bg-emerald-50/50 outline-none">
+                                    <input type="number" id="prodWholesalePrice" placeholder="Wholesale" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm bg-blue-50/50 outline-none">
                                 </div>
-                                <select id="prodCategory" required class="w-full p-2 border rounded-lg text-sm"></select>
-                                <input type="text" id="prodUnit" required placeholder="Unit (e.g. 1kg)" class="w-full p-2 border rounded-lg text-sm">
+                                <select id="prodCategory" required class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm outline-none"></select>
+                                <input type="text" id="prodUnit" required placeholder="Unit (e.g. 1kg, 2L, piece)" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm outline-none">
                                 
-                                <div class="p-3 bg-gray-50 rounded-lg space-y-2">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Image Handling</label>
-                                    <input type="url" id="prodImageUrl" placeholder="Paste Image URL here..." class="w-full p-2 text-xs border rounded-lg" oninput="previewHybrid('prod')">
-                                    <div class="text-center text-[10px] text-gray-400">OR</div>
+                                <div class="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 space-y-3">
+                                    <label class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Image Source</label>
+                                    <input type="url" id="prodImageUrl" placeholder="Paste Image URL..." class="w-full p-2 text-xs border rounded-lg outline-none" oninput="previewHybrid('prod')">
+                                    <div class="text-center text-[10px] text-gray-300 font-bold italic">OR UPLOAD</div>
                                     <input type="file" id="prodImageFile" accept="image/*" class="text-xs w-full" onchange="previewHybrid('prod')">
-                                    <div id="prodPreviewContainer" class="hidden pt-2"><img id="prodPreviewImg" class="preview-img mx-auto"></div>
+                                    <div id="prodPreviewContainer" class="hidden pt-2"><img id="prodPreviewImg" class="preview-img mx-auto shadow-md"></div>
                                 </div>
 
-                                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save to Cloud</button>
+                                <button type="submit" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:shadow-emerald-200 transition-all">Add to Inventory</button>
                             </form>
                         </div>
                     </div>
                     <div class="lg:col-span-2">
                         <div class="bg-white p-6 rounded-2xl shadow-sm">
-                            <div class="flex flex-col md:flex-row gap-4 mb-4">
-                                <input type="text" id="searchProducts" placeholder="Search inventory..." oninput="filterItems()" class="flex-1 p-2 border rounded-lg text-sm">
-                                <select id="filterCategory" onchange="filterItems()" class="p-2 border rounded-lg text-sm"></select>
+                            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                                <div class="relative flex-1">
+                                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-300"></i>
+                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="filterItems()" class="w-full pl-10 pr-4 py-3 border-2 border-gray-50 rounded-xl text-sm focus:border-emerald-500 outline-none">
+                                </div>
+                                <select id="filterCategory" onchange="filterItems()" class="p-3 border-2 border-gray-50 rounded-xl text-sm outline-none min-w-[150px]"></select>
                             </div>
-                            <div id="productsList" class="space-y-2"></div>
+                            <div id="productsList" class="space-y-3"></div>
                         </div>
                     </div>
                 </div>
@@ -96,64 +118,71 @@
 
             <div id="view-categories" class="tab-content hidden">
                 <div class="grid md:grid-cols-2 gap-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm">
-                        <h2 class="font-bold mb-4" id="catFormTitle">Create Category</h2>
-                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-3">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm">
+                        <h2 class="font-bold text-lg mb-6" id="catFormTitle">Create Category</h2>
+                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
                             <input type="hidden" id="catId">
-                            <input type="text" id="catName" required placeholder="Category Name (e.g. Beverages)" class="w-full p-2 border rounded-lg">
-                            <input type="text" id="catKeywords" placeholder="Keywords (comma separated: milk,juice,soda)" class="w-full p-2 border rounded-lg text-sm">
+                            <input type="text" id="catName" required placeholder="Category Name" class="w-full p-4 border-2 border-gray-50 rounded-xl outline-none focus:border-emerald-500">
+                            <textarea id="catKeywords" placeholder="Keywords (e.g. soda, coke, fanta, juice)" class="w-full p-4 border-2 border-gray-50 rounded-xl text-sm outline-none h-24" rows="3"></textarea>
                             <div class="flex gap-2">
-                                <button type="submit" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-bold">Save Category</button>
-                                <button type="button" onclick="resetCatForm()" class="bg-gray-100 px-4 rounded-lg">Reset</button>
+                                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category</button>
+                                <button type="button" onclick="resetCatForm()" class="px-6 bg-gray-100 rounded-xl font-medium">Reset</button>
                             </div>
                         </form>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm">
-                        <h2 class="font-bold mb-4">Live Categories</h2>
-                        <div id="catAdminList" class="space-y-2"></div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm">
+                        <h2 class="font-bold text-lg mb-6">Existing Categories</h2>
+                        <div id="catAdminList" class="grid gap-3"></div>
                     </div>
                 </div>
             </div>
 
             <div id="view-ai" class="tab-content hidden">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-purple-500">
-                    <div id="dropZone" class="drop-zone rounded-2xl p-12 text-center cursor-pointer mb-6" onclick="document.getElementById('fileInput').click()">
+                <div class="bg-white p-12 rounded-2xl shadow-sm border-t-4 border-purple-500 text-center">
+                    <div id="dropZone" class="drop-zone rounded-3xl p-16 cursor-pointer mb-6 border-dashed" onclick="document.getElementById('fileInput').click()">
                         <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg" multiple onchange="handleFileSelect(event)">
-                        <i class="fas fa-magic text-4xl text-purple-600 mb-2"></i>
-                        <p class="font-bold">Scan Invoices or Price Lists</p>
+                        <div class="w-20 h-20 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Invoice Scanner</h3>
+                        <p class="text-gray-400 max-w-xs mx-auto text-sm">Drop a supplier invoice or price list here to auto-detect products.</p>
                     </div>
-                    <div id="extractedProducts" class="hidden">
-                        <div id="extractedList" class="space-y-2 mb-6"></div>
-                        <button onclick="confirmMassUpload()" class="w-full bg-purple-600 text-white py-4 rounded-xl font-bold">Upload Selected to Cloud</button>
+                    <div id="extractedProducts" class="hidden text-left max-w-4xl mx-auto">
+                        <div id="extractedList" class="space-y-2 mb-8 border rounded-xl p-4 bg-gray-50"></div>
+                        <button onclick="confirmMassUpload()" class="w-full bg-purple-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:bg-purple-700 transition-all">Upload Detected Products</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="editModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 class="font-bold text-xl mb-4">Edit Product</h3>
-            <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-4">
+    <div id="editModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-2xl mb-6">Edit Product</h3>
+            <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-5">
                 <input type="hidden" id="editId">
-                <input type="text" id="editName" required class="w-full p-3 border rounded-lg">
+                <input type="text" id="editName" required class="w-full p-4 border-2 border-gray-50 rounded-2xl outline-none focus:border-emerald-500">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="editPrice" required class="w-full p-3 border rounded-lg">
-                    <input type="number" id="editWholesalePrice" class="w-full p-3 border rounded-lg">
+                    <div><label class="text-[10px] font-bold text-gray-400 ml-1">RETAIL (KSh)</label><input type="number" id="editPrice" required class="w-full p-4 border-2 border-gray-50 rounded-2xl bg-emerald-50/50"></div>
+                    <div><label class="text-[10px] font-bold text-gray-400 ml-1">WHOLESALE</label><input type="number" id="editWholesalePrice" class="w-full p-4 border-2 border-gray-50 rounded-2xl bg-blue-50/50"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="editCategory" required class="w-full p-3 border rounded-lg"></select>
-                    <input type="text" id="editUnit" required class="w-full p-3 border rounded-lg">
+                    <select id="editCategory" required class="w-full p-4 border-2 border-gray-50 rounded-2xl outline-none"></select>
+                    <input type="text" id="editUnit" required class="w-full p-4 border-2 border-gray-50 rounded-2xl outline-none" placeholder="Unit">
                 </div>
-                <div class="p-3 bg-gray-50 rounded-lg space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400">Update Image</label>
-                    <input type="url" id="editImageUrl" placeholder="Image URL..." class="w-full p-2 text-xs border rounded-lg" oninput="previewHybrid('edit')">
+                <div class="p-4 bg-gray-50 rounded-2xl space-y-3">
+                    <label class="text-[10px] font-bold text-gray-400 ml-1">IMAGE SOURCE</label>
+                    <input type="url" id="editImageUrl" placeholder="Update URL..." class="w-full p-3 text-sm border-2 border-white rounded-xl outline-none" oninput="previewHybrid('edit')">
                     <input type="file" id="editImageFile" accept="image/*" class="text-xs w-full" onchange="previewHybrid('edit')">
-                    <img id="editPreviewImg" class="preview-img mx-auto mt-2">
+                    <img id="editPreviewImg" class="preview-img mx-auto mt-2 border-4 border-white shadow-sm">
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">Update Inventory</button>
-                    <button type="button" onclick="closeEditModal()" class="px-6 bg-gray-100 rounded-xl">Cancel</button>
+                <div class="flex items-center gap-6 py-3 border-y border-gray-50">
+                    <label class="flex items-center gap-2 font-medium"><input type="checkbox" id="editPopular" class="w-5 h-5 accent-emerald-600"> Popular</label>
+                    <label class="flex items-center gap-2 font-medium"><input type="checkbox" id="editStock" class="w-5 h-5 accent-emerald-600"> In Stock</label>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()" class="px-8 bg-gray-100 rounded-2xl font-bold">Cancel</button>
                 </div>
             </form>
         </div>
@@ -174,15 +203,26 @@
         const db = firebase.firestore();
         let products = [], categories = [], extractedItems = [];
 
-        // Auth
+        // --- NEW: SESSION-BASED AUTH (Reload = Logout) ---
         function login() {
-            if (document.getElementById('password').value === 'admin123') {
-                localStorage.setItem('adminLoggedIn', 'true');
+            const pwd = document.getElementById('password').value;
+            if (pwd === 'admin123') {
+                sessionStorage.setItem('admin_session', 'active'); // Expires on reload/close
                 showDashboard();
-            } else alert('Wrong password');
+            } else {
+                showToast('Invalid Password', 'fas fa-exclamation-circle');
+            }
         }
-        function logout() { localStorage.removeItem('adminLoggedIn'); location.reload(); }
-        if (localStorage.getItem('adminLoggedIn') === 'true') showDashboard();
+
+        function logout() {
+            sessionStorage.removeItem('admin_session');
+            location.reload(); // This forces the login screen to appear
+        }
+
+        // Check session on page load
+        if (sessionStorage.getItem('admin_session') === 'active') {
+            showDashboard();
+        }
 
         function showDashboard() {
             document.getElementById('loginScreen').classList.add('hidden');
@@ -190,20 +230,17 @@
             syncData();
         }
 
-        // Real-time Sync
+        // --- FIREBASE SYNC ---
         function syncData() {
-            // Sync Categories
             db.collection('categories').onSnapshot(snap => {
                 categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderCategories();
                 updateSelects();
             });
-            // Sync Products
             db.collection('products').orderBy('name').onSnapshot(snap => {
                 products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts();
             });
-            // Sync Connectivity
             db.collection('.info/connected').onSnapshot(s => {
                 const status = document.getElementById('firebaseStatus');
                 status.className = `firebase-status ${s.data().connected ? 'connected' : 'disconnected'} px-3 py-0.5 rounded-full text-[10px] uppercase font-bold border`;
@@ -211,7 +248,42 @@
             });
         }
 
-        // Category Logic
+        // --- PDF EXPORT FEATURE ---
+        async function downloadPriceListPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(5, 150, 105); // Emerald Color
+            doc.text("LWANDETI JUNCTION MINIMART", 14, 20);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text("Official Price List", 14, 28);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 34);
+
+            const tableData = products.map(p => [
+                p.name,
+                categories.find(c => c.id === p.category)?.name || 'Misc',
+                `KSh ${p.price}`,
+                p.unit || 'piece'
+            ]);
+
+            doc.autoTable({
+                head: [['Product Name', 'Category', 'Price', 'Unit']],
+                body: tableData,
+                startY: 45,
+                theme: 'striped',
+                headStyles: { fillColor: [5, 150, 105] },
+                alternateRowStyles: { fillColor: [240, 253, 244] }
+            });
+
+            doc.save(`PriceList_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('PDF Exported Successfully!');
+        }
+
+        // --- CATEGORY CRUD ---
         async function saveCategory() {
             const id = document.getElementById('catId').value;
             const data = {
@@ -221,7 +293,7 @@
             if (id) await db.collection('categories').doc(id).update(data);
             else await db.collection('categories').add(data);
             resetCatForm();
-            showToast('Category saved');
+            showToast('Category cloud-synced');
         }
 
         function editCategory(id) {
@@ -234,7 +306,10 @@
         }
 
         async function deleteCategory(id) {
-            if (confirm('Delete this category?')) await db.collection('categories').doc(id).delete();
+            if (confirm('Are you sure? This will not delete products in this category.')) {
+                await db.collection('categories').doc(id).delete();
+                showToast('Category Deleted');
+            }
         }
 
         function resetCatForm() {
@@ -243,14 +318,12 @@
             document.getElementById('catFormTitle').innerText = "Create Category";
         }
 
-        // Product Logic
+        // --- PRODUCT CRUD ---
         async function saveProduct() {
             const file = document.getElementById('prodImageFile').files[0];
             const urlInput = document.getElementById('prodImageUrl').value;
             let finalImage = urlInput || 'https://via.placeholder.com/150';
 
-            // If file exists, we simulate upload (or you can integrate Firebase Storage)
-            // For this version, we prioritize URL if both exist, or use placeholder
             if (file) finalImage = await fileToDataUrl(file);
 
             const data = {
@@ -260,12 +333,13 @@
                 category: document.getElementById('prodCategory').value,
                 unit: document.getElementById('prodUnit').value,
                 image: finalImage,
-                inStock: true
+                inStock: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('products').add(data);
             document.getElementById('productForm').reset();
             document.getElementById('prodPreviewContainer').classList.add('hidden');
-            showToast('Product Added');
+            showToast('Product Added Successfully');
         }
 
         async function updateProduct() {
@@ -285,19 +359,96 @@
                 unit: document.getElementById('editUnit').value,
                 image: currentImage,
                 popular: document.getElementById('editPopular').checked,
-                inStock: document.getElementById('editStock').checked
+                inStock: document.getElementById('editStock').checked,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             });
             closeEditModal();
-            showToast('Inventory Updated');
+            showToast('Update Complete');
         }
 
-        // Helpers & UI
+        async function deleteProduct(id) {
+            if(confirm('Delete product permanently?')) {
+                await db.collection('products').doc(id).delete();
+                showToast('Product Removed');
+            }
+        }
+
+        // --- UTILS & UI ---
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-${tab}`).classList.add('active');
         }
+
+        function renderProducts(data = products) {
+            const container = document.getElementById('productsList');
+            if (data.length === 0) { container.innerHTML = '<div class="p-10 text-center text-gray-400">No products found</div>'; return; }
+            
+            container.innerHTML = data.map(p => `
+                <div class="flex items-center gap-4 p-4 bg-white border-2 border-gray-50 rounded-2xl hover:border-emerald-100 transition-all group">
+                    <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl shadow-sm">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-gray-800 text-sm truncate">${p.name}</h4>
+                        <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase">${categories.find(c=>c.id===p.category)?.name || 'Misc'}</span>
+                    </div>
+                    <div class="text-right mr-4">
+                        <p class="font-bold text-emerald-600 text-sm">KSh ${p.price}</p>
+                        <p class="text-[9px] text-gray-400">Unit: ${p.unit}</p>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onclick="openEditModal('${p.id}')" class="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="w-9 h-9 flex items-center justify-center text-red-500 bg-red-50 rounded-xl"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('catAdminList');
+            container.innerHTML = categories.map(c => `
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-emerald-200 transition-all">
+                    <div>
+                        <span class="font-bold text-gray-800">${c.name}</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${(c.keywords || []).slice(0, 3).map(k => `<span class="text-[8px] bg-white px-1.5 py-0.5 rounded border text-gray-400">#${k}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="editCategory('${c.id}')" class="text-blue-500 text-sm font-bold">Edit</button>
+                        <button onclick="deleteCategory('${c.id}')" class="text-red-400 text-sm font-bold">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateSelects() {
+            ['prodCategory', 'editCategory', 'filterCategory'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const current = el.value;
+                el.innerHTML = (id === 'filterCategory' ? '<option value="">Filter by Category</option>' : '') + 
+                               categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                el.value = current;
+            });
+        }
+
+        function openEditModal(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editPrice').value = p.price;
+            document.getElementById('editWholesalePrice').value = p.wholesalePrice || '';
+            document.getElementById('editCategory').value = p.category;
+            document.getElementById('editUnit').value = p.unit;
+            document.getElementById('editPreviewImg').src = p.image;
+            document.getElementById('editImageUrl').value = p.image.startsWith('http') ? p.image : '';
+            document.getElementById('editPopular').checked = p.popular || false;
+            document.getElementById('editStock').checked = p.inStock !== false;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
 
         function previewHybrid(prefix) {
             const url = document.getElementById(`${prefix}ImageUrl`).value;
@@ -315,83 +466,6 @@
             }
         }
 
-        function renderProducts(data = products) {
-            const container = document.getElementById('productsList');
-            container.innerHTML = data.map(p => `
-                <div class="flex items-center gap-4 p-3 bg-white border rounded-xl">
-                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-md shadow-sm">
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-sm truncate">${p.name}</h4>
-                        <p class="text-[10px] text-gray-500 uppercase">${categories.find(c=>c.id===p.category)?.name || 'Misc'}</p>
-                    </div>
-                    <div class="text-right mr-4">
-                        <p class="font-bold text-xs">KSh ${p.price}</p>
-                        <p class="text-[9px] text-blue-500">WS: ${p.wholesalePrice || '-'}</p>
-                    </div>
-                    <div class="flex gap-1">
-                        <button onclick="openEditModal('${p.id}')" class="p-2 text-emerald-600"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-400"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderCategories() {
-            const container = document.getElementById('catAdminList');
-            container.innerHTML = categories.map(c => `
-                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                        <span class="font-bold text-sm">${c.name}</span>
-                        <p class="text-[10px] text-gray-400">${c.keywords?.length || 0} keywords</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="editCategory('${c.id}')" class="text-blue-500 text-xs">Edit</button>
-                        <button onclick="deleteCategory('${c.id}')" class="text-red-500 text-xs">Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateSelects() {
-            ['prodCategory', 'editCategory', 'filterCategory'].forEach(id => {
-                const el = document.getElementById(id);
-                const current = el.value;
-                el.innerHTML = (id === 'filterCategory' ? '<option value="">All Categories</option>' : '') + 
-                               categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                el.value = current;
-            });
-        }
-
-        function openEditModal(id) {
-            const p = products.find(x => x.id === id);
-            document.getElementById('editId').value = id;
-            document.getElementById('editName').value = p.name;
-            document.getElementById('editPrice').value = p.price;
-            document.getElementById('editWholesalePrice').value = p.wholesalePrice || '';
-            document.getElementById('editCategory').value = p.category;
-            document.getElementById('editUnit').value = p.unit;
-            document.getElementById('editPreviewImg').src = p.image;
-            document.getElementById('editImageUrl').value = p.image.startsWith('http') ? p.image : '';
-            document.getElementById('editModal').classList.remove('hidden');
-        }
-
-        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
-
-        async function deleteProduct(id) {
-            if(confirm('Delete product?')) await db.collection('products').doc(id).delete();
-        }
-
-        function showToast(m) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = m;
-            t.classList.remove('hidden');
-            setTimeout(() => t.classList.add('hidden'), 3000);
-        }
-
-        function fileToDataUrl(file) {
-            return new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
-        }
-
         function filterItems() {
             const q = document.getElementById('searchProducts').value.toLowerCase();
             const c = document.getElementById('filterCategory').value;
@@ -403,10 +477,23 @@
             renderProducts(filtered);
         }
 
-        // Mass Upload OCR (Uses dynamic categories)
+        function showToast(m, icon = 'fas fa-check-circle') {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = m;
+            document.getElementById('toastIcon').className = icon + " text-emerald-400";
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        function fileToDataUrl(file) {
+            return new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
+        }
+
+        // --- AI OCR (UNCHANGED LOGIC) ---
         async function handleFileSelect(e) {
             const files = Array.from(e.target.files);
             extractedItems = [];
+            showToast('Scanning Invoices...', 'fas fa-spinner fa-spin');
             for(const f of files) {
                 const res = await Tesseract.recognize(await fileToDataUrl(f), 'eng');
                 const lines = res.data.text.split('\n');
@@ -415,7 +502,7 @@
                     if(m && m[1].length > 2) {
                         const name = m[1].trim();
                         const price = parseFloat(m[2]);
-                        const cat = categories.find(c => c.keywords.some(k => name.toLowerCase().includes(k)))?.id || 'other';
+                        const cat = categories.find(c => (c.keywords || []).some(k => name.toLowerCase().includes(k)))?.id || 'other';
                         extractedItems.push({ name, price, category: cat, unit: 'pcs', image: 'https://via.placeholder.com/150', selected: true });
                     }
                 });
@@ -426,11 +513,11 @@
         function renderExtracted() {
             const cont = document.getElementById('extractedList');
             cont.innerHTML = extractedItems.map((p, i) => `
-                <div class="flex items-center gap-3 p-2 bg-gray-50 border rounded-lg text-xs">
+                <div class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl text-xs mb-2 shadow-sm">
                     <input type="checkbox" checked onchange="extractedItems[${i}].selected = this.checked">
-                    <input type="text" value="${p.name}" class="flex-1 bg-transparent border-b" onchange="extractedItems[${i}].name = this.value">
-                    <input type="number" value="${p.price}" class="w-12 border rounded" onchange="extractedItems[${i}].price = this.value">
-                    <select class="text-[9px] border rounded" onchange="extractedItems[${i}].category = this.value">
+                    <input type="text" value="${p.name}" class="flex-1 bg-transparent border-b outline-none focus:border-purple-300" onchange="extractedItems[${i}].name = this.value">
+                    <input type="number" value="${p.price}" class="w-16 border rounded p-1" onchange="extractedItems[${i}].price = this.value">
+                    <select class="text-[10px] border rounded p-1" onchange="extractedItems[${i}].category = this.value">
                         ${categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${c.name}</option>`).join('')}
                     </select>
                 </div>
@@ -444,12 +531,12 @@
             sel.forEach(p => {
                 const ref = db.collection('products').doc();
                 const {selected, ...data} = p;
-                batch.set(ref, data);
+                batch.set(ref, { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             });
             await batch.commit();
             extractedItems = [];
             document.getElementById('extractedProducts').classList.add('hidden');
-            showToast('Mass upload synced');
+            showToast('Mass upload cloud-synced!');
         }
     </script>
 </body>
