@@ -205,7 +205,6 @@
     </div>
 
     <script>
-        // --- CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
@@ -220,7 +219,6 @@
 
         let products = [], categories = [], tempExtracted = [];
 
-        // --- AUTH ---
         function login() {
             if(document.getElementById('password').value === 'admin123') {
                 sessionStorage.setItem('admin_auth', 'true');
@@ -236,20 +234,16 @@
             syncData();
         }
 
-        // --- IMAGE UPLOAD ---
         async function uploadImage(fileInput, targetUrlInputId, statusId) {
             const file = fileInput.files[0];
             if(!file) return;
-
             const status = document.getElementById(statusId);
             status.innerText = "Uploading...";
             status.classList.add('animate-pulse');
-
             try {
                 const storageRef = storage.ref('products/' + Date.now() + '_' + file.name);
                 const snapshot = await storageRef.put(file);
                 const url = await snapshot.ref.getDownloadURL();
-                
                 document.getElementById(targetUrlInputId).value = url;
                 status.innerText = "Upload Complete!";
                 status.classList.remove('animate-pulse');
@@ -257,11 +251,9 @@
             } catch (error) {
                 console.error(error);
                 status.innerText = "Upload Failed";
-                alert("Upload failed. Ensure Storage is enabled.");
             }
         }
 
-        // --- DATA SYNC ---
         function syncData() {
             db.collection('categories').onSnapshot(snap => {
                 categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -274,7 +266,6 @@
             });
         }
 
-        // --- CATEGORY LOGIC ---
         async function saveCategory() {
             const id = document.getElementById('catId').value;
             const data = {
@@ -322,11 +313,9 @@
             } else { subEl.innerHTML = '<option value="">N/A</option>'; }
         }
 
-        // --- PRODUCT CRUD (ENFORCING SYNC) ---
         async function saveProduct() {
             const cat = document.getElementById('prodCategory').value;
             const sub = document.getElementById('prodSubCategory').value;
-            
             const data = {
                 name: document.getElementById('prodName').value,
                 price: parseFloat(document.getElementById('prodPrice').value),
@@ -338,48 +327,51 @@
             };
             await db.collection('products').add(data);
             document.getElementById('productForm').reset();
-            document.getElementById('uploadStatus').innerText = "Upload Photo";
             showToast('Added to ' + cat);
         }
 
         async function updateProduct() {
             const id = document.getElementById('editId').value;
-            const cat = document.getElementById('editCategory').value;
-            const sub = document.getElementById('editSubCategory').value;
-
             await db.collection('products').doc(id).update({
                 name: document.getElementById('editName').value,
                 price: parseFloat(document.getElementById('editPrice').value),
                 unit: document.getElementById('editUnit').value,
-                category: cat,
-                subCategory: sub,
+                category: document.getElementById('editCategory').value,
+                subCategory: document.getElementById('editSubCategory').value,
                 image: document.getElementById('editImageUrl').value
             });
             closeEditModal();
-            showToast('Updated Category Sync');
+            showToast('Updated Successfully');
         }
 
         async function deleteProduct(id) {
             if(confirm('Delete product?')) await db.collection('products').doc(id).delete();
         }
 
-        // --- AI MASS SCANNER LOGIC ---
+        // --- AI SCANNER LOGIC (REAL-TIME UPDATES) ---
         async function handleAIUpload(e) {
             const files = Array.from(e.target.files);
             if(!files.length) return;
 
             document.getElementById('scanLoader').classList.remove('hidden');
-            document.getElementById('aiReviewSection').classList.add('hidden');
+            document.getElementById('aiReviewSection').classList.remove('hidden');
             tempExtracted = [];
+            renderAITable(); // Initialize empty table
 
             for(let i=0; i < files.length; i++) {
-                const res = await Tesseract.recognize(files[i], 'eng');
-                processText(res.data.text);
+                // Use workers to prevent browser freezing
+                const worker = await Tesseract.createWorker();
+                await worker.loadLanguage('eng');
+                await worker.initialize('eng');
+                
+                const res = await worker.recognize(files[i]);
+                processText(res.data.text); // This function now calls renderAITable
+                
+                await worker.terminate();
                 document.getElementById('scanPercent').innerText = Math.round(((i+1)/files.length)*100);
             }
-
             document.getElementById('scanLoader').classList.add('hidden');
-            renderAITable();
+            showToast('Scanning Complete');
         }
 
         function processText(text) {
@@ -399,6 +391,9 @@
                         subCategory: mapping.sub,
                         unit: 'pcs'
                     });
+                    
+                    // Call render table immediately for real-time review
+                    renderAITable();
                 }
             });
         }
@@ -406,7 +401,6 @@
         function autoClassify(name) {
             const low = name.toLowerCase();
             let found = { cat: "Food", sub: "General" };
-            
             categories.forEach(c => {
                 if(low.includes(c.name.toLowerCase())) found.cat = c.name;
                 (c.subs || []).forEach(s => {
@@ -422,21 +416,25 @@
         function renderAITable() {
             const tbody = document.getElementById('aiResultsTable');
             document.getElementById('detectedCount').innerText = tempExtracted.length;
-            document.getElementById('aiReviewSection').classList.remove('hidden');
+
+            if(tempExtracted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Scanning for goods...</td></tr>';
+                return;
+            }
 
             tbody.innerHTML = tempExtracted.map((item, i) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-3"><input type="text" value="${item.name}" onchange="tempExtracted[${i}].name=this.value" class="w-full bg-transparent border-b"></td>
-                    <td class="p-3"><input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=this.value" class="w-20 bg-transparent border-b"></td>
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="p-3"><input type="text" value="${item.name}" onchange="tempExtracted[${i}].name=this.value" class="w-full bg-transparent border-b border-transparent focus:border-purple-300 outline-none"></td>
+                    <td class="p-3"><input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=this.value" class="w-20 bg-transparent border-b border-transparent focus:border-purple-300 outline-none"></td>
                     <td class="p-3">
-                        <select onchange="updateTempRowCat(${i}, this.value)" class="text-xs border p-1 rounded">
+                        <select onchange="updateTempRowCat(${i}, this.value)" class="text-xs border p-1 rounded bg-white">
                             ${categories.map(c => `<option value="${c.name}" ${item.category===c.name?'selected':''}>${c.name}</option>`).join('')}
                         </select>
                     </td>
                     <td class="p-3" id="aiSubCell-${i}">
                         ${renderTempSubSelect(i, item.category, item.subCategory)}
                     </td>
-                    <td class="p-3 text-red-500 cursor-pointer" onclick="removeTempItem(${i})"><i class="fas fa-trash"></i></td>
+                    <td class="p-3 text-red-500 cursor-pointer text-center" onclick="removeTempItem(${i})"><i class="fas fa-times-circle"></i></td>
                 </tr>
             `).join('');
         }
@@ -471,7 +469,7 @@
             await batch.commit();
             tempExtracted = [];
             document.getElementById('aiReviewSection').classList.add('hidden');
-            showToast('Mass Sync Complete');
+            showToast('All Goods Saved Successfully');
             switchTab('inventory');
         }
 
@@ -480,7 +478,6 @@
             renderAITable();
         }
 
-        // --- GENERAL UI ---
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -502,7 +499,6 @@
                     </div>
                     <div class="text-right mr-4">
                         <p class="font-bold text-emerald-600">KSh ${p.price}</p>
-                        <p class="text-[9px] text-gray-400">Unit: ${p.unit}</p>
                     </div>
                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
                         <button onclick="openEditModal('${p.id}')" class="w-8 h-8 text-blue-600 bg-blue-50 rounded-lg"><i class="fas fa-edit text-xs"></i></button>
@@ -537,8 +533,6 @@
             document.getElementById('editPrice').value = p.price;
             document.getElementById('editUnit').value = p.unit;
             document.getElementById('editCategory').value = p.category;
-            document.getElementById('editImageUrl').value = p.image || '';
-            document.getElementById('editUploadStatus').innerText = "Update Photo";
             updateSubSelect('edit', p.subCategory);
             document.getElementById('editModal').classList.remove('hidden');
         }
