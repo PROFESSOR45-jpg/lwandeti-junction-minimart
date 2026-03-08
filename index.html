@@ -90,8 +90,7 @@
         </div>
         
         <nav class="bg-emerald-600 text-white overflow-x-auto whitespace-nowrap">
-            <div class="container mx-auto px-4 flex items-center" id="desktopNav">
-                </div>
+            <div class="container mx-auto px-4 flex items-center" id="desktopNav"></div>
         </nav>
     </header>
 
@@ -150,7 +149,6 @@
     </footer>
 
     <script>
-        // --- FIREBASE SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
@@ -163,30 +161,23 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- STATE ---
         let storeData = { categories: [], products: [] };
         let cart = JSON.parse(localStorage.getItem('lwandeti_cart')) || [];
         let currentRoute = 'home';
         let currentParam = null;
 
-        // --- INITIALIZATION & AUTO-SYNC ---
         function init() {
-            // SYNC CATEGORIES: Watch for additions/edits
             db.collection('categories').onSnapshot(snap => {
                 storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderNavigation();
-                // Refresh current view if we are on a category or searching
-                if(currentRoute !== 'home') router(currentRoute, currentParam);
+                if(currentRoute === 'category') router('category', currentParam);
             });
 
-            // SYNC PRODUCTS: Watch for new stock
             db.collection('products').onSnapshot(snap => {
                 storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                
                 const sync = document.getElementById('syncIndicator');
                 sync.classList.add('show');
                 setTimeout(() => sync.classList.remove('show'), 2000);
-                
                 router(currentRoute, currentParam);
             });
 
@@ -196,8 +187,6 @@
         function renderNavigation() {
             const nav = document.getElementById('desktopNav');
             const foot = document.getElementById('footerCats');
-            
-            // This part creates the dynamic buttons for every category in the DB
             const catsHtml = storeData.categories.map(c => `
                 <button onclick="router('category', '${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
                     <i class="fas ${c.icon || 'fa-tag'}"></i> ${c.name}
@@ -221,21 +210,16 @@
             currentRoute = route;
             currentParam = param;
             const app = document.getElementById('app');
+            if(!app) return;
             
-            if(route === 'home') {
-                app.innerHTML = renderHome();
-            } else if (route === 'all') {
-                app.innerHTML = renderAllProductsView();
-            } else if (route === 'category') {
-                app.innerHTML = renderCategoryView(param);
-            } else if (route === 'search') {
-                app.innerHTML = renderSearchView(param);
-            }
+            if(route === 'home') app.innerHTML = renderHome();
+            else if (route === 'all') app.innerHTML = renderAllProductsView();
+            else if (route === 'category') app.innerHTML = renderCategoryView(param);
+            else if (route === 'search') app.innerHTML = renderSearchView(param);
         }
 
-        // --- VIEW RENDERERS ---
         function renderHome() {
-            const featured = storeData.products.filter(p => p.popular).slice(0, 10);
+            const featured = storeData.products.slice(0, 10);
             return `
                 <section class="hero-bg min-h-[70vh] flex items-center">
                     <div class="hero-overlay absolute inset-0"></div>
@@ -268,10 +252,8 @@
         }
 
         function renderCategoryView(catId) {
-            // Match product's category string to category document ID
             const filtered = storeData.products.filter(p => String(p.category) === String(catId));
             const category = storeData.categories.find(c => c.id === catId);
-            
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
                     <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase flex items-center gap-3">
@@ -282,12 +264,7 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                             ${filtered.map(p => renderProductCard(p)).join('')}
                         </div>
-                    ` : `
-                        <div class="text-center py-20 text-gray-400">
-                            <i class="fas fa-box-open text-5xl mb-4"></i>
-                            <p>No products found in this category yet.</p>
-                        </div>
-                    `}
+                    ` : `<div class="text-center py-20 text-gray-400"><p>No products found in this category yet.</p></div>`}
                 </div>
             `;
         }
@@ -296,9 +273,7 @@
             return `
                 <div class="product-card bg-white rounded-2xl overflow-hidden flex flex-col group">
                     <div class="h-48 bg-gray-100 relative">
-                        <img src="${p.image || 'https://via.placeholder.com/300'}" 
-                             onerror="this.src='https://via.placeholder.com/300?text=No+Image'"
-                             class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                        <img src="${p.image || 'https://via.placeholder.com/300'}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                     </div>
                     <div class="p-4 flex-1 flex flex-col">
                         <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-2">${p.name}</h3>
@@ -313,38 +288,26 @@
             `;
         }
 
-        // --- ENHANCED SEARCH ---
         function handleSearch() {
-            const input = document.getElementById('searchInput');
-            const q = input.value.trim().toLowerCase();
-            if(q) {
-                router('search', q);
-            }
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+            if(q) router('search', q);
         }
 
         function renderSearchView(q) {
-            // Searches by Name OR Category Name
             const results = storeData.products.filter(p => {
                 const cat = storeData.categories.find(c => c.id === p.category);
-                const catName = cat ? cat.name.toLowerCase() : '';
-                return p.name.toLowerCase().includes(q) || catName.includes(q);
+                return p.name.toLowerCase().includes(q) || (cat && cat.name.toLowerCase().includes(q));
             });
-
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-2xl font-bold">Search results for "${q}"</h2>
-                        <button onclick="router('all')" class="text-emerald-600 font-bold">Show All</button>
-                    </div>
+                    <h2 class="text-2xl font-bold mb-8">Results for "${q}"</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${results.map(p => renderProductCard(p)).join('')}
                     </div>
-                    ${results.length === 0 ? '<div class="text-center py-20 text-gray-400">Nothing found matching that search.</div>' : ''}
                 </div>
             `;
         }
 
-        // --- CART UTILS ---
         function addToCart(id) {
             const p = storeData.products.find(item => item.id === id);
             if(!p) return;
@@ -364,7 +327,6 @@
             const badge = document.getElementById('cartBadge');
             const totalEl = document.getElementById('cartTotal');
             let total = 0, count = 0;
-
             if(!itemsCont) return;
 
             itemsCont.innerHTML = cart.map(item => {
