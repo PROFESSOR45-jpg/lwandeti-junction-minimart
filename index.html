@@ -157,7 +157,6 @@
             messagingSenderId: "282672112956",
             appId: "1:282672112956:web:1a85643cc1f3c410676a39"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -180,7 +179,6 @@
                 setTimeout(() => sync.classList.remove('show'), 2000);
                 router(currentRoute, currentParam);
             });
-
             updateCartUI();
         }
 
@@ -188,7 +186,7 @@
             const nav = document.getElementById('desktopNav');
             const foot = document.getElementById('footerCats');
             const catsHtml = storeData.categories.map(c => `
-                <button onclick="router('category', '${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
+                <button onclick="router('category', '${c.name}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
                     <i class="fas ${c.icon || 'fa-tag'}"></i> ${c.name}
                 </button>
             `).join('');
@@ -199,10 +197,9 @@
                     <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All</button>
                 ` + catsHtml;
             }
-
             if(foot) {
                 foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + 
-                    storeData.categories.slice(0,8).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
+                    storeData.categories.slice(0,8).map(c => `<li><a href="#" onclick="router('category', '${c.name}')">${c.name}</a></li>`).join('');
             }
         }
 
@@ -210,8 +207,6 @@
             currentRoute = route;
             currentParam = param;
             const app = document.getElementById('app');
-            if(!app) return;
-            
             if(route === 'home') app.innerHTML = renderHome();
             else if (route === 'all') app.innerHTML = renderAllProductsView();
             else if (route === 'category') app.innerHTML = renderCategoryView(param);
@@ -230,9 +225,7 @@
                     </div>
                 </section>
                 <section class="py-16 container mx-auto px-4 animate-fade">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
-                        <i class="fas fa-star text-yellow-500"></i> Popular Products
-                    </h2>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><i class="fas fa-star text-yellow-500"></i> New Arrivals</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${featured.map(p => renderProductCard(p)).join('')}
                     </div>
@@ -251,20 +244,19 @@
             `;
         }
 
-        function renderCategoryView(catId) {
-            const filtered = storeData.products.filter(p => String(p.category) === String(catId));
-            const category = storeData.categories.find(c => c.id === catId);
+        function renderCategoryView(catName) {
+            // Updated to match by name saved in Admin
+            const filtered = storeData.products.filter(p => p.category === catName);
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
                     <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase flex items-center gap-3">
-                        <i class="fas ${category?.icon || 'fa-shopping-basket'} text-emerald-600"></i>
-                        ${category?.name || 'Category'}
+                        <i class="fas fa-shopping-basket text-emerald-600"></i> ${catName}
                     </h2>
                     ${filtered.length > 0 ? `
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                             ${filtered.map(p => renderProductCard(p)).join('')}
                         </div>
-                    ` : `<div class="text-center py-20 text-gray-400"><p>No products found in this category yet.</p></div>`}
+                    ` : `<div class="text-center py-20 text-gray-400"><p>No products found here yet.</p></div>`}
                 </div>
             `;
         }
@@ -279,9 +271,7 @@
                         <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-2">${p.name}</h3>
                         <div class="mt-auto">
                             <p class="text-emerald-700 font-extrabold text-xl">KSh ${p.price}</p>
-                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">
-                                ADD TO CART
-                            </button>
+                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">ADD TO CART</button>
                         </div>
                     </div>
                 </div>
@@ -294,16 +284,11 @@
         }
 
         function renderSearchView(q) {
-            const results = storeData.products.filter(p => {
-                const cat = storeData.categories.find(c => c.id === p.category);
-                return p.name.toLowerCase().includes(q) || (cat && cat.name.toLowerCase().includes(q));
-            });
+            const results = storeData.products.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
                     <h2 class="text-2xl font-bold mb-8">Results for "${q}"</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        ${results.map(p => renderProductCard(p)).join('')}
-                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">${results.map(p => renderProductCard(p)).join('')}</div>
                 </div>
             `;
         }
@@ -317,10 +302,7 @@
             showToast(`Added ${p.name}`);
         }
 
-        function saveCart() {
-            localStorage.setItem('lwandeti_cart', JSON.stringify(cart));
-            updateCartUI();
-        }
+        function saveCart() { localStorage.setItem('lwandeti_cart', JSON.stringify(cart)); updateCartUI(); }
 
         function updateCartUI() {
             const itemsCont = document.getElementById('cartItems');
@@ -328,25 +310,15 @@
             const totalEl = document.getElementById('cartTotal');
             let total = 0, count = 0;
             if(!itemsCont) return;
-
             itemsCont.innerHTML = cart.map(item => {
                 total += (item.price * item.qty);
                 count += item.qty;
-                return `
-                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
-                        <img src="${item.image}" class="w-12 h-12 rounded object-cover">
-                        <div class="flex-1 text-xs">
-                            <h4 class="font-bold uppercase truncate w-32">${item.name}</h4>
-                            <p class="text-emerald-600">KSh ${item.price}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 border rounded-full">-</button>
-                            <span class="font-bold">${item.qty}</span>
-                            <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 border rounded-full">+</button>
-                        </div>
-                    </div>`;
+                return `<div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
+                    <img src="${item.image}" class="w-12 h-12 rounded object-cover">
+                    <div class="flex-1 text-xs"><h4 class="font-bold uppercase truncate w-32">${item.name}</h4><p class="text-emerald-600">KSh ${item.price}</p></div>
+                    <div class="flex items-center gap-2"><button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 border rounded-full">-</button><span class="font-bold">${item.qty}</span><button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 border rounded-full">+</button></div>
+                </div>`;
             }).join('');
-
             badge.innerText = count;
             badge.classList.toggle('hidden', count === 0);
             totalEl.innerText = `KSh ${total.toLocaleString()}`;
@@ -380,7 +352,6 @@
             text += `*TOTAL: ${document.getElementById('cartTotal').innerText}*`;
             window.open(`https://wa.me/254117352700?text=${text}`);
         }
-
         init();
     </script>
 </body>
