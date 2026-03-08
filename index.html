@@ -8,1152 +8,308 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK v9 Compat (for browser direct usage) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .product-card { transition: all 0.3s ease; }
-        .product-card:hover { transform: translateY(-8px); }
+        .product-card { transition: all 0.3s ease; border: 1px solid #f3f4f6; }
+        .product-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
         .cart-panel { transform: translateX(100%); transition: transform 0.3s ease; }
         .cart-panel.open { transform: translateX(0); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.5s ease; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         
         .hero-bg {
             background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background-size: cover; background-position: center; background-attachment: fixed;
         }
-        .hero-overlay {
-            background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(6, 78, 59, 0.7) 50%, rgba(217, 119, 6, 0.6) 100%);
-        }
+        .hero-overlay { background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(6, 78, 59, 0.7) 50%, rgba(217, 119, 6, 0.6) 100%); }
         .text-shadow { text-shadow: 2px 2px 8px rgba(0,0,0,0.5); }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
         .sync-indicator {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: rgba(16, 185, 129, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 100;
-            display: none;
-            align-items: center;
-            gap: 6px;
-            backdrop-filter: blur(10px);
+            position: fixed; top: 80px; right: 20px; background: #10b981; color: white;
+            padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 100;
+            display: none; align-items: center; gap: 6px;
         }
         .sync-indicator.show { display: flex; animation: slideIn 0.3s ease; }
-        .sync-indicator.error { background: rgba(239, 68, 68, 0.9); }
-        @keyframes slideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
+        @keyframes slideIn { from { transform: translateX(100px); } to { transform: translateX(0); } }
         .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
+            width: 40px; height: 40px; border: 4px solid #f3f3f3;
+            border-top: 4px solid #059669; border-radius: 50%; animation: spin 1s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .offline-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #f59e0b;
-            color: white;
-            text-align: center;
-            padding: 8px;
-            z-index: 1000;
-            display: none;
-            font-weight: 600;
-        }
-        .offline-banner.show { display: block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Offline Indicator -->
-    <div id="offlineBanner" class="offline-banner">
-        <i class="fas fa-wifi-slash mr-2"></i> You are offline. Using cached data.
-    </div>
 
-    <!-- Database Sync Indicator -->
     <div id="syncIndicator" class="sync-indicator shadow-lg">
-        <i class="fas fa-sync-alt fa-spin"></i>
-        <span>Syncing database...</span>
+        <i class="fas fa-sync-alt fa-spin"></i><span>Updating Shop...</span>
     </div>
 
-    <!-- Hidden admin access -->
-    <a href="admin.html" style="position: absolute; bottom: 5px; right: 5px; width: 10px; height: 10px; opacity: 0;" title="Admin">.</a>
+    <a href="admin.html" style="position: fixed; bottom: 0; right: 0; width: 20px; height: 20px; z-index: 999; opacity: 0;">.</a>
 
-    <!-- Top Bar -->
     <div class="bg-emerald-900 text-white text-sm py-2">
-        <div class="container mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex flex-wrap gap-4 items-center">
-                <a href="tel:0117352700" class="flex items-center gap-2 hover:text-yellow-400 transition">
-                    <i class="fas fa-phone"></i> 0117 352700
-                </a>
-                <a href="mailto:junctionsupa@gmail.com" class="flex items-center gap-2 hover:text-yellow-400 transition">
-                    <i class="fas fa-envelope"></i> junctionsupa@gmail.com
-                </a>
-                <a href="https://wa.me/254117352700" class="flex items-center gap-2 hover:text-yellow-400 transition">
-                    <i class="fab fa-whatsapp"></i> WhatsApp
-                </a>
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex gap-4">
+                <a href="tel:0117352700" class="hover:text-yellow-400"><i class="fas fa-phone mr-1"></i> 0117 352700</a>
+                <a href="https://wa.me/254117352700" class="hover:text-yellow-400"><i class="fab fa-whatsapp mr-1"></i> WhatsApp</a>
             </div>
-            <div class="flex items-center gap-2">
-                <i class="fas fa-map-marker-alt text-yellow-400"></i> Lwandeti Junction, Kenya
-            </div>
+            <div class="hidden sm:block"><i class="fas fa-map-marker-alt text-yellow-400 mr-1"></i> Lwandeti Junction, Kenya</div>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="sticky top-0 z-40 glass border-b border-gray-200 shadow-sm">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center justify-between gap-4">
-                <a href="#" onclick="router('home')" class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
-                        <i class="fas fa-store"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-emerald-900 leading-tight">LWANDETI JUNCTION</h1>
-                        <p class="text-xs text-gray-500 font-medium tracking-wider">MINIMART</p>
-                    </div>
-                </a>
+    <header class="sticky top-0 z-40 glass border-b shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
+            <a href="#" onclick="router('home')" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white"><i class="fas fa-store"></i></div>
+                <h1 class="text-xl font-bold text-emerald-900 hidden sm:block">LWANDETI JUNCTION</h1>
+            </a>
 
-                <div class="hidden md:flex flex-1 max-w-xl mx-8">
-                    <div class="relative w-full">
-                        <input type="text" id="searchInput" placeholder="Search products..." 
-                            class="w-full pl-12 pr-4 py-3 rounded-full border-2 border-gray-200 focus:border-emerald-500 focus:outline-none"
-                            onkeypress="if(event.key==='Enter') handleSearch()">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <button onclick="handleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-emerald-700">
-                            Search
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <button onclick="router('account')" class="hidden sm:flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600">
-                        <i class="far fa-user text-xl"></i>
-                        <span class="text-xs">Account</span>
-                    </button>
-                    <button onclick="toggleCart()" class="flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600 relative">
-                        <i class="fas fa-shopping-cart text-xl"></i>
-                        <span id="cartBadge" class="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
-                        <span class="text-xs">Cart</span>
-                    </button>
-                    <button onclick="toggleMobileMenu()" class="md:hidden text-2xl text-gray-600">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                </div>
+            <div class="flex-1 max-w-md relative">
+                <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Search groceries..." class="w-full pl-10 pr-4 py-2 rounded-full border focus:ring-2 focus:ring-emerald-500 outline-none">
+                <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
             </div>
 
-            <!-- Mobile Search -->
-            <div class="md:hidden mt-4">
-                <div class="relative">
-                    <input type="text" id="mobileSearchInput" placeholder="Search..." 
-                        class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:border-emerald-500 focus:outline-none"
-                        onkeypress="if(event.key==='Enter') handleMobileSearch()">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                </div>
-            </div>
+            <button onclick="toggleCart()" class="relative p-2 text-gray-600">
+                <i class="fas fa-shopping-cart text-2xl"></i>
+                <span id="cartBadge" class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+            </button>
         </div>
-
-        <!-- Desktop Nav -->
-        <nav class="hidden md:block border-t border-gray-100 bg-emerald-600 text-white">
-            <div class="container mx-auto px-4">
-                <div class="flex items-center gap-1 overflow-x-auto" id="desktopNav">
-                    <div class="py-3 px-4"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        
+        <nav class="bg-emerald-600 text-white overflow-x-auto whitespace-nowrap">
+            <div class="container mx-auto px-4 flex" id="categoryNav">
                 </div>
-            </div>
         </nav>
-
-        <!-- Mobile Menu -->
-        <div id="mobileMenu" class="hidden md:hidden bg-emerald-700 text-white">
-            <div class="container mx-auto px-4 py-2" id="mobileNav">
-                <div class="py-2"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
-            </div>
-        </div>
     </header>
 
-    <!-- Main Content -->
     <main id="app" class="min-h-screen">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="text-center">
-                <div class="loading-spinner mb-4"></div>
-                <p class="text-gray-600">Loading store data...</p>
-            </div>
+        <div class="flex flex-col items-center justify-center min-h-[60vh]">
+            <div class="loading-spinner"></div>
+            <p class="mt-4 text-gray-500 font-medium">Loading items from cloud...</p>
         </div>
     </main>
 
-    <!-- Cart Sidebar -->
-    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-black/50 z-50 hidden opacity-0 transition-opacity"></div>
+    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity"></div>
     <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-50 cart-panel shadow-2xl flex flex-col">
-        <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-emerald-50">
-            <h2 class="text-xl font-bold text-emerald-900 flex items-center gap-2">
-                <i class="fas fa-shopping-cart"></i> Your Cart
-            </h2>
-            <button onclick="toggleCart()" class="w-10 h-10 rounded-full hover:bg-gray-200 flex items-center justify-center">
-                <i class="fas fa-times text-xl"></i>
-            </button>
+        <div class="p-6 border-b flex justify-between items-center bg-emerald-50">
+            <h2 class="text-xl font-bold text-emerald-900">Your Shopping Cart</h2>
+            <button onclick="toggleCart()" class="text-gray-500 hover:text-black"><i class="fas fa-times text-2xl"></i></button>
         </div>
-        <div id="cartItems" class="flex-1 overflow-y-auto p-6"></div>
-        <div class="border-t border-gray-200 p-6 bg-gray-50">
-            <div class="flex justify-between items-center mb-4 text-lg font-bold">
+        <div id="cartItems" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+        <div class="p-6 border-t bg-gray-50">
+            <div class="flex justify-between text-xl font-bold mb-4">
                 <span>Total:</span>
-                <span id="cartTotal" class="text-emerald-600">KSh 0</span>
+                <span id="cartTotal" class="text-emerald-700">KSh 0</span>
             </div>
-            <button onclick="checkout()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2">
-                <i class="fab fa-whatsapp text-xl"></i> Order via WhatsApp
+            <button onclick="checkout()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 flex items-center justify-center gap-2">
+                <i class="fab fa-whatsapp"></i> Complete via WhatsApp
             </button>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 z-50 transform translate-y-20 opacity-0 transition-all duration-300">
-        <i class="fas fa-check-circle text-green-400"></i>
-        <span id="toastMessage">Item added!</span>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 opacity-0 transition-all pointer-events-none">
+        <span id="toastMsg">Added to cart!</span>
     </div>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white pt-16 pb-8">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                <div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-2xl">
-                            <i class="fas fa-store"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold">LWANDETI JUNCTION</h3>
-                            <p class="text-sm text-gray-400">MINIMART</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-400 mb-6">Your trusted neighborhood supermarket providing quality products at affordable prices.</p>
-                    <div class="flex gap-4">
-                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-600 transition"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-600 transition"><i class="fab fa-instagram"></i></a>
-                        <a href="https://wa.me/254117352700" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-600 transition"><i class="fab fa-whatsapp"></i></a>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="text-lg font-semibold mb-6 text-emerald-400">Quick Links</h4>
-                    <ul class="space-y-3">
-                        <li><button onclick="router('home')" class="text-gray-400 hover:text-white transition">Home</button></li>
-                        <li><button onclick="router('products')" class="text-gray-400 hover:text-white transition">All Products</button></li>
-                        <li><button onclick="router('about')" class="text-gray-400 hover:text-white transition">About Us</button></li>
-                        <li><button onclick="router('contact')" class="text-gray-400 hover:text-white transition">Contact</button></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="text-lg font-semibold mb-6 text-emerald-400">Categories</h4>
-                    <ul class="space-y-3" id="footerCategories">
-                        <li class="text-gray-500">Loading...</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="text-lg font-semibold mb-6 text-emerald-400">Contact</h4>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-phone text-emerald-500 mt-1"></i>
-                            <div>
-                                <p class="text-sm text-gray-400">Phone</p>
-                                <a href="tel:0117352700" class="hover:text-emerald-400">0117 352700</a>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fab fa-whatsapp text-emerald-500 mt-1"></i>
-                            <div>
-                                <p class="text-sm text-gray-400">WhatsApp</p>
-                                <a href="https://wa.me/254117352700" class="hover:text-emerald-400">Chat Now</a>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-clock text-emerald-500 mt-1"></i>
-                            <div>
-                                <p class="text-sm text-gray-400">Hours</p>
-                                <p>Daily: 7AM - 9PM</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
-                <p>&copy; 2024 Lwandeti Junction Minimart. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
 
     <script>
-        // ============================================
-        // FIREBASE CONFIGURATION - YOUR CREDENTIALS
-        // ============================================
-        
+        // --- FIREBASE SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
             authDomain: "lwandeti-junction-minimart.firebaseapp.com",
             projectId: "lwandeti-junction-minimart",
             storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
             messagingSenderId: "282672112956",
-            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
-            measurementId: "G-C3RV1N7D2N"
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39"
         };
 
-        // Initialize Firebase using compat SDK (global firebase object)
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Enable offline persistence (optional but recommended)
-        db.enablePersistence({ synchronizeTabs: true })
-            .catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-                } else if (err.code == 'unimplemented') {
-                    console.log('Browser does not support offline persistence');
-                }
-            });
+        // --- STATE ---
+        let allProducts = [];
+        let cart = JSON.parse(localStorage.getItem('lwandeti_cart')) || [];
+        const categories = [
+            { id: 'all', name: 'All Items', icon: 'fa-border-all' },
+            { id: 'food_staples', name: 'Food Staples', icon: 'fa-wheat-awn' },
+            { id: 'beverages', name: 'Beverages', icon: 'fa-bottle-water' },
+            { id: 'personal_care', name: 'Hygiene', icon: 'fa-pump-soap' },
+            { id: 'household', name: 'Household', icon: 'fa-house-chimney' }
+        ];
 
-        // ============================================
-        // GLOBAL STATE
-        // ============================================
-        
-        let storeData = {
-            categories: [],
-            products: [],
-            info: {
-                name: "Lwandeti Junction Minimart",
-                phone: "0117 352700",
-                whatsapp: "254117352700",
-                email: "junctionsupa@gmail.com",
-                address: "Lwandeti Junction, Kenya"
-            }
-        };
-        
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        let currentRoute = 'home';
-        let searchQuery = '';
-        let unsubscribeProducts = null;
-        let unsubscribeCategories = null;
-        let isOnline = navigator.onLine;
-
-        // ============================================
-        // NETWORK STATUS MONITORING
-        // ============================================
-
-        window.addEventListener('online', () => {
-            isOnline = true;
-            document.getElementById('offlineBanner').classList.remove('show');
-            showToast('Back online! Syncing data...');
-            initializeDatabase(); // Reconnect to Firestore
-        });
-
-        window.addEventListener('offline', () => {
-            isOnline = false;
-            document.getElementById('offlineBanner').classList.add('show');
-            showToast('You are offline. Using cached data.');
-        });
-
-        // ============================================
-        // FIREBASE DATABASE FUNCTIONS
-        // ============================================
-
-        async function initializeDatabase() {
-            const indicator = document.getElementById('syncIndicator');
-            indicator.classList.add('show');
-            indicator.classList.remove('error');
-            indicator.querySelector('span').textContent = 'Connecting to cloud...';
-
-            try {
-                // Check if we have cached data first
-                const cachedCats = localStorage.getItem('lwandeti_categories_db');
-                const cachedProducts = localStorage.getItem('lwandeti_products_db');
-                
-                if (cachedCats && cachedProducts) {
-                    storeData.categories = JSON.parse(cachedCats);
-                    storeData.products = JSON.parse(cachedProducts);
-                    renderNavigation();
-                    router('home');
-                }
-
-                // Start real-time listeners
-                startRealtimeListeners();
-                
-            } catch (error) {
-                console.error('Database initialization error:', error);
-                showSyncError('Connection failed. Using offline mode.');
-                if (!storeData.categories.length) {
-                    loadFromLocalFallback();
-                }
-            }
-        }
-
-        function startRealtimeListeners() {
-            // Listen to categories
-            unsubscribeCategories = db.collection('categories')
-                .onSnapshot((snapshot) => {
-                    storeData.categories = [];
-                    snapshot.forEach((doc) => {
-                        storeData.categories.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    // Cache locally
-                    localStorage.setItem('lwandeti_categories_db', JSON.stringify(storeData.categories));
-                    
-                    renderNavigation();
-                    updateCategoryCounts();
-                    refreshCurrentView();
-                }, (error) => {
-                    console.error('Categories listener error:', error);
-                    showSyncError('Sync error');
-                });
-
-            // Listen to products
-            unsubscribeProducts = db.collection('products')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot((snapshot) => {
-                    storeData.products = [];
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        storeData.products.push({ 
-                            id: doc.id, 
-                            ...data,
-                            // Ensure price is number
-                            price: Number(data.price) || 0,
-                            oldPrice: data.oldPrice ? Number(data.oldPrice) : null
-                        });
-                    });
-                    
-                    // Cache locally
-                    localStorage.setItem('lwandeti_products_db', JSON.stringify(storeData.products));
-                    
-                    updateCategoryCounts();
-                    refreshCurrentView();
-                    showSyncComplete();
-                }, (error) => {
-                    console.error('Products listener error:', error);
-                    showSyncError('Products sync failed');
-                });
-        }
-
-        function updateCategoryCounts() {
-            storeData.categories.forEach(cat => {
-                cat.count = storeData.products.filter(p => p.category === cat.id).length;
-            });
-            // Update cache with counts
-            localStorage.setItem('lwandeti_categories_db', JSON.stringify(storeData.categories));
-        }
-
-        function showSyncComplete() {
-            const indicator = document.getElementById('syncIndicator');
-            indicator.innerHTML = '<i class="fas fa-check-circle"></i><span>Live sync active</span>';
-            indicator.style.background = 'rgba(16, 185, 129, 0.9)';
-            setTimeout(() => {
-                indicator.classList.remove('show');
-                setTimeout(() => {
-                    indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i><span>Syncing database...</span>';
-                    indicator.style.background = 'rgba(16, 185, 129, 0.9)';
-                }, 300);
-            }, 1500);
-        }
-
-        function showSyncError(message) {
-            const indicator = document.getElementById('syncIndicator');
-            indicator.classList.add('error');
-            indicator.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${message}</span>`;
-            setTimeout(() => {
-                indicator.classList.remove('show');
-            }, 3000);
-        }
-
-        function loadFromLocalFallback() {
-            const savedCats = localStorage.getItem('lwandeti_categories_db');
-            const savedProducts = localStorage.getItem('lwandeti_products_db');
-            
-            if (savedCats) storeData.categories = JSON.parse(savedCats);
-            if (savedProducts) storeData.products = JSON.parse(savedProducts);
-            
-            if (storeData.categories.length || storeData.products.length) {
-                renderNavigation();
-                router('home');
-                showToast('Loaded from local cache');
-            } else {
-                showToast('No data available. Please check connection.');
-            }
-        }
-
-        function refreshCurrentView() {
-            if (currentRoute === 'home' || currentRoute === 'products' || currentRoute === 'search') {
-                router(currentRoute, { category: currentCategory, query: searchQuery });
-            }
-        }
-
-        // ============================================
-        // INITIALIZATION
-        // ============================================
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check initial online status
-            if (!navigator.onLine) {
-                document.getElementById('offlineBanner').classList.add('show');
-            }
-            initializeDatabase();
+        // --- CORE LOGIC: REAL-TIME SYNC ---
+        function initApp() {
+            renderNav();
             updateCartUI();
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (unsubscribeProducts) unsubscribeProducts();
-            if (unsubscribeCategories) unsubscribeCategories();
-        });
-
-        // ============================================
-        // ROUTER & RENDER FUNCTIONS
-        // ============================================
-        
-        let currentCategory = 'all';
-
-        function router(route, params = {}) {
-            currentRoute = route;
-            if (params.category) currentCategory = params.category;
-            if (params.query) searchQuery = params.query;
             
-            window.scrollTo(0, 0);
-            const app = document.getElementById('app');
-            
-            switch(route) {
-                case 'home':
-                    app.innerHTML = renderHome();
-                    break;
-                case 'products':
-                    app.innerHTML = renderProducts(params.category || 'all');
-                    break;
-                case 'product':
-                    app.innerHTML = renderProductDetail(params.id);
-                    break;
-                case 'category':
-                    app.innerHTML = renderCategory(params.id);
-                    break;
-                case 'contact':
-                    app.innerHTML = renderContact();
-                    break;
-                case 'about':
-                    app.innerHTML = renderAbout();
-                    break;
-                case 'account':
-                    app.innerHTML = renderAccount();
-                    break;
-                case 'search':
-                    app.innerHTML = renderSearch(params.query);
-                    break;
-            }
+            // Listen to Firestore changes
+            db.collection('products').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Show "Update" indicator briefly
+                const sync = document.getElementById('syncIndicator');
+                sync.classList.add('show');
+                setTimeout(() => sync.classList.remove('show'), 2000);
+                
+                router('home');
+            });
         }
 
-        function renderNavigation() {
-            const desktopNav = document.getElementById('desktopNav');
-            const mobileNav = document.getElementById('mobileNav');
-            const footerCats = document.getElementById('footerCategories');
-
-            if (storeData.categories.length === 0) return;
-
-            const navItems = [
-                { id: 'home', name: 'Home', icon: 'fa-home' },
-                { id: 'products', name: 'All Products', icon: 'fa-th-large' },
-                ...storeData.categories.map(c => ({ id: c.id, name: c.name, icon: c.icon, isCategory: true }))
-            ];
-
-            desktopNav.innerHTML = navItems.map(item => `
-                <button onclick="${item.isCategory ? `router('products', {category: '${item.id}'})` : `router('${item.id}')`}" 
-                    class="px-4 py-3 hover:bg-emerald-700 transition flex items-center gap-2 whitespace-nowrap">
-                    <i class="fas ${item.icon}"></i> ${item.name}
+        function renderNav() {
+            const nav = document.getElementById('categoryNav');
+            nav.innerHTML = categories.map(c => `
+                <button onclick="filterByCategory('${c.id}')" class="px-6 py-3 hover:bg-emerald-700 transition flex items-center gap-2">
+                    <i class="fas ${c.icon}"></i> ${c.name}
                 </button>
-            `).join('') + `
-                <button onclick="router('contact')" class="px-4 py-3 hover:bg-emerald-700 transition flex items-center gap-2 whitespace-nowrap ml-auto">
-                    <i class="fas fa-phone"></i> Contact
-                </button>
-            `;
-
-            mobileNav.innerHTML = navItems.map(item => `
-                <button onclick="${item.isCategory ? `router('products', {category: '${item.id}'})` : `router('${item.id}')`}; toggleMobileMenu()" 
-                    class="block w-full text-left px-4 py-3 hover:bg-emerald-800">
-                    ${item.name}
-                </button>
-            `).join('') + `
-                <button onclick="router('contact'); toggleMobileMenu()" class="block w-full text-left px-4 py-3 hover:bg-emerald-800">Contact</button>
-            `;
-
-            footerCats.innerHTML = storeData.categories.slice(0, 5).map(c => `
-                <li><button onclick="router('products', {category: '${c.id}'})" class="text-gray-400 hover:text-white transition">${c.name}</button></li>
             `).join('');
         }
 
-        function renderHome() {
-            const featuredProducts = storeData.products.filter(p => p.popular || p.badge === 'popular').slice(0, 8);
-            
-            return `
-                <section class="hero-bg relative min-h-[90vh] flex items-center">
-                    <div class="hero-overlay absolute inset-0"></div>
-                    <div class="container mx-auto px-4 relative z-10 py-20">
-                        <div class="max-w-4xl mx-auto text-center text-white">
-                            <div class="animate-fade mb-6">
-                                <span class="inline-block bg-yellow-500 text-emerald-900 px-6 py-2 rounded-full font-bold text-sm mb-6 tracking-wider uppercase">
-                                    <i class="fas fa-star mr-2"></i>Your Everyday Stop at the Junction
-                                </span>
-                            </div>
-                            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight text-shadow animate-fade">
-                                Lwandeti Junction<br>
-                                <span class="text-yellow-400">Minimart</span>
-                            </h1>
-                            <p class="text-xl md:text-2xl mb-8 text-gray-100 max-w-2xl mx-auto leading-relaxed animate-fade">
-                                Quality products, unbeatable prices, and friendly service right here in your neighborhood. 
-                                <strong>${storeData.products.length}</strong> products in stock!
-                            </p>
-                            <div class="flex flex-wrap justify-center gap-4 mb-12 animate-fade">
-                                <button onclick="router('products')" class="bg-yellow-400 text-emerald-900 px-8 py-4 rounded-full font-bold hover:bg-yellow-300 transition transform hover:scale-105 shadow-lg text-lg">
-                                    <i class="fas fa-shopping-bag mr-2"></i> Shop Now
-                                </button>
-                                <a href="https://wa.me/254117352700" class="bg-white/20 backdrop-blur text-white px-8 py-4 rounded-full font-bold hover:bg-white/30 transition border-2 border-white/30 text-lg">
-                                    <i class="fab fa-whatsapp mr-2"></i> WhatsApp Order
-                                </a>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mt-12 animate-fade">
-                                <div class="glass-card rounded-2xl p-6 text-center transform hover:scale-105 transition duration-300">
-                                    <div class="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center text-yellow-400 text-2xl mx-auto mb-4">
-                                        <i class="fas fa-tags"></i>
-                                    </div>
-                                    <h3 class="font-bold text-xl mb-2">Wholesale Prices</h3>
-                                    <p class="text-gray-200 text-sm">Best deals on bulk orders for your business or home</p>
-                                </div>
-                                <div class="glass-card rounded-2xl p-6 text-center transform hover:scale-105 transition duration-300">
-                                    <div class="w-16 h-16 bg-blue-400/20 rounded-full flex items-center justify-center text-blue-400 text-2xl mx-auto mb-4">
-                                        <i class="fas fa-smile"></i>
-                                    </div>
-                                    <h3 class="font-bold text-xl mb-2">Friendly Service</h3>
-                                    <p class="text-gray-200 text-sm">Personal attention to every customer</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 animate-bounce">
-                        <i class="fas fa-chevron-down text-3xl"></i>
-                    </div>
-                </section>
+        function router(view, filter = 'all') {
+            const app = document.getElementById('app');
+            let displayProducts = allProducts;
 
-                <section class="py-16 bg-white">
-                    <div class="container mx-auto px-4">
-                        <div class="text-center mb-12">
-                            <h2 class="text-3xl font-bold text-gray-900 mb-4">What We Offer</h2>
-                            <p class="text-gray-600 max-w-2xl mx-auto">From fresh groceries to household essentials, we have everything you need under one roof.</p>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            ${storeData.categories.map(cat => `
-                                <button onclick="router('products', {category: '${cat.id}'})" class="group bg-gradient-to-br ${cat.color} rounded-2xl p-6 text-white text-center shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-110 transition">
-                                        <i class="fas ${cat.icon}"></i>
-                                    </div>
-                                    <h3 class="font-bold text-xl mb-2">${cat.name}</h3>
-                                    <p class="text-white/80 text-sm">${cat.count || 0} Products</p>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                </section>
+            if(filter !== 'all') {
+                displayProducts = allProducts.filter(p => p.category === filter);
+            }
 
-                ${featuredProducts.length > 0 ? `
-                <section class="py-16 bg-emerald-50">
-                    <div class="container mx-auto px-4">
-                        <div class="text-center mb-12">
-                            <span class="text-emerald-600 font-bold tracking-wider uppercase text-sm">Best Sellers</span>
-                            <h2 class="text-3xl font-bold text-gray-900 mt-2">Featured Products</h2>
-                            <p class="text-gray-600 mt-2">Most popular items loved by our customers</p>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            ${featuredProducts.map(p => renderProductCard(p)).join('')}
-                        </div>
-                        <div class="text-center mt-10">
-                            <button onclick="router('products')" class="bg-emerald-600 text-white px-8 py-3 rounded-full font-bold hover:bg-emerald-700 transition">
-                                View All Products <i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                        </div>
-                    </div>
-                </section>
-                ` : ''}
-
-                <section class="py-16 bg-white">
-                    <div class="container mx-auto px-4">
-                        <div class="grid md:grid-cols-2 gap-12 items-center">
-                            <div>
-                                <span class="text-emerald-600 font-bold tracking-wider uppercase text-sm">Why Choose Us</span>
-                                <h2 class="text-4xl font-bold text-gray-900 mt-2 mb-6">Your Community Store with a Personal Touch</h2>
-                                <div class="space-y-6">
-                                    <div class="flex gap-4">
-                                        <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-xl mb-2">Convenient Location</h3>
-                                            <p class="text-gray-600">Right at Lwandeti Junction, easily accessible for all your daily needs.</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-4">
-                                        <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-xl mb-2">Extended Hours</h3>
-                                            <p class="text-gray-600">Open daily from 7AM to 9PM to serve you better, even on weekends.</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-4">
-                                        <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
-                                            <i class="fas fa-hand-holding-usd"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-xl mb-2">Competitive Pricing</h3>
-                                            <p class="text-gray-600">We keep our prices low so you can get more value for your money.</p>
-                                        </div>
-                                    </div>
+            app.innerHTML = `
+                <div class="container mx-auto px-4 py-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <i class="fas fa-shopping-basket text-emerald-600"></i>
+                        ${filter === 'all' ? 'Fresh Stock' : filter.replace('_', ' ')}
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        ${displayProducts.map(p => `
+                            <div class="product-card bg-white rounded-xl overflow-hidden flex flex-col">
+                                <div class="h-40 bg-gray-100 relative">
+                                    <img src="${p.image || 'https://via.placeholder.com/300?text=Lwandeti'}" class="w-full h-full object-cover">
+                                    ${p.popular ? '<span class="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded">POPULAR</span>' : ''}
                                 </div>
-                                <button onclick="router('about')" class="mt-8 bg-emerald-600 text-white px-8 py-3 rounded-full font-bold hover:bg-emerald-700 transition">
-                                    Learn More About Us
-                                </button>
-                            </div>
-                            <div class="relative">
-                                <div class="bg-emerald-200 rounded-3xl p-4 transform rotate-3">
-                                    <img src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=600&h=500&fit=crop" alt="Shopping" class="rounded-2xl shadow-lg w-full h-96 object-cover">
-                                </div>
-                                <div class="absolute -bottom-6 -left-6 bg-white rounded-2xl p-6 shadow-xl">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-14 h-14 bg-yellow-400 rounded-full flex items-center justify-center text-emerald-900 text-2xl font-bold">
-                                            ${storeData.products.length}
+                                <div class="p-4 flex-1 flex flex-col">
+                                    <h3 class="font-bold text-gray-800 text-sm line-clamp-2 mb-2 uppercase">${p.name}</h3>
+                                    <div class="mt-auto">
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-emerald-700 font-extrabold text-lg">KSh ${p.price}</span>
+                                            <span class="text-gray-400 text-[10px]">/${p.unit || 'pc'}</span>
                                         </div>
-                                        <div>
-                                            <p class="font-bold text-gray-900">Products Available</p>
-                                            <p class="text-gray-500 text-sm">And growing daily!</p>
-                                        </div>
+                                        <button onclick="addToCart('${p.id}')" class="w-full mt-3 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">
+                                            <i class="fas fa-cart-plus mr-1"></i> ADD TO CART
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="py-16 bg-gray-900 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-emerald-600/20"></div>
-                    <div class="container mx-auto px-4 relative z-10 text-center">
-                        <h2 class="text-4xl font-bold mb-6">Ready to Shop?</h2>
-                        <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">Browse our full catalog of ${storeData.products.length} products and place your order via WhatsApp for quick processing.</p>
-                        <div class="flex flex-wrap justify-center gap-4">
-                            <button onclick="router('products')" class="bg-emerald-600 text-white px-8 py-4 rounded-full font-bold hover:bg-emerald-700 transition text-lg">
-                                <i class="fas fa-th-large mr-2"></i> View All Products
-                            </button>
-                            <a href="tel:0117352700" class="bg-white text-gray-900 px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition text-lg">
-                                <i class="fas fa-phone mr-2"></i> Call Us Now
-                            </a>
-                        </div>
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderProducts(category = 'all') {
-            const filtered = category === 'all' 
-                ? storeData.products 
-                : storeData.products.filter(p => p.category === category);
-            
-            const catName = category === 'all' ? 'All Products' : storeData.categories.find(c => c.id === category)?.name || 'Products';
-
-            return `
-                <section class="py-8 bg-emerald-600 text-white">
-                    <div class="container mx-auto px-4">
-                        <h1 class="text-3xl font-bold mb-2">${catName}</h1>
-                        <p class="text-emerald-100">${filtered.length} products available</p>
-                    </div>
-                </section>
-                <section class="py-12 bg-gray-50 min-h-screen">
-                    <div class="container mx-auto px-4">
-                        ${filtered.length > 0 ? `
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                ${filtered.map(p => renderProductCard(p)).join('')}
-                            </div>
-                        ` : '<p class="text-center text-gray-500 py-20">No products found in this category yet.</p>'}
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderProductCard(product) {
-            const cat = storeData.categories.find(c => c.id === product.category);
-            const badge = product.badge ? `
-                <span class="absolute top-3 left-3 ${product.badge === 'sale' ? 'bg-orange-500' : product.badge === 'new' ? 'bg-blue-500' : 'bg-emerald-600'} text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                    ${product.badge.toUpperCase()}
-                </span>
-            ` : '';
-            
-            const oldPrice = product.oldPrice ? `<span class="text-gray-400 line-through text-sm ml-2">KSh ${product.oldPrice}</span>` : '';
-
-            return `
-                <div class="product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group relative">
-                    ${badge}
-                    <div class="relative h-56 bg-gray-50 flex items-center justify-center overflow-hidden">
-                        <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover transform group-hover:scale-110 transition duration-500" onerror="this.src='${cat?.defaultProductImage || 'https://via.placeholder.com/400'}'">
-                        <button onclick="addToCart('${product.id}')" class="absolute bottom-4 right-4 w-12 h-12 bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition duration-300 hover:bg-emerald-700">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <div class="p-4">
-                        <div class="text-xs text-emerald-600 font-semibold uppercase tracking-wide mb-1">${cat?.name || product.category}</div>
-                        <h3 class="font-bold text-gray-900 mb-2 line-clamp-2">${product.name}</h3>
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <span class="text-emerald-600 font-bold text-xl">KSh ${product.price}</span>
-                                ${oldPrice}
-                            </div>
-                            <span class="text-xs text-gray-500">${product.unit || 'each'}</span>
-                        </div>
-                        <button onclick="addToCart('${product.id}')" class="w-full bg-gray-100 hover:bg-emerald-600 hover:text-white text-gray-900 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 text-sm">
-                            <i class="fas fa-cart-plus"></i> Add to Cart
-                        </button>
+                        `).join('')}
                     </div>
                 </div>
             `;
         }
 
-        function renderContact() {
-            return `
-                <section class="py-8 bg-emerald-600 text-white">
-                    <div class="container mx-auto px-4">
-                        <h1 class="text-3xl font-bold mb-2">Contact Us</h1>
-                        <p class="text-emerald-100">We're here to help</p>
-                    </div>
-                </section>
-                <section class="py-16 bg-gray-50">
-                    <div class="container mx-auto px-4 max-w-6xl">
-                        <div class="grid md:grid-cols-2 gap-12">
-                            <div class="bg-white rounded-2xl p-8 shadow-sm">
-                                <h2 class="text-2xl font-bold mb-8">Get in Touch</h2>
-                                <div class="space-y-6">
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl flex-shrink-0">
-                                            <i class="fas fa-phone"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-gray-900">Phone</h3>
-                                            <a href="tel:${storeData.info.phone}" class="text-emerald-600 font-semibold">${storeData.info.phone}</a>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl flex-shrink-0">
-                                            <i class="fab fa-whatsapp"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-gray-900">WhatsApp</h3>
-                                            <a href="https://wa.me/${storeData.info.whatsapp}" class="text-emerald-600 font-semibold">Chat Now</a>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl flex-shrink-0">
-                                            <i class="fas fa-envelope"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-gray-900">Email</h3>
-                                            <a href="mailto:${storeData.info.email}" class="text-emerald-600 font-semibold">${storeData.info.email}</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-white rounded-2xl p-8 shadow-sm">
-                                <h2 class="text-2xl font-bold mb-8">Send Message</h2>
-                                <form onsubmit="event.preventDefault(); submitContactForm(this);" class="space-y-6">
-                                    <input type="text" name="name" placeholder="Your Name" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <input type="email" name="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none">
-                                    <textarea name="message" placeholder="Message" required rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:outline-none"></textarea>
-                                    <button type="submit" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition">
-                                        Send Message
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            `;
-        }
-
-        async function submitContactForm(form) {
-            const formData = {
-                name: form.name.value,
-                email: form.email.value,
-                message: form.message.value,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
+        // --- CART LOGIC ---
+        function addToCart(id) {
+            const p = allProducts.find(item => item.id === id);
+            const exists = cart.find(item => item.id === id);
             
-            try {
-                await db.collection('messages').add(formData);
-                showToast('Message sent successfully!');
-                form.reset();
-            } catch (error) {
-                console.error('Error sending message:', error);
-                showToast('Failed to send message. Please try again.');
-            }
-        }
-
-        function renderAbout() {
-            return `
-                <section class="py-8 bg-emerald-600 text-white">
-                    <div class="container mx-auto px-4">
-                        <h1 class="text-3xl font-bold mb-2">About Us</h1>
-                        <p class="text-emerald-100">Your Everyday Stop at the Junction</p>
-                    </div>
-                </section>
-                <section class="py-16 bg-gray-50">
-                    <div class="container mx-auto px-4 max-w-4xl text-center">
-                        <h2 class="text-3xl font-bold mb-6">Welcome to Lwandeti Junction Minimart</h2>
-                        <p class="text-gray-600 mb-8 text-lg">Your trusted neighborhood supermarket providing quality products at affordable prices. We serve the Lwandeti community with dedication and excellence.</p>
-                        <div class="grid grid-cols-3 gap-8 mt-12">
-                            <div class="bg-white p-8 rounded-2xl shadow-sm">
-                                <div class="text-4xl font-bold text-emerald-600 mb-2">${storeData.categories.length}</div>
-                                <div class="text-gray-600">Categories</div>
-                            </div>
-                            <div class="bg-white p-8 rounded-2xl shadow-sm">
-                                <div class="text-4xl font-bold text-emerald-600 mb-2">${storeData.products.length}</div>
-                                <div class="text-gray-600">Products</div>
-                            </div>
-                            <div class="bg-white p-8 rounded-2xl shadow-sm">
-                                <div class="text-4xl font-bold text-emerald-600 mb-2">1000+</div>
-                                <div class="text-gray-600">Happy Customers</div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderAccount() {
-            return `
-                <section class="py-8 bg-emerald-600 text-white">
-                    <div class="container mx-auto px-4">
-                        <h1 class="text-3xl font-bold mb-2">My Account</h1>
-                        <p class="text-emerald-100">Manage your profile</p>
-                    </div>
-                </section>
-                <section class="py-16 bg-gray-50">
-                    <div class="container mx-auto px-4 max-w-2xl text-center">
-                        <div class="bg-white rounded-2xl p-8 shadow-sm">
-                            <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-4xl mx-auto mb-6">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <h2 class="text-2xl font-bold mb-4">Coming Soon</h2>
-                            <p class="text-gray-600 mb-8">Account features under development. Order via WhatsApp for now!</p>
-                            <button onclick="toggleCart()" class="bg-emerald-600 text-white px-8 py-3 rounded-full font-bold hover:bg-emerald-700 transition">
-                                View Cart
-                            </button>
-                        </div>
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderSearch(query) {
-            const results = storeData.products.filter(p => 
-                p.name.toLowerCase().includes(query.toLowerCase()) ||
-                p.category.toLowerCase().includes(query.toLowerCase())
-            );
-
-            return `
-                <section class="py-8 bg-emerald-600 text-white">
-                    <div class="container mx-auto px-4">
-                        <h1 class="text-3xl font-bold mb-2">Search Results</h1>
-                        <p class="text-emerald-100">${results.length} results for "${query}"</p>
-                    </div>
-                </section>
-                <section class="py-12 bg-gray-50 min-h-screen">
-                    <div class="container mx-auto px-4">
-                        ${results.length > 0 ? `
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                ${results.map(p => renderProductCard(p)).join('')}
-                            </div>
-                        ` : `
-                            <div class="text-center py-20">
-                                <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
-                                <h2 class="text-2xl font-bold text-gray-900 mb-2">No results found</h2>
-                                <button onclick="router('home')" class="mt-4 bg-emerald-600 text-white px-8 py-3 rounded-full font-bold">Back to Home</button>
-                            </div>
-                        `}
-                    </div>
-                </section>
-            `;
-        }
-
-        // ============================================
-        // CART FUNCTIONS
-        // ============================================
-
-        function addToCart(productId) {
-            const product = storeData.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const existing = cart.find(item => item.id === productId);
-            if (existing) {
-                existing.quantity += 1;
+            if(exists) {
+                exists.qty++;
             } else {
-                cart.push({ ...product, quantity: 1 });
+                cart.push({ ...p, qty: 1 });
             }
-
-            localStorage.setItem('cart', JSON.stringify(cart));
-            updateCartUI();
-            showToast(`${product.name} added to cart!`);
+            
+            saveCart();
+            showToast(`Added ${p.name}`);
         }
 
-        function removeFromCart(productId) {
-            cart = cart.filter(item => item.id !== productId);
-            localStorage.setItem('cart', JSON.stringify(cart));
+        function saveCart() {
+            localStorage.setItem('lwandeti_cart', JSON.stringify(cart));
             updateCartUI();
-        }
-
-        function updateQuantity(productId, change) {
-            const item = cart.find(item => item.id === productId);
-            if (item) {
-                item.quantity += change;
-                if (item.quantity <= 0) {
-                    removeFromCart(productId);
-                    return;
-                }
-                localStorage.setItem('cart', JSON.stringify(cart));
-                updateCartUI();
-            }
         }
 
         function updateCartUI() {
+            const itemsCont = document.getElementById('cartItems');
             const badge = document.getElementById('cartBadge');
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalEl = document.getElementById('cartTotal');
             
-            badge.textContent = totalItems;
-            badge.classList.toggle('hidden', totalItems === 0);
+            let total = 0;
+            let count = 0;
 
-            const cartItems = document.getElementById('cartItems');
-            const cartTotal = document.getElementById('cartTotal');
-            
-            if (cart.length === 0) {
-                cartItems.innerHTML = `
-                    <div class="text-center text-gray-400 mt-12">
-                        <i class="fas fa-shopping-basket text-6xl mb-4 opacity-30"></i>
-                        <p>Your cart is empty</p>
-                    </div>
-                `;
-                cartTotal.textContent = 'KSh 0';
-                return;
-            }
-
-            cartItems.innerHTML = cart.map(item => `
-                <div class="flex gap-4 bg-gray-50 p-4 rounded-xl mb-4">
-                    <img src="${item.image}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src='https://via.placeholder.com/400'">
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-gray-900 text-sm line-clamp-2">${item.name}</h4>
-                        <p class="text-emerald-600 font-bold">KSh ${item.price}</p>
-                        <div class="flex items-center gap-2 mt-2">
-                            <button onclick="updateQuantity('${item.id}', -1)" class="w-8 h-8 rounded bg-white border border-gray-200 hover:bg-gray-100">-</button>
-                            <span class="w-8 text-center font-semibold">${item.quantity}</span>
-                            <button onclick="updateQuantity('${item.id}', 1)" class="w-8 h-8 rounded bg-white border border-gray-200 hover:bg-gray-100">+</button>
-                            <button onclick="removeFromCart('${item.id}')" class="ml-auto text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+            itemsCont.innerHTML = cart.map(item => {
+                total += (item.price * item.qty);
+                count += item.qty;
+                return `
+                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-lg">
+                        <img src="${item.image}" class="w-12 h-12 rounded object-cover">
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold uppercase">${item.name}</h4>
+                            <p class="text-emerald-600 font-bold">KSh ${item.price}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 border rounded">-</button>
+                            <span class="text-sm font-bold">${item.qty}</span>
+                            <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 border rounded">+</button>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            cartTotal.textContent = `KSh ${total.toLocaleString()}`;
+            badge.innerText = count;
+            badge.classList.toggle('hidden', count === 0);
+            totalEl.innerText = `KSh ${total.toLocaleString()}`;
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(x => x.id === id);
+            item.qty += delta;
+            if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
+            saveCart();
+        }
+
+        function handleSearch(val) {
+            const query = val.toLowerCase();
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
+            renderResults(filtered);
+        }
+
+        function renderResults(list) {
+            // Re-uses the router logic but for filtered list
+            router('home'); // Simple trigger
+        }
+
+        function filterByCategory(id) {
+            router('home', id);
         }
 
         function toggleCart() {
             const sidebar = document.getElementById('cartSidebar');
             const overlay = document.getElementById('cartOverlay');
-            
-            if (sidebar.classList.contains('open')) {
-                sidebar.classList.remove('open');
-                overlay.classList.add('hidden');
-                setTimeout(() => overlay.classList.add('opacity-0'), 300);
-            } else {
-                sidebar.classList.add('open');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-            }
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.style.opacity = '1';
+            t.style.transform = 'translate(-50%, -20px)';
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translate(-50%, 0)';
+            }, 2000);
         }
 
         function checkout() {
-            if (cart.length === 0) {
-                showToast('Cart is empty!');
-                return;
-            }
-
-            const whatsappNumber = "254117352700";
+            if(cart.length === 0) return alert("Your cart is empty!");
             
-            let message = `*NEW ORDER - Lwandeti Junction Minimart*%0A%0A`;
-            message += `*Order Details:*%0A`;
-            message += `========================%0A%0A`;
-            
-            let total = 0;
-
-            cart.forEach((item, index) => {
-                const itemTotal = item.price * item.quantity;
-                message += `*${index + 1}. ${item.name}*%0A`;
-                message += `   Quantity: ${item.quantity}%0A`;
-                message += `   Unit Price: KSh ${item.price}%0A`;
-                message += `   Subtotal: *KSh ${itemTotal}*%0A%0A`;
-                total += itemTotal;
+            let text = `*New Order: Lwandeti Junction*%0A--------------------------%0A`;
+            cart.forEach(item => {
+                text += `• ${item.name} (x${item.qty}) - KSh ${item.price * item.qty}%0A`;
             });
-
-            message += `========================%0A`;
-            message += `*TOTAL AMOUNT: KSh ${total.toLocaleString()}*%0A%0A`;
-            message += `Please confirm availability.%0A`;
-            message += `Thank you!`;
-
-            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-            window.open(whatsappUrl, '_blank');
-            showToast('Opening WhatsApp with your order...');
+            text += `--------------------------%0A*Total: ${document.getElementById('cartTotal').innerText}*`;
+            
+            window.open(`https://wa.me/254117352700?text=${text}`);
         }
 
-        // ============================================
-        // UTILITY FUNCTIONS
-        // ============================================
-
-        function handleSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (query) router('search', { query });
-        }
-
-        function handleMobileSearch() {
-            const query = document.getElementById('mobileSearchInput').value.trim();
-            if (query) router('search', { query });
-        }
-
-        function toggleMobileMenu() {
-            document.getElementById('mobileMenu').classList.toggle('hidden');
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
+        // --- START ---
+        initApp();
     </script>
 </body>
 </html>
