@@ -32,12 +32,7 @@
             background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(6, 78, 59, 0.7) 50%, rgba(217, 119, 6, 0.6) 100%); 
         }
         .text-shadow { text-shadow: 2px 2px 8px rgba(0,0,0,0.5); }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
+        
         .sync-indicator {
             position: fixed; top: 80px; right: 20px; background: #10b981; color: white;
             padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 100;
@@ -51,26 +46,13 @@
             border-top: 4px solid #059669; border-radius: 50%; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .offline-banner {
-            position: fixed; top: 0; left: 0; right: 0; background: #f59e0b;
-            color: white; text-align: center; padding: 8px; z-index: 1000;
-            display: none; font-weight: 600;
-        }
-        .offline-banner.show { display: block; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <div id="offlineBanner" class="offline-banner">
-        <i class="fas fa-wifi-slash mr-2"></i> You are offline. Using cached data.
-    </div>
-
     <div id="syncIndicator" class="sync-indicator">
         <i class="fas fa-sync-alt fa-spin"></i><span>Syncing Shop...</span>
     </div>
-
-    <a href="admin.html" style="position: fixed; bottom: 0; right: 0; width: 20px; height: 20px; z-index: 999; opacity: 0;">.</a>
 
     <div class="bg-emerald-900 text-white text-sm py-2">
         <div class="container mx-auto px-4 flex justify-between items-center">
@@ -109,7 +91,7 @@
         
         <nav class="bg-emerald-600 text-white overflow-x-auto whitespace-nowrap">
             <div class="container mx-auto px-4 flex items-center" id="desktopNav">
-            </div>
+                </div>
         </nav>
     </header>
 
@@ -147,12 +129,11 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                 <div class="col-span-1 md:col-span-1">
                     <h3 class="text-xl font-bold text-emerald-400 mb-4 uppercase">Lwandeti Junction</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">Your trusted neighborhood supermarket providing quality products at affordable prices right at the junction.</p>
+                    <p class="text-gray-400 text-sm leading-relaxed">Your trusted neighborhood supermarket providing quality products at affordable prices.</p>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-white">Quick Links</h4>
-                    <ul class="text-gray-400 text-sm space-y-2" id="footerCats">
-                    </ul>
+                    <ul class="text-gray-400 text-sm space-y-2" id="footerCats"></ul>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-white">Service Hours</h4>
@@ -161,12 +142,9 @@
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-white">Contact Info</h4>
-                    <p class="text-gray-400 text-sm">Lwandeti Junction, Webuye-Eldoret Hwy</p>
+                    <p class="text-gray-400 text-sm">Lwandeti Junction, Kenya</p>
                     <p class="text-emerald-400 font-bold mt-2">0117 352700</p>
                 </div>
-            </div>
-            <div class="border-t border-gray-800 pt-8 text-center text-xs text-gray-500">
-                &copy; 2026 Lwandeti Junction Minimart. All Rights Reserved.
             </div>
         </div>
     </footer>
@@ -189,21 +167,27 @@
         let storeData = { categories: [], products: [] };
         let cart = JSON.parse(localStorage.getItem('lwandeti_cart')) || [];
         let currentRoute = 'home';
+        let currentParam = null;
 
         // --- INITIALIZATION ---
         function init() {
+            // Fetch Categories
             db.collection('categories').onSnapshot(snap => {
                 storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderNavigation();
-                if(currentRoute === 'home') router('home');
+                // Refresh current view to update names/icons if they changed
+                router(currentRoute, currentParam);
             });
 
-            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
+            // Fetch Products
+            db.collection('products').onSnapshot(snap => {
                 storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                
                 const sync = document.getElementById('syncIndicator');
                 sync.classList.add('show');
                 setTimeout(() => sync.classList.remove('show'), 2000);
-                router(currentRoute);
+                
+                router(currentRoute, currentParam);
             });
 
             updateCartUI();
@@ -221,17 +205,18 @@
 
             nav.innerHTML = `
                 <button onclick="router('home')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-home"></i> Home</button>
-                <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All Products</button>
+                <button onclick="router('all')" class="px-6 py-3 hover:bg-emerald-700 transition"><i class="fas fa-th-large"></i> All</button>
             ` + catsHtml;
 
-            foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
+            foot.innerHTML = `<li><a href="#" onclick="router('all')">All Products</a></li>` + 
+                storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.id}')">${c.name}</a></li>`).join('');
         }
 
         function router(route, param = null) {
             currentRoute = route;
+            currentParam = param;
             const app = document.getElementById('app');
-            window.scrollTo(0,0);
-
+            
             if(route === 'home') {
                 app.innerHTML = renderHome();
             } else if (route === 'all') {
@@ -243,60 +228,24 @@
             }
         }
 
-        // --- RENDERERS ---
+        // --- VIEW RENDERERS ---
         function renderHome() {
-            const featured = storeData.products.filter(p => p.popular).slice(0, 8);
-            
+            const featured = storeData.products.filter(p => p.popular).slice(0, 10);
             return `
-                <section class="hero-bg min-h-[85vh] flex items-center">
+                <section class="hero-bg min-h-[70vh] flex items-center">
                     <div class="hero-overlay absolute inset-0"></div>
                     <div class="container mx-auto px-4 relative z-10 text-center text-white">
-                        <div class="animate-fade">
-                            <span class="bg-yellow-500 text-emerald-900 px-4 py-1 rounded-full font-bold text-xs uppercase mb-6 inline-block">Always Fresh, Always Low Prices</span>
-                            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 text-shadow">LWANDETI JUNCTION<br><span class="text-yellow-400">MINIMART</span></h1>
-                            <p class="text-xl mb-10 max-w-2xl mx-auto text-gray-100">Your number one stop for quality groceries and household essentials. Shop online and pick up at the junction!</p>
-                            <div class="flex flex-wrap justify-center gap-4">
-                                <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full font-bold shadow-xl transition transform hover:scale-105">View All Products</button>
-                                <a href="https://wa.me/254117352700" class="bg-white/20 backdrop-blur px-8 py-4 rounded-full font-bold border border-white/30 hover:bg-white/30 transition">Contact Us</a>
-                            </div>
-                        </div>
+                        <h1 class="text-5xl md:text-7xl font-extrabold mb-6 text-shadow">LWANDETI JUNCTION</h1>
+                        <p class="text-xl mb-10 max-w-2xl mx-auto">Freshness you can taste, prices you can love.</p>
+                        <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 px-8 py-4 rounded-full font-bold shadow-xl transition">Shop Now</button>
                     </div>
                 </section>
-
-                <section class="py-16 bg-white">
-                    <div class="container mx-auto px-4 text-center">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-12 flex items-center justify-center gap-3">
-                            <i class="fas fa-fire text-orange-500"></i> Popular Right Now
-                        </h2>
-                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            ${featured.map(p => renderProductCard(p)).join('')}
-                        </div>
-                        <div class="mt-12">
-                            <button onclick="router('all')" class="bg-gray-100 hover:bg-gray-200 text-emerald-800 font-bold px-8 py-3 rounded-full transition">See Everything We Have <i class="fas fa-arrow-right ml-2"></i></button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="py-16 bg-emerald-50">
-                    <div class="container mx-auto px-4">
-                        <div class="grid md:grid-cols-2 gap-12 items-center">
-                            <div class="relative">
-                                <img src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=800" class="rounded-3xl shadow-2xl rotate-2">
-                                <div class="absolute -bottom-6 -right-6 bg-yellow-400 p-8 rounded-2xl shadow-xl hidden md:block">
-                                    <p class="text-emerald-900 font-black text-3xl">EST. 2024</p>
-                                    <p class="text-emerald-800 font-bold">Serving Lwandeti</p>
-                                </div>
-                            </div>
-                            <div class="space-y-6">
-                                <h2 class="text-4xl font-bold text-emerald-900">Why shop at Lwandeti Junction?</h2>
-                                <p class="text-gray-600 leading-relaxed text-lg">We prioritize quality and hygiene. Every product on our shelves is carefully selected to ensure your family gets the best value and health.</p>
-                                <ul class="space-y-4">
-                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Fresh Daily Stock</li>
-                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Wholesale & Retail Prices</li>
-                                    <li class="flex items-center gap-3 text-emerald-800 font-bold"><i class="fas fa-check-circle text-emerald-500"></i> Easy WhatsApp Ordering</li>
-                                </ul>
-                            </div>
-                        </div>
+                <section class="py-16 container mx-auto px-4">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
+                        <i class="fas fa-star text-yellow-500"></i> Popular Products
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        ${featured.map(p => renderProductCard(p)).join('')}
                     </div>
                 </section>
             `;
@@ -305,15 +254,7 @@
         function renderAllProductsView() {
             return `
                 <div class="container mx-auto px-4 py-12">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b pb-6">
-                        <h2 class="text-3xl font-bold text-gray-800 uppercase tracking-tight">
-                            <i class="fas fa-store text-emerald-600 mr-2"></i>
-                            All Products
-                        </h2>
-                        <span class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full font-bold text-sm">
-                            ${storeData.products.length} Items found
-                        </span>
-                    </div>
+                    <h2 class="text-3xl font-bold mb-8 uppercase tracking-tight">All Products</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${storeData.products.map(p => renderProductCard(p)).join('')}
                     </div>
@@ -322,19 +263,20 @@
         }
 
         function renderCategoryView(catId) {
+            // CRITICAL: Ensure the product.category matches the category.id from Firestore
             const filtered = storeData.products.filter(p => p.category === catId);
             const category = storeData.categories.find(c => c.id === catId);
             
             return `
                 <div class="container mx-auto px-4 py-12">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase tracking-tight">
-                        <i class="fas ${category?.icon || 'fa-shopping-basket'} text-emerald-600 mr-2"></i>
-                        ${category?.name || 'Products'}
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase flex items-center gap-3">
+                        <i class="fas ${category?.icon || 'fa-shopping-basket'} text-emerald-600"></i>
+                        ${category?.name || 'Category'}
                     </h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${filtered.map(p => renderProductCard(p)).join('')}
                     </div>
-                    ${filtered.length === 0 ? '<div class="text-center py-20 text-gray-400">No items in this category yet.</div>' : ''}
+                    ${filtered.length === 0 ? '<div class="text-center py-20 text-gray-400">Coming soon to this category!</div>' : ''}
                 </div>
             `;
         }
@@ -342,19 +284,15 @@
         function renderProductCard(p) {
             return `
                 <div class="product-card bg-white rounded-2xl overflow-hidden flex flex-col group">
-                    <div class="h-48 bg-gray-100 relative overflow-hidden">
-                        <img src="${p.image || 'https://via.placeholder.com/300?text=Lwandeti'}" class="w-full h-full object-cover transition-transform group-hover:scale-110">
-                        ${p.popular ? '<span class="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">POPULAR</span>' : ''}
+                    <div class="h-48 bg-gray-100 relative">
+                        <img src="${p.image || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                     </div>
                     <div class="p-4 flex-1 flex flex-col">
-                        <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-1">${p.name}</h3>
+                        <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-2">${p.name}</h3>
                         <div class="mt-auto">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-emerald-700 font-extrabold text-xl">KSh ${p.price}</span>
-                                <span class="text-gray-400 text-[10px]">/${p.unit || 'pc'}</span>
-                            </div>
-                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-3 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition flex items-center justify-center gap-2 text-xs">
-                                <i class="fas fa-cart-plus"></i> ADD TO CART
+                            <p class="text-emerald-700 font-extrabold text-xl">KSh ${p.price}</p>
+                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">
+                                ADD TO CART
                             </button>
                         </div>
                     </div>
@@ -362,17 +300,11 @@
             `;
         }
 
-        // --- CART LOGIC ---
+        // --- CART & SEARCH UTILS ---
         function addToCart(id) {
             const p = storeData.products.find(item => item.id === id);
             const exists = cart.find(item => item.id === id);
-            
-            if(exists) {
-                exists.qty++;
-            } else {
-                cart.push({ ...p, qty: 1 });
-            }
-            
+            exists ? exists.qty++ : cart.push({ ...p, qty: 1 });
             saveCart();
             showToast(`Added ${p.name}`);
         }
@@ -386,27 +318,24 @@
             const itemsCont = document.getElementById('cartItems');
             const badge = document.getElementById('cartBadge');
             const totalEl = document.getElementById('cartTotal');
-            
-            let total = 0;
-            let count = 0;
+            let total = 0, count = 0;
 
             itemsCont.innerHTML = cart.map(item => {
                 total += (item.price * item.qty);
                 count += item.qty;
                 return `
-                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
-                        <img src="${item.image}" class="w-14 h-14 rounded-lg object-cover">
-                        <div class="flex-1">
-                            <h4 class="text-xs font-bold uppercase truncate w-32">${item.name}</h4>
-                            <p class="text-emerald-600 font-bold">KSh ${item.price}</p>
+                    <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
+                        <img src="${item.image}" class="w-12 h-12 rounded object-cover">
+                        <div class="flex-1 text-xs">
+                            <h4 class="font-bold uppercase truncate w-32">${item.name}</h4>
+                            <p class="text-emerald-600">KSh ${item.price}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 flex items-center justify-center border rounded-full bg-white">-</button>
-                            <span class="text-sm font-bold w-4 text-center">${item.qty}</span>
-                            <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 flex items-center justify-center border rounded-full bg-white">+</button>
+                            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 border rounded-full">-</button>
+                            <span class="font-bold">${item.qty}</span>
+                            <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 border rounded-full">+</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
 
             badge.innerText = count;
@@ -416,9 +345,11 @@
 
         function changeQty(id, delta) {
             const item = cart.find(x => x.id === id);
-            item.qty += delta;
-            if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
-            saveCart();
+            if(item) {
+                item.qty += delta;
+                if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
+                saveCart();
+            }
         }
 
         function toggleCart() {
@@ -430,39 +361,32 @@
             const t = document.getElementById('toast');
             document.getElementById('toastMsg').innerText = msg;
             t.style.opacity = '1';
-            t.style.transform = 'translate(-50%, -20px)';
-            setTimeout(() => {
-                t.style.opacity = '0';
-                t.style.transform = 'translate(-50%, 0)';
-            }, 2500);
-        }
-
-        function checkout() {
-            if(cart.length === 0) return alert("Your cart is empty!");
-            
-            let text = `*ORDER FROM LWANDETI JUNCTION WEBSITE*%0A--------------------------%0A`;
-            cart.forEach((item, i) => {
-                text += `${i+1}. *${item.name}* (x${item.qty}) - KSh ${item.price * item.qty}%0A`;
-            });
-            text += `--------------------------%0A*TOTAL: ${document.getElementById('cartTotal').innerText}*%0A%0A_Please confirm my order for collection._`;
-            
-            window.open(`https://wa.me/254117352700?text=${text}`);
+            setTimeout(() => t.style.opacity = '0', 2000);
         }
 
         function handleSearch() {
             const q = document.getElementById('searchInput').value.toLowerCase();
+            router('search', q);
+        }
+
+        function renderSearchView(q) {
             const results = storeData.products.filter(p => p.name.toLowerCase().includes(q));
-            
-            const app = document.getElementById('app');
-            app.innerHTML = `
+            return `
                 <div class="container mx-auto px-4 py-12">
-                    <h2 class="text-2xl font-bold mb-8 text-gray-800">Search Results for: "${q}"</h2>
+                    <h2 class="text-2xl font-bold mb-8">Results for "${q}"</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${results.map(p => renderProductCard(p)).join('')}
                     </div>
-                    ${results.length === 0 ? '<div class="text-center py-20">No matching products found.</div>' : ''}
                 </div>
             `;
+        }
+
+        function checkout() {
+            if(cart.length === 0) return alert("Cart is empty!");
+            let text = `*NEW ORDER - LWANDETI JUNCTION*%0A`;
+            cart.forEach(item => text += `- ${item.name} (x${item.qty})%0A`);
+            text += `*TOTAL: ${document.getElementById('cartTotal').innerText}*`;
+            window.open(`https://wa.me/254117352700?text=${text}`);
         }
 
         init();
