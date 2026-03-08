@@ -216,7 +216,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const storage = firebase.storage(); // Init Storage
+        const storage = firebase.storage(); 
 
         let products = [], categories = [], tempExtracted = [];
 
@@ -236,13 +236,12 @@
             syncData();
         }
 
-        // --- NEW IMAGE UPLOAD LOGIC ---
+        // --- IMAGE UPLOAD ---
         async function uploadImage(fileInput, targetUrlInputId, statusId) {
             const file = fileInput.files[0];
             if(!file) return;
 
             const status = document.getElementById(statusId);
-            const originalText = status.innerText;
             status.innerText = "Uploading...";
             status.classList.add('animate-pulse');
 
@@ -258,7 +257,7 @@
             } catch (error) {
                 console.error(error);
                 status.innerText = "Upload Failed";
-                alert("Image upload failed. Check your Firebase Storage rules.");
+                alert("Upload failed. Ensure Storage is enabled.");
             }
         }
 
@@ -269,7 +268,7 @@
                 renderCategories();
                 updateSelects();
             });
-            db.collection('products').orderBy('name').onSnapshot(snap => {
+            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
                 products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts();
             });
@@ -306,8 +305,10 @@
         function updateSelects() {
             ['prodCategory', 'editCategory'].forEach(id => {
                 const el = document.getElementById(id);
+                const currentVal = el.value;
                 el.innerHTML = '<option value="">Select Category</option>' + 
                                categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                el.value = currentVal;
             });
         }
 
@@ -321,35 +322,41 @@
             } else { subEl.innerHTML = '<option value="">N/A</option>'; }
         }
 
-        // --- PRODUCT CRUD ---
+        // --- PRODUCT CRUD (ENFORCING SYNC) ---
         async function saveProduct() {
+            const cat = document.getElementById('prodCategory').value;
+            const sub = document.getElementById('prodSubCategory').value;
+            
             const data = {
                 name: document.getElementById('prodName').value,
                 price: parseFloat(document.getElementById('prodPrice').value),
                 unit: document.getElementById('prodUnit').value,
-                category: document.getElementById('prodCategory').value,
-                subCategory: document.getElementById('prodSubCategory').value,
+                category: cat, 
+                subCategory: sub,
                 image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('products').add(data);
             document.getElementById('productForm').reset();
             document.getElementById('uploadStatus').innerText = "Upload Photo";
-            showToast('Product Added');
+            showToast('Added to ' + cat);
         }
 
         async function updateProduct() {
             const id = document.getElementById('editId').value;
+            const cat = document.getElementById('editCategory').value;
+            const sub = document.getElementById('editSubCategory').value;
+
             await db.collection('products').doc(id).update({
                 name: document.getElementById('editName').value,
                 price: parseFloat(document.getElementById('editPrice').value),
                 unit: document.getElementById('editUnit').value,
-                category: document.getElementById('editCategory').value,
-                subCategory: document.getElementById('editSubCategory').value,
+                category: cat,
+                subCategory: sub,
                 image: document.getElementById('editImageUrl').value
             });
             closeEditModal();
-            showToast('Updated Successfully');
+            showToast('Updated Category Sync');
         }
 
         async function deleteProduct(id) {
@@ -446,7 +453,7 @@
         function updateTempRowCat(i, newCat) {
             tempExtracted[i].category = newCat;
             const cat = categories.find(c => c.name === newCat);
-            tempExtracted[i].subCategory = (cat && cat.subs) ? cat.subs[0] : "General";
+            tempExtracted[i].subCategory = (cat && cat.subs && cat.subs.length > 0) ? cat.subs[0] : "";
             document.getElementById(`aiSubCell-${i}`).innerHTML = renderTempSubSelect(i, newCat, tempExtracted[i].subCategory);
         }
 
@@ -454,12 +461,17 @@
             const batch = db.batch();
             tempExtracted.forEach(item => {
                 const ref = db.collection('products').doc();
-                batch.set(ref, { ...item, image: 'https://via.placeholder.com/150', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                batch.set(ref, { 
+                    ...item, 
+                    price: parseFloat(item.price),
+                    image: 'https://via.placeholder.com/150', 
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+                });
             });
             await batch.commit();
             tempExtracted = [];
             document.getElementById('aiReviewSection').classList.add('hidden');
-            showToast('Mass Upload Success!');
+            showToast('Mass Sync Complete');
             switchTab('inventory');
         }
 
