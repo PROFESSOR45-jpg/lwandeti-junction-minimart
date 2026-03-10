@@ -216,18 +216,63 @@
         function renderHome() {
             const featured = storeData.products.slice(0, 10);
             return `
-                <section class="hero-bg min-h-[70vh] flex items-center">
+                <section class="hero-bg min-h-[75vh] flex items-center">
                     <div class="hero-overlay absolute inset-0"></div>
                     <div class="container mx-auto px-4 relative z-10 text-center text-white">
-                        <h1 class="text-5xl md:text-7xl font-extrabold mb-6 text-shadow">LWANDETI JUNCTION</h1>
-                        <p class="text-xl mb-10 max-w-2xl mx-auto">Freshness you can taste, prices you can love.</p>
-                        <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 px-8 py-4 rounded-full font-bold shadow-xl transition">Shop Now</button>
+                        <h1 class="text-5xl md:text-8xl font-black mb-6 text-shadow tracking-tighter">LWANDETI JUNCTION</h1>
+                        <p class="text-xl md:text-2xl mb-10 max-w-3xl mx-auto font-light opacity-90">Experience premium shopping at the heart of Lwandeti. We bring you fresh farm produce, quality groceries, and essential household items at unbeatable prices.</p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button onclick="router('all')" class="bg-emerald-600 hover:bg-emerald-700 px-10 py-4 rounded-full font-bold shadow-2xl transition-all hover:scale-105">Browse Inventory</button>
+                            <a href="https://wa.me/254117352700" class="bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 px-10 py-4 rounded-full font-bold transition-all">Contact Us</a>
+                        </div>
                     </div>
                 </section>
+
+                <section class="py-20 bg-white">
+                    <div class="container mx-auto px-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+                            <div class="p-8 rounded-3xl bg-emerald-50 border border-emerald-100 group hover:bg-emerald-600 transition-all duration-500">
+                                <i class="fas fa-leaf text-4xl text-emerald-600 group-hover:text-white mb-6"></i>
+                                <h3 class="text-xl font-bold mb-4 group-hover:text-white">Always Fresh</h3>
+                                <p class="text-gray-600 group-hover:text-emerald-50">Our produce is sourced daily from local farmers to ensure you get the highest quality nutrients for your family.</p>
+                            </div>
+                            <div class="p-8 rounded-3xl bg-orange-50 border border-orange-100 group hover:bg-orange-500 transition-all duration-500">
+                                <i class="fas fa-hand-holding-usd text-4xl text-orange-600 group-hover:text-white mb-6"></i>
+                                <h3 class="text-xl font-bold mb-4 group-hover:text-white">Best Prices</h3>
+                                <p class="text-gray-600 group-hover:text-orange-50">We believe in affordability. Shop with us and enjoy significant savings on all your monthly household essentials.</p>
+                            </div>
+                            <div class="p-8 rounded-3xl bg-blue-50 border border-blue-100 group hover:bg-blue-600 transition-all duration-500">
+                                <i class="fas fa-truck text-4xl text-blue-600 group-hover:text-white mb-6"></i>
+                                <h3 class="text-xl font-bold mb-4 group-hover:text-white">Quick Service</h3>
+                                <p class="text-gray-600 group-hover:text-blue-50">Located conveniently at Lwandeti Junction, our friendly staff is always ready to help you find exactly what you need.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="py-16 container mx-auto px-4 animate-fade">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><i class="fas fa-star text-yellow-500"></i> New Arrivals</h2>
+                    <div class="flex justify-between items-end mb-10">
+                        <div>
+                            <h2 class="text-4xl font-black text-gray-900 flex items-center gap-3">New Arrivals</h2>
+                            <p class="text-emerald-600 font-medium">Recently added to our shelves</p>
+                        </div>
+                        <button onclick="router('all')" class="text-emerald-700 font-bold hover:underline">View All <i class="fas fa-arrow-right ml-1"></i></button>
+                    </div>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${featured.map(p => renderProductCard(p)).join('')}
+                    </div>
+                </section>
+
+                <section class="py-24 bg-gray-50 border-t">
+                    <div class="container mx-auto px-4 max-w-4xl text-center">
+                        <span class="text-emerald-600 font-bold tracking-widest uppercase text-sm">Our Heritage</span>
+                        <h2 class="text-4xl font-bold mt-4 mb-8">Serving Lwandeti Since Day One</h2>
+                        <p class="text-gray-600 leading-loose text-lg mb-8">Lwandeti Junction Minimart isn't just a store; it's a community hub. We started with a simple vision: to provide a clean, organized, and affordable shopping experience for everyone in the junction. Today, we continue to grow, adding more variety and better services like our digital catalog and WhatsApp ordering to serve you better.</p>
+                        <div class="flex justify-center items-center gap-8 opacity-50 grayscale">
+                           <i class="fas fa-award text-5xl"></i>
+                           <i class="fas fa-handshake text-5xl"></i>
+                           <i class="fas fa-users text-5xl"></i>
+                        </div>
                     </div>
                 </section>
             `;
@@ -236,7 +281,7 @@
         function renderAllProductsView() {
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
-                    <h2 class="text-3xl font-bold mb-8 uppercase tracking-tight">All Products</h2>
+                    <h2 class="text-4xl font-black mb-8 uppercase tracking-tighter">Inventory Catalogue</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         ${storeData.products.map(p => renderProductCard(p)).join('')}
                     </div>
@@ -245,18 +290,17 @@
         }
 
         function renderCategoryView(catName) {
-            // Updated to match by name saved in Admin
             const filtered = storeData.products.filter(p => p.category === catName);
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8 uppercase flex items-center gap-3">
+                    <h2 class="text-4xl font-black text-gray-900 mb-8 uppercase tracking-tighter flex items-center gap-3">
                         <i class="fas fa-shopping-basket text-emerald-600"></i> ${catName}
                     </h2>
                     ${filtered.length > 0 ? `
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                             ${filtered.map(p => renderProductCard(p)).join('')}
                         </div>
-                    ` : `<div class="text-center py-20 text-gray-400"><p>No products found here yet.</p></div>`}
+                    ` : `<div class="text-center py-20 text-gray-400"><p>No products found in this category yet.</p></div>`}
                 </div>
             `;
         }
@@ -264,14 +308,16 @@
         function renderProductCard(p) {
             return `
                 <div class="product-card bg-white rounded-2xl overflow-hidden flex flex-col group">
-                    <div class="h-48 bg-gray-100 relative">
-                        <img src="${p.image || 'https://via.placeholder.com/300'}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                    <div class="h-52 bg-gray-100 relative overflow-hidden">
+                        <img src="${p.image || 'https://via.placeholder.com/300'}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute top-3 left-3 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">${p.category || 'General'}</div>
                     </div>
-                    <div class="p-4 flex-1 flex flex-col">
+                    <div class="p-5 flex-1 flex flex-col">
                         <h3 class="font-bold text-gray-800 text-sm mb-2 uppercase line-clamp-2">${p.name}</h3>
+                        <p class="text-gray-400 text-[10px] mb-3 font-medium tracking-widest uppercase">${p.unit || 'Per Unit'}</p>
                         <div class="mt-auto">
-                            <p class="text-emerald-700 font-extrabold text-xl">KSh ${p.price}</p>
-                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition text-xs">ADD TO CART</button>
+                            <p class="text-emerald-700 font-black text-2xl">KSh ${p.price}</p>
+                            <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-emerald-50 text-emerald-700 py-3 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition-all text-xs border border-emerald-100 uppercase tracking-wider">Add To Cart</button>
                         </div>
                     </div>
                 </div>
@@ -287,7 +333,7 @@
             const results = storeData.products.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
             return `
                 <div class="container mx-auto px-4 py-12 animate-fade">
-                    <h2 class="text-2xl font-bold mb-8">Results for "${q}"</h2>
+                    <h2 class="text-3xl font-bold mb-8 uppercase tracking-tight">Found ${results.length} items for "${q}"</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">${results.map(p => renderProductCard(p)).join('')}</div>
                 </div>
             `;
