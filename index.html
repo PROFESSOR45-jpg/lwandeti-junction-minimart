@@ -3,126 +3,548 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lwandeti Junction Minimart | Premium Retail</title>
+    <title>Lwandeti Junction Minimart | Premium Retail Experience</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1a1a1a; scroll-behavior: smooth; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .product-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #f0f0f0; background: white; }
-        .product-card:hover { transform: translateY(-12px); border-color: #10b981; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            color: #1a1a1a; 
+            scroll-behavior: smooth; 
+            background-color: #fafaf9;
+        }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        
+        .glass { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(6, 78, 59, 0.05);
+        }
+        
+        .product-card { 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+            border: 1px solid rgba(0,0,0,0.04); 
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+        .product-card:hover { 
+            transform: translateY(-8px) scale(1.02); 
+            box-shadow: 0 30px 60px -15px rgba(6, 78, 59, 0.15); 
+        }
         
         .hero-bg {
-            background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover; background-position: center; background-attachment: fixed; position: relative;
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(6, 95, 70, 0.9) 50%, rgba(4, 120, 87, 0.85) 100%);
+            position: relative;
+            overflow: hidden;
         }
-        .hero-overlay { 
-            background: linear-gradient(to right, rgba(6, 78, 59, 0.95), rgba(6, 78, 59, 0.7), transparent); 
+        
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('https://kimi-web-img.moonshot.cn/img/media.istockphoto.com/a7c831f75f04e91042b4de92af0c8c514a90184e.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            opacity: 0.3;
+            z-index: 0;
         }
-        .btn-premium { background: #059669; color: white; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
-        .btn-premium:hover { background: #047857; transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(5, 150, 105, 0.4); }
+        
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, transparent 70%);
+            animation: pulse 8s ease-in-out infinite;
+            z-index: 1;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .btn-premium { 
+            background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+            color: white; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 30px -5px rgba(5, 150, 105, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        .btn-premium:hover::before { left: 100%; }
+        .btn-premium:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 20px 40px -5px rgba(5, 150, 105, 0.5); 
+        }
+        
+        .gold-accent {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #064e3b, transparent);
+            opacity: 0.2;
+        }
+        
+        .contact-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+            border: 1px solid rgba(6, 78, 59, 0.08);
+            transition: all 0.3s ease;
+        }
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(6, 78, 59, 0.15);
+            border-color: rgba(6, 78, 59, 0.2);
+        }
         
         .sync-indicator {
-            position: fixed; top: 100px; right: 20px; background: #10b981; color: white;
-            padding: 10px 20px; border-radius: 30px; font-size: 11px; font-weight: 800; z-index: 100;
-            display: none; align-items: center; gap: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            text-transform: uppercase; letter-spacing: 1px;
+            position: fixed; 
+            top: 100px; 
+            right: 20px; 
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            padding: 12px 24px; 
+            border-radius: 50px; 
+            font-size: 11px; 
+            font-weight: 800; 
+            z-index: 100;
+            display: none; 
+            align-items: center; 
+            gap: 10px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        .sync-indicator.show { display: flex; animation: slideIn 0.5s ease forwards; }
-        @keyframes slideIn { from { transform: translateX(150%); } to { transform: translateX(0); } }
+        .sync-indicator.show { 
+            display: flex; 
+            animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; 
+        }
+        @keyframes slideIn { 
+            from { transform: translateX(150%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+        
+        .nav-link {
+            position: relative;
+            padding: 0.5rem 0;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #059669, #fbbf24);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
+        
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(251, 191, 36, 0.1);
+            animation: float 20s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        .category-pill {
+            background: white;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .category-pill::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(135deg, #059669, #fbbf24);
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .category-pill:hover::before { opacity: 1; }
+        .category-pill:hover { transform: translateY(-3px); }
+        
+        .price-tag {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #059669;
+            color: #064e3b;
+        }
+        
+        .badge-premium {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #064e3b;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+        }
+        
+        .social-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 1.2rem;
+        }
+        .social-icon:hover {
+            background: #fbbf24;
+            color: #064e3b;
+            transform: translateY(-5px) rotate(10deg);
+        }
+        
+        .footer-link {
+            position: relative;
+            display: inline-block;
+            transition: color 0.3s ease;
+        }
+        .footer-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -2px;
+            left: 0;
+            background: #fbbf24;
+            transition: width 0.3s ease;
+        }
+        .footer-link:hover { color: #fbbf24; }
+        .footer-link:hover::after { width: 100%; }
+        
+        .stats-card {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Storefront parallax section */
+        .storefront-section {
+            position: relative;
+            background-image: url('https://kimi-web-img.moonshot.cn/img/media.istockphoto.com/a7c831f75f04e91042b4de92af0c8c514a90184e.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .storefront-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.9) 0%, rgba(6, 95, 70, 0.8) 100%);
+        }
     </style>
 </head>
-<body class="bg-white">
+<body class="bg-stone-50">
 
     <div id="syncIndicator" class="sync-indicator">
         <i class="fas fa-sync-alt fa-spin"></i><span>Catalog Updated</span>
     </div>
 
-    <div class="bg-emerald-950 text-white text-[11px] py-2 font-bold tracking-widest uppercase border-b border-emerald-800">
+    <!-- Top Bar -->
+    <div class="bg-emerald-950 text-white text-[11px] py-3 font-bold tracking-widest uppercase border-b border-emerald-800/50">
         <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex gap-6">
-                <span class="flex items-center gap-2"><i class="fas fa-check-circle text-yellow-400"></i> Quality Guaranteed</span>
-                <span class="flex items-center gap-2"><i class="fas fa-shipping-fast text-yellow-400"></i> Local Delivery Available</span>
+            <div class="flex gap-8 items-center">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-check-circle text-amber-400"></i> 
+                    <span class="text-emerald-100">Quality Guaranteed</span>
+                </span>
+                <span class="flex items-center gap-2 hidden sm:flex">
+                    <i class="fas fa-shipping-fast text-amber-400"></i> 
+                    <span class="text-emerald-100">Local Delivery Available</span>
+                </span>
             </div>
-            <div class="hidden sm:block"><i class="fas fa-map-marker-alt text-yellow-400 mr-1"></i> Lwandeti Junction, Kenya</div>
+            <div class="flex items-center gap-6">
+                <a href="tel:0117352700" class="flex items-center gap-2 hover:text-amber-400 transition">
+                    <i class="fas fa-phone-alt text-amber-400"></i> 0117 352700
+                </a>
+                <span class="hidden md:inline text-emerald-700">|</span>
+                <span class="hidden md:flex items-center gap-2 text-emerald-200">
+                    <i class="fas fa-map-marker-alt text-amber-400"></i> Lwandeti Junction, Kenya
+                </span>
+            </div>
         </div>
     </div>
 
-    <header class="sticky top-0 z-50 glass border-b border-gray-100">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass">
         <div class="container mx-auto px-6 py-4 flex items-center justify-between">
             <a href="#" onclick="router('home')" class="flex items-center gap-4 group">
-                <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-xl transition-transform group-hover:rotate-12">
-                    <i class="fas fa-leaf text-2xl"></i>
+                <div class="w-14 h-14 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-500 group-hover:rotate-12 group-hover:shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    <i class="fas fa-leaf text-2xl relative z-10"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-extrabold text-emerald-950 tracking-tighter leading-none">LWANDETI <span class="text-emerald-600">JUNCTION</span></h1>
-                    <p class="text-[10px] text-gray-400 font-black tracking-[0.3em] uppercase mt-1">Premium Minimart</p>
+                    <h1 class="text-2xl font-black text-emerald-950 tracking-tight leading-none">
+                        LWANDETI <span class="text-emerald-600">JUNCTION</span>
+                    </h1>
+                    <p class="text-[10px] text-emerald-600/70 font-black tracking-[0.3em] uppercase mt-1">Premium Minimart</p>
                 </div>
             </a>
 
-            <div class="hidden lg:flex items-center gap-8 font-bold text-xs text-emerald-900 uppercase tracking-widest" id="desktopNav"></div>
+            <div class="hidden lg:flex items-center gap-10 font-bold text-xs text-emerald-900 uppercase tracking-widest" id="desktopNav">
+                <!-- Navigation injected here -->
+            </div>
 
             <div class="flex items-center gap-6">
-                <div class="hidden md:flex relative">
-                    <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" placeholder="Search catalog..." class="pl-10 pr-4 py-2 rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64 bg-gray-50/50">
-                    <i class="fas fa-search absolute left-4 top-3 text-gray-300"></i>
+                <div class="hidden md:flex relative group">
+                    <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" 
+                           placeholder="Search premium products..." 
+                           class="pl-12 pr-6 py-3 rounded-full border border-emerald-100 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none w-72 bg-white/80 shadow-sm transition-all group-hover:shadow-md">
+                    <i class="fas fa-search absolute left-5 top-3.5 text-emerald-400 group-hover:text-emerald-600 transition"></i>
                 </div>
-                <button onclick="toggleCart()" class="relative p-2 text-emerald-950 hover:scale-110 transition">
-                    <i class="fas fa-shopping-bag text-2xl"></i>
-                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-yellow-500 text-emerald-950 text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black hidden border-2 border-white">0</span>
+                <button onclick="toggleCart()" class="relative p-3 text-emerald-950 hover:scale-110 transition-all duration-300 bg-emerald-50 rounded-full hover:bg-emerald-100">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-gradient-to-br from-amber-400 to-amber-500 text-emerald-950 text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black hidden border-2 border-white shadow-lg">0</span>
                 </button>
             </div>
         </div>
     </header>
 
     <main id="app" class="min-h-screen">
-        </main>
+        <!-- Content injected here -->
+    </main>
 
-    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-emerald-950/40 backdrop-blur-sm z-50 hidden transition-opacity"></div>
-    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white z-50 translate-x-full transition-transform duration-500 shadow-2xl flex flex-col">
-        <div class="p-8 border-b flex justify-between items-center bg-gray-50">
-            <div>
-                <h2 class="text-2xl font-black text-emerald-950 uppercase tracking-tighter">Your Bag</h2>
-                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Secure checkout via WhatsApp</p>
-            </div>
-            <button onclick="toggleCart()" class="w-10 h-10 rounded-full border hover:bg-white transition"><i class="fas fa-times"></i></button>
+    <!-- Storefront Image Section -->
+    <section class="storefront-section relative">
+        <div class="storefront-overlay"></div>
+        <div class="relative z-10 container mx-auto px-6 text-center text-white">
+            <span class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-6 py-3 rounded-full mb-6">
+                <i class="fas fa-store text-amber-400"></i>
+                <span class="text-white/90 text-sm font-black uppercase tracking-widest">Visit Our Store</span>
+            </span>
+            <h2 class="text-5xl md:text-7xl font-serif font-bold mb-6 tracking-tight">Your Local<br><span class="gold-accent">Shopping Destination</span></h2>
+            <p class="text-xl text-emerald-50 max-w-2xl mx-auto mb-8">Experience the warmth of local service combined with premium quality products at Lwandeti Junction.</p>
+            <a href="https://maps.google.com/?q=Lwandeti+Junction+Kenya" target="_blank" class="inline-flex items-center gap-3 btn-premium px-8 py-4 rounded-2xl font-black uppercase tracking-widest">
+                <i class="fas fa-map-marked-alt"></i> Get Directions
+            </a>
         </div>
-        <div id="cartItems" class="flex-1 overflow-y-auto p-8 space-y-6"></div>
-        <div class="p-8 border-t bg-white">
-            <div class="flex justify-between text-2xl font-black text-emerald-950 mb-6 uppercase tracking-tighter">
-                <span>Total:</span>
-                <span id="cartTotal">KSh 0</span>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="py-24 bg-gradient-to-b from-white to-emerald-50/30 relative overflow-hidden" id="contactSection">
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent"></div>
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="text-center mb-16">
+                <span class="text-emerald-600 font-black tracking-[0.4em] uppercase text-[11px] mb-4 block">Get In Touch</span>
+                <h2 class="text-5xl md:text-6xl font-serif font-bold text-emerald-950 mb-6">Visit Us Today</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">Experience premium shopping at Lwandeti Junction. We're here to serve you with quality products and exceptional service.</p>
             </div>
-            <button onclick="checkout()" class="w-full btn-premium py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                <i class="fab fa-whatsapp text-xl"></i> Complete Purchase
+
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <!-- Phone -->
+                <a href="tel:0117352700" class="contact-card rounded-3xl p-8 text-center group cursor-pointer">
+                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-phone-alt"></i>
+                    </div>
+                    <h3 class="font-black text-emerald-950 uppercase tracking-wider text-sm mb-2">Call Us</h3>
+                    <p class="text-2xl font-bold text-emerald-700 mb-2">0117 352700</p>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest font-semibold">Mon-Sun: 7AM - 9PM</p>
+                </a>
+
+                <!-- Email -->
+                <a href="mailto:junctionsupa@gmail.com" class="contact-card rounded-3xl p-8 text-center group cursor-pointer">
+                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3 class="font-black text-emerald-950 uppercase tracking-wider text-sm mb-2">Email Us</h3>
+                    <p class="text-lg font-bold text-emerald-700 mb-2 break-all">junctionsupa@gmail.com</p>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest font-semibold">24/7 Support</p>
+                </a>
+
+                <!-- Messenger -->
+                <a href="https://m.me/lwandetijunctionminimart" target="_blank" class="contact-card rounded-3xl p-8 text-center group cursor-pointer">
+                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <i class="fab fa-facebook-messenger"></i>
+                    </div>
+                    <h3 class="font-black text-emerald-950 uppercase tracking-wider text-sm mb-2">Messenger</h3>
+                    <p class="text-lg font-bold text-emerald-700 mb-2">Lwandeti Junction Minimart</p>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest font-semibold">Chat Instantly</p>
+                </a>
+            </div>
+
+            <!-- Location Banner -->
+            <div class="mt-16 bg-emerald-900 rounded-3xl p-8 md:p-12 text-center text-white relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute top-0 left-0 w-64 h-64 bg-amber-400 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-0 right-0 w-64 h-64 bg-emerald-400 rounded-full blur-3xl"></div>
+                </div>
+                <div class="relative z-10">
+                    <i class="fas fa-map-marker-alt text-4xl text-amber-400 mb-4"></i>
+                    <h3 class="text-2xl font-black uppercase tracking-wider mb-2">Our Location</h3>
+                    <p class="text-emerald-100 text-lg">Lwandeti Junction, Webuye-Eldoret Highway, Kenya</p>
+                    <div class="mt-6 flex justify-center gap-4">
+                        <a href="https://wa.me/254117352700" target="_blank" class="social-icon">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        <a href="https://facebook.com/lwandetijunctionminimart" target="_blank" class="social-icon">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="https://instagram.com/lwandetijunction" target="_blank" class="social-icon">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cart Sidebar -->
+    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-emerald-950/60 backdrop-blur-md z-50 hidden transition-opacity duration-300"></div>
+    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white z-50 translate-x-full transition-transform duration-500 shadow-2xl flex flex-col">
+        <div class="p-8 border-b border-emerald-100 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-white">
+            <div>
+                <h2 class="text-2xl font-black text-emerald-950 uppercase tracking-tighter">Your Cart</h2>
+                <p class="text-xs text-emerald-600 font-bold uppercase tracking-widest mt-1">Secure checkout via WhatsApp</p>
+            </div>
+            <button onclick="toggleCart()" class="w-12 h-12 rounded-full border-2 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all duration-300 flex items-center justify-center text-emerald-700">
+                <i class="fas fa-times text-lg"></i>
             </button>
+        </div>
+        <div id="cartItems" class="flex-1 overflow-y-auto p-8 space-y-4 bg-gray-50/50"></div>
+        <div class="p-8 border-t border-emerald-100 bg-white">
+            <div class="flex justify-between text-3xl font-black text-emerald-950 mb-8 uppercase tracking-tighter items-center">
+                <span class="text-lg text-gray-500">Total:</span>
+                <span id="cartTotal" class="text-emerald-600">KSh 0</span>
+            </div>
+            <button onclick="checkout()" class="w-full btn-premium py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 text-lg">
+                <i class="fab fa-whatsapp text-2xl"></i> Complete Purchase
+            </button>
+            <p class="text-center text-xs text-gray-400 mt-4 uppercase tracking-widest font-semibold">Free delivery on orders above KSh 5,000</p>
         </div>
     </div>
 
-    <footer class="bg-emerald-950 text-white pt-24 pb-12">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-16 border-b border-emerald-900 pb-16">
-                <div class="col-span-1 md:col-span-2">
-                    <h3 class="text-3xl font-black mb-6 uppercase tracking-tighter">Lwandeti <span class="text-emerald-500">Junction</span></h3>
-                    <p class="text-emerald-200/60 leading-loose max-w-md">The definitive shopping destination for Lwandeti. We pride ourselves on sourcing quality produce and household essentials at prices that respect your budget.</p>
+    <!-- Footer -->
+    <footer class="bg-emerald-950 text-white pt-24 pb-8 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent"></div>
+        <div class="absolute top-20 right-20 w-96 h-96 bg-emerald-800/20 rounded-full blur-3xl"></div>
+        
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <!-- Brand -->
+                <div class="lg:col-span-1">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i class="fas fa-leaf text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black uppercase tracking-tight">Lwandeti <span class="text-emerald-400">Junction</span></h3>
+                        </div>
+                    </div>
+                    <p class="text-emerald-200/70 leading-relaxed mb-6 text-sm">The definitive shopping destination for Lwandeti. Premium quality produce and household essentials at prices that respect your budget.</p>
+                    <div class="flex gap-3">
+                        <a href="https://wa.me/254117352700" class="w-10 h-10 rounded-full bg-emerald-900/50 border border-emerald-700 flex items-center justify-center hover:bg-amber-400 hover:text-emerald-950 hover:border-amber-400 transition-all duration-300">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        <a href="https://facebook.com/lwandetijunctionminimart" class="w-10 h-10 rounded-full bg-emerald-900/50 border border-emerald-700 flex items-center justify-center hover:bg-amber-400 hover:text-emerald-950 hover:border-amber-400 transition-all duration-300">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="mailto:junctionsupa@gmail.com" class="w-10 h-10 rounded-full bg-emerald-900/50 border border-emerald-700 flex items-center justify-center hover:bg-amber-400 hover:text-emerald-950 hover:border-amber-400 transition-all duration-300">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
                 </div>
+
+                <!-- Quick Links -->
                 <div>
-                    <h4 class="font-bold mb-6 text-yellow-500 uppercase tracking-widest text-xs">Categories</h4>
-                    <ul class="space-y-4 text-sm font-medium" id="footerCats"></ul>
+                    <h4 class="font-bold mb-6 text-amber-400 uppercase tracking-widest text-xs">Quick Links</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="#" onclick="router('home')" class="footer-link text-emerald-100/80">Home</a></li>
+                        <li><a href="#" onclick="router('all')" class="footer-link text-emerald-100/80">Shop All</a></li>
+                        <li><a href="#categories" class="footer-link text-emerald-100/80">Categories</a></li>
+                        <li><a href="#contactSection" class="footer-link text-emerald-100/80">Contact Us</a></li>
+                    </ul>
                 </div>
+
+                <!-- Categories -->
                 <div>
-                    <h4 class="font-bold mb-6 text-yellow-500 uppercase tracking-widest text-xs">Direct Contact</h4>
-                    <p class="text-2xl font-black mb-2">0117 352700</p>
-                    <p class="text-emerald-200/60 text-sm">Lwandeti Junction, Webuye-Eldoret Hwy</p>
+                    <h4 class="font-bold mb-6 text-amber-400 uppercase tracking-widest text-xs">Categories</h4>
+                    <ul class="space-y-3 text-sm" id="footerCats"></ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div>
+                    <h4 class="font-bold mb-6 text-amber-400 uppercase tracking-widest text-xs">Contact Info</h4>
+                    <ul class="space-y-4 text-sm">
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-phone-alt text-amber-400 mt-1"></i>
+                            <div>
+                                <p class="text-white font-bold">0117 352700</p>
+                                <p class="text-emerald-200/60 text-xs">Mon-Sun: 7AM - 9PM</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-envelope text-amber-400 mt-1"></i>
+                            <div>
+                                <p class="text-white font-bold">junctionsupa@gmail.com</p>
+                                <p class="text-emerald-200/60 text-xs">24/7 Support</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-map-marker-alt text-amber-400 mt-1"></i>
+                            <div>
+                                <p class="text-white font-bold">Lwandeti Junction</p>
+                                <p class="text-emerald-200/60 text-xs">Webuye-Eldoret Hwy, Kenya</p>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
             </div>
-            <div class="pt-8 text-center md:text-left text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600">
-                <p>© 2026 Lwandeti Junction Minimart.</p>
+
+            <div class="border-t border-emerald-800/50 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-400/60">
+                    © 2026 Lwandeti Junction Minimart. All rights reserved.
+                </p>
+                <div class="flex items-center gap-6 text-[11px] font-bold uppercase tracking-widest text-emerald-400/60">
+                    <a href="#" class="hover:text-amber-400 transition">Privacy Policy</a>
+                    <a href="#" class="hover:text-amber-400 transition">Terms of Service</a>
+                </div>
             </div>
         </div>
     </footer>
@@ -161,15 +583,21 @@
             const nav = document.getElementById('desktopNav');
             const foot = document.getElementById('footerCats');
             const links = storeData.categories.map(c => `
-                <button onclick="router('category', '${c.name}')" class="hover:text-emerald-600 transition">${c.name}</button>
+                <button onclick="router('category', '${c.name}')" class="nav-link hover:text-emerald-600 transition-colors">${c.name}</button>
             `).join('');
-            nav.innerHTML = `<button onclick="router('home')">Home</button><button onclick="router('all')">Shop All</button>` + links;
-            foot.innerHTML = storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.name}')">${c.name}</a></li>`).join('');
+            nav.innerHTML = `
+                <button onclick="router('home')" class="nav-link hover:text-emerald-600 transition-colors">Home</button>
+                <button onclick="router('all')" class="nav-link hover:text-emerald-600 transition-colors">Shop All</button>
+            ` + links;
+            foot.innerHTML = storeData.categories.slice(0,6).map(c => `
+                <li><a href="#" onclick="router('category', '${c.name}')" class="footer-link text-emerald-100/80">${c.name}</a></li>
+            `).join('');
         }
 
         function router(route, param = null) {
             currentRoute = route; currentParam = param;
             const app = document.getElementById('app');
+            window.scrollTo({top: 0, behavior: 'smooth'});
             if(route === 'home') app.innerHTML = renderHome();
             else if (route === 'all') app.innerHTML = renderListView(storeData.products, "All Products");
             else if (route === 'category') app.innerHTML = renderListView(storeData.products.filter(p => p.category === param), param);
@@ -177,65 +605,106 @@
         }
 
         function renderHome() {
-            const featured = storeData.products.slice(0, 10);
+            const featured = storeData.products.slice(0, 8);
             return `
-                <section class="hero-bg min-h-[85vh] flex items-center">
-                    <div class="hero-overlay absolute inset-0"></div>
-                    <div class="container mx-auto px-6 relative z-10">
+                <section class="hero-bg min-h-[90vh] flex items-center relative">
+                    <div class="floating-shape w-64 h-64 top-20 left-20"></div>
+                    <div class="floating-shape w-96 h-96 bottom-20 right-20" style="animation-delay: -5s;"></div>
+                    
+                    <div class="container mx-auto px-6 hero-content">
                         <div class="max-w-4xl">
-                            <span class="bg-yellow-500 text-emerald-950 px-4 py-1 rounded font-black text-[10px] uppercase tracking-widest mb-6 inline-block">Established Quality</span>
-                            <h1 class="text-6xl md:text-9xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">Freshness <br>Redefined.</h1>
-                            <p class="text-xl text-emerald-50 max-w-2xl font-medium leading-relaxed mb-10 opacity-80">The junction's finest selection of daily essentials, farm-fresh organics, and household hardware.</p>
+                            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-8">
+                                <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                                <span class="text-white/90 text-[11px] font-black uppercase tracking-widest">Now Open Daily 7AM - 9PM</span>
+                            </div>
+                            
+                            <h1 class="text-6xl md:text-8xl lg:text-9xl font-serif font-bold text-white mb-8 leading-[0.9] tracking-tight">
+                                Freshness <br>
+                                <span class="gold-accent">Redefined</span>
+                            </h1>
+                            
+                            <p class="text-xl md:text-2xl text-emerald-50 max-w-2xl font-medium leading-relaxed mb-12 opacity-90">
+                                The junction's finest selection of daily essentials, farm-fresh organics, and premium household goods.
+                            </p>
+                            
                             <div class="flex flex-wrap gap-4">
-                                <button onclick="router('all')" class="btn-premium px-12 py-5 rounded-2xl font-black uppercase tracking-widest">Browse Catalog</button>
+                                <button onclick="router('all')" class="btn-premium px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm">
+                                    Browse Catalog <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                                <a href="tel:0117352700" class="px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm border-2 border-white/30 text-white hover:bg-white hover:text-emerald-950 transition-all duration-300 flex items-center gap-2">
+                                    <i class="fas fa-phone-alt"></i> Call Now
+                                </a>
+                            </div>
+
+                            <div class="mt-16 flex items-center gap-8 text-white/60 text-sm font-semibold">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-check-circle text-amber-400"></i> Quality Assured
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-truck text-amber-400"></i> Fast Delivery
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-shield-alt text-amber-400"></i> Secure Payment
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <section class="py-12 bg-gray-50 border-b">
-                    <div class="container mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">500+</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Premium Products</p>
-                        </div>
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">15+</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Local Suppliers</p>
-                        </div>
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">7 AM</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Open Daily</p>
-                        </div>
-                        <div class="text-center">
-                            <h4 class="text-3xl font-black text-emerald-950">100%</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quality Check</p>
+                <section class="py-20 bg-white border-b border-emerald-100">
+                    <div class="container mx-auto px-6">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            <div class="text-center p-6 rounded-2xl hover:bg-emerald-50 transition-colors duration-300 group">
+                                <div class="text-4xl font-black text-emerald-600 mb-2 group-hover:scale-110 transition-transform">500+</div>
+                                <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Premium Products</p>
+                            </div>
+                            <div class="text-center p-6 rounded-2xl hover:bg-emerald-50 transition-colors duration-300 group">
+                                <div class="text-4xl font-black text-emerald-600 mb-2 group-hover:scale-110 transition-transform">15+</div>
+                                <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Local Suppliers</p>
+                            </div>
+                            <div class="text-center p-6 rounded-2xl hover:bg-emerald-50 transition-colors duration-300 group">
+                                <div class="text-4xl font-black text-emerald-600 mb-2 group-hover:scale-110 transition-transform">7AM</div>
+                                <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Opening Time</p>
+                            </div>
+                            <div class="text-center p-6 rounded-2xl hover:bg-emerald-50 transition-colors duration-300 group">
+                                <div class="text-4xl font-black text-emerald-600 mb-2 group-hover:scale-110 transition-transform">100%</div>
+                                <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Quality Check</p>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section class="py-24 container mx-auto px-6">
+                <section class="py-24 container mx-auto px-6" id="categories">
                     <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
                         <div>
-                            <h2 class="text-5xl font-black text-emerald-950 uppercase tracking-tighter">Season's Best</h2>
-                            <p class="text-emerald-600 font-bold uppercase tracking-widest text-xs mt-2">Curated Arrivals for your daily needs</p>
+                            <span class="text-emerald-600 font-black tracking-[0.3em] uppercase text-[11px] mb-2 block">Curated Selection</span>
+                            <h2 class="text-5xl md:text-6xl font-serif font-bold text-emerald-950 tracking-tight">Season's Best</h2>
                         </div>
-                        <button onclick="router('all')" class="text-emerald-950 font-black uppercase tracking-widest text-xs border-b-2 border-emerald-600 pb-1">View Full Collection</button>
+                        <button onclick="router('all')" class="group flex items-center gap-2 text-emerald-950 font-black uppercase tracking-widest text-xs border-b-2 border-emerald-600 pb-1 hover:text-emerald-600 transition">
+                            View Full Collection <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </button>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         ${featured.map(p => renderProductCard(p)).join('')}
                     </div>
                 </section>
 
-                <section class="py-24 bg-emerald-50 border-t">
-                    <div class="container mx-auto px-6 max-w-4xl text-center">
-                        <span class="text-emerald-600 font-black tracking-[0.4em] uppercase text-[10px]">Serving the Junction</span>
-                        <h2 class="text-4xl font-black mt-4 mb-8 text-emerald-950 uppercase tracking-tighter">Your Trusted Neighborhood Hub</h2>
-                        <p class="text-gray-600 leading-loose text-lg mb-8">We started with a simple vision: to provide a clean, organized, and affordable shopping experience for everyone. Today, we continue to grow, adding more variety and digital services like WhatsApp ordering to serve you better.</p>
-                        <div class="flex justify-center gap-12 opacity-30 grayscale">
-                           <i class="fas fa-award text-5xl"></i>
-                           <i class="fas fa-handshake text-5xl"></i>
-                           <i class="fas fa-truck text-5xl"></i>
+                <section class="py-24 bg-emerald-900 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-20">
+                        <div class="absolute top-0 right-0 w-96 h-96 bg-amber-400 rounded-full blur-3xl"></div>
+                        <div class="absolute bottom-0 left-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
+                    </div>
+                    <div class="container mx-auto px-6 relative z-10 text-center max-w-4xl">
+                        <span class="text-amber-400 font-black tracking-[0.4em] uppercase text-[11px] mb-4 block">Our Story</span>
+                        <h2 class="text-4xl md:text-5xl font-serif font-bold mb-8 tracking-tight">Your Trusted Neighborhood Hub</h2>
+                        <p class="text-emerald-100/80 leading-loose text-lg mb-12">
+                            We started with a simple vision: to provide a clean, organized, and affordable shopping experience for the Lwandeti community. Today, we continue to grow, adding more variety and digital services like WhatsApp ordering to serve you better.
+                        </p>
+                        <div class="flex justify-center gap-12 opacity-40">
+                           <i class="fas fa-award text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
+                           <i class="fas fa-handshake text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
+                           <i class="fas fa-truck text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
                         </div>
                     </div>
                 </section>
@@ -244,28 +713,45 @@
 
         function renderListView(items, title) {
             return `
-                <div class="container mx-auto px-6 py-20">
-                    <h2 class="text-5xl font-black mb-12 uppercase tracking-tighter text-emerald-950">${title}</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                <div class="bg-emerald-900 py-20 mb-12">
+                    <div class="container mx-auto px-6">
+                        <h2 class="text-5xl md:text-6xl font-serif font-bold text-white tracking-tight mb-4">${title}</h2>
+                        <p class="text-emerald-200/70 text-lg">${items.length} premium products available</p>
+                    </div>
+                </div>
+                <div class="container mx-auto px-6 pb-24">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         ${items.map(p => renderProductCard(p)).join('')}
                     </div>
+                    ${items.length === 0 ? `
+                        <div class="text-center py-24">
+                            <i class="fas fa-search text-6xl text-gray-200 mb-6"></i>
+                            <p class="text-gray-500 text-xl font-semibold">No products found</p>
+                            <button onclick="router('home')" class="mt-6 text-emerald-600 font-bold uppercase tracking-widest text-sm hover:underline">Back to Home</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
 
         function renderProductCard(p) {
             return `
-                <div class="product-card rounded-3xl overflow-hidden flex flex-col group">
+                <div class="product-card flex flex-col group">
                     <div class="h-64 relative overflow-hidden bg-gray-100">
                         <img src="${p.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        <div class="absolute top-4 left-4 bg-emerald-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">${p.category}</div>
+                        <div class="absolute top-4 left-4 badge-premium text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                            ${p.category}
+                        </div>
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
                     </div>
-                    <div class="p-6 flex-1 flex flex-col">
-                        <h3 class="font-black text-emerald-950 text-sm mb-1 uppercase tracking-tight line-clamp-2">${p.name}</h3>
+                    <div class="p-6 flex-1 flex flex-col bg-white">
+                        <h3 class="font-bold text-emerald-950 text-sm mb-1 uppercase tracking-wide line-clamp-2 leading-tight">${p.name}</h3>
                         <p class="text-gray-400 text-[10px] mb-4 font-bold tracking-widest uppercase">${p.unit}</p>
                         <div class="mt-auto flex items-center justify-between">
-                            <p class="text-emerald-700 font-black text-2xl">KSh ${p.price}</p>
-                            <button onclick="addToCart('${p.id}')" class="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"><i class="fas fa-plus"></i></button>
+                            <div class="price-tag px-4 py-2 rounded-xl font-black text-lg">KSh ${p.price}</div>
+                            <button onclick="addToCart('${p.id}')" class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-110">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -278,6 +764,15 @@
             exists ? exists.qty++ : cart.push({...p, qty: 1});
             localStorage.setItem('lwandeti_cart', JSON.stringify(cart));
             updateCartUI();
+            
+            // Visual feedback
+            const btn = event.target.closest('button');
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.classList.add('bg-emerald-600', 'text-white');
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-plus"></i>';
+                btn.classList.remove('bg-emerald-600', 'text-white');
+            }, 1000);
         }
 
         function updateCartUI() {
@@ -287,13 +782,23 @@
             let total = 0, count = 0;
             itemsCont.innerHTML = cart.map(item => {
                 total += (item.price * item.qty); count += item.qty;
-                return `<div class="flex gap-4 items-center bg-gray-50 p-4 rounded-2xl">
-                    <img src="${item.image}" class="w-16 h-16 rounded-xl object-cover">
-                    <div class="flex-1"><h4 class="font-bold text-xs uppercase">${item.name}</h4><p class="text-emerald-600 font-black">KSh ${item.price}</p></div>
-                    <div class="flex items-center gap-3"><button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 border rounded-full">-</button><span class="font-black">${item.qty}</span><button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 border rounded-full">+</button></div>
-                </div>`;
+                return `
+                    <div class="flex gap-4 items-center bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
+                        <img src="${item.image}" class="w-20 h-20 rounded-xl object-cover border border-gray-100">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-xs uppercase text-emerald-950 mb-1 line-clamp-1">${item.name}</h4>
+                            <p class="text-emerald-600 font-black text-sm">KSh ${item.price}</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-gray-100 rounded-full p-1">
+                            <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 rounded-full bg-white shadow-sm hover:bg-emerald-100 transition flex items-center justify-center text-emerald-700 font-bold">-</button>
+                            <span class="font-black text-sm w-6 text-center">${item.qty}</span>
+                            <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 rounded-full bg-white shadow-sm hover:bg-emerald-100 transition flex items-center justify-center text-emerald-700 font-bold">+</button>
+                        </div>
+                    </div>
+                `;
             }).join('');
-            badge.innerText = count; badge.classList.toggle('hidden', count === 0);
+            badge.innerText = count; 
+            badge.classList.toggle('hidden', count === 0);
             totalEl.innerText = `KSh ${total.toLocaleString()}`;
         }
 
@@ -310,6 +815,7 @@
         function toggleCart() {
             document.getElementById('cartSidebar').classList.toggle('translate-x-full');
             document.getElementById('cartOverlay').classList.toggle('hidden');
+            document.body.classList.toggle('overflow-hidden');
         }
 
         function handleSearch() {
@@ -318,11 +824,12 @@
         }
 
         function checkout() {
-            let text = `*NEW ORDER - LWANDETI JUNCTION*%0A`;
-            cart.forEach(item => text += `- ${item.name} (x${item.qty})%0A`);
-            text += `*TOTAL: ${document.getElementById('cartTotal').innerText}*`;
+            let text = `*NEW ORDER - LWANDETI JUNCTION MINIMART*%0A%0A`;
+            cart.forEach(item => text += `• ${item.name} (x${item.qty}) - KSh ${item.price * item.qty}%0A`);
+            text += `%0A*TOTAL: ${document.getElementById('cartTotal').innerText}*%0A%0AThank you for shopping with us!`;
             window.open(`https://wa.me/254117352700?text=${text}`);
         }
+        
         init();
     </script>
 </body>
