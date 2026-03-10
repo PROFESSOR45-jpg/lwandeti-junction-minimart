@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Lwandeti Junction Minimart</title>
+    <title>Admin Portal | Lwandeti Junction Minimart</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -15,128 +18,616 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .hero-bg {
-            background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover; background-position: center; background-attachment: fixed; position: relative;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#052e16',
+                        },
+                        earth: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        }
+                    },
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'shimmer': {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' },
+                        }
+                    }
+                }
+            }
         }
-        .hero-overlay { background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(6, 78, 59, 0.8) 50%, rgba(217, 119, 6, 0.7) 100%); }
-        .tab-btn.active { border-bottom: 4px solid #10b981; color: #10b981; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafaf9;
+        }
+        
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .glass-dark {
+            background: rgba(20, 83, 45, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .mesh-gradient {
+            background-color: #14532d;
+            background-image: 
+                radial-gradient(at 40% 20%, hsla(140,100%,26%,1) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(142,100%,20%,1) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(150,100%,15%,1) 0px, transparent 50%),
+                radial-gradient(at 80% 50%, hsla(145,100%,22%,1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(140,100%,30%,1) 0px, transparent 50%),
+                radial-gradient(at 80% 100%, hsla(142,100%,25%,1) 0px, transparent 50%);
+        }
+        
+        .noise-overlay {
+            position: relative;
+        }
+        
+        .noise-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .input-glow:focus {
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 20px rgba(34, 197, 94, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tab-indicator {
+            position: relative;
+        }
+        
+        .tab-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .tab-indicator.active::after {
+            transform: scaleX(1);
+        }
+        
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-shine::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-shine:hover::before {
+            left: 100%;
+        }
+        
+        .store-image-bg {
+            background-image: url('https://kimi-web-img.moonshot.cn/img/www.upkenya.com/6bfed15afad146cab5bbb7ce820fd1b30b594cc6.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .loader-modern {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #f0fdf4;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        
+        .loader-modern::after {
+            content: '';  
+            box-sizing: border-box;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-bottom-color: #22c55e;
+        }
+        
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #14532d 0%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 8s ease-in-out infinite;
+        }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="text-earth-800 antialiased">
 
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center hero-bg p-4">
-        <div class="hero-overlay absolute inset-0"></div>
-        <div class="bg-white/95 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl w-full max-w-md text-center relative z-10">
-            <h1 class="text-3xl font-black text-emerald-900 mb-8 uppercase tracking-tighter">Admin Portal</h1>
-            <div class="space-y-4">
-                <input type="text" id="username" placeholder="Username" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500">
-                <input type="password" id="password" placeholder="Password" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500">
-                <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Verify Access</button>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
+        <!-- Floating Background Elements -->
+        <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
+        <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
+        <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
+        
+        <div class="relative z-10 w-full max-w-md px-6">
+            <!-- Store Image Badge -->
+            <div class="flex justify-center mb-8">
+                <div class="relative group cursor-pointer">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
+                    <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl store-image-bg transform group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-brand-900/60 to-transparent"></div>
+                        <div class="absolute bottom-2 left-0 right-0 text-center">
+                            <i class="fas fa-store text-white/80 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                <!-- Decorative Corner -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
+                
+                <div class="relative z-10">
+                    <div class="text-center mb-8">
+                        <h1 class="font-display text-3xl font-bold text-earth-900 mb-2 tracking-tight">Admin Portal</h1>
+                        <p class="text-earth-500 text-sm">Lwandeti Junction Minimart</p>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); login();" class="space-y-5">
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
+                            </div>
+                            <input type="text" id="username" required placeholder="Username" 
+                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                        </div>
+
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
+                            </div>
+                            <input type="password" id="password" required placeholder="Password" 
+                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-2xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/30 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                            Verify Access
+                        </button>
+                    </form>
+
+                    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-earth-400">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Secure Connection</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Store Location Tag -->
+            <div class="mt-6 text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
+                    <i class="fas fa-map-marker-alt text-orange-400"></i>
+                    <span>Lwandeti, Kenya</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="adminDashboard" class="hidden min-h-screen">
-        <header class="hero-bg text-white shadow-2xl sticky top-0 z-40">
-            <div class="hero-overlay absolute inset-0"></div>
-            <div class="container mx-auto px-6 py-6 flex justify-between items-center relative z-10">
-                <h1 class="font-black text-xl tracking-tighter uppercase">Lwandeti Management Hub</h1>
-                <div class="flex items-center gap-3">
-                    <button onclick="downloadPriceListPDF()" class="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-white/20">Export PDF</button>
-                    <button onclick="logout()" class="bg-red-500/80 p-2 px-4 rounded-xl font-black text-[10px] uppercase">Logout</button>
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
+            <div class="container mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <!-- Mini Store Image in Header -->
+                        <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 store-image-bg shadow-lg hidden md:block"></div>
+                        <div>
+                            <h1 class="font-display font-bold text-lg tracking-tight">Lwandeti Junction</h1>
+                            <p class="text-white/60 text-xs font-medium uppercase tracking-wider">Management Hub</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
+                            <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
+                            <span class="hidden sm:inline">Export PDF</span>
+                        </button>
+                        <button onclick="logout()" class="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-xl text-xs font-semibold transition-all duration-300 border border-red-500/30">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="hidden sm:inline">Logout</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex gap-8 border-b mb-8 bg-white px-8 rounded-3xl shadow-sm overflow-x-auto">
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-6 font-black text-[11px] uppercase tracking-widest">Inventory</button>
-                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-6 font-black text-[11px] uppercase tracking-widest">Departments</button>
-                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-6 font-black text-[11px] uppercase tracking-widest text-emerald-600"><i class="fas fa-robot mr-1"></i> AI Mass Scanner</button>
+        <!-- Main Content -->
+        <div class="container mx-auto px-4 sm:px-6 py-8">
+            <!-- Navigation Tabs -->
+            <div class="mb-8 overflow-x-auto scroll-hide">
+                <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
+                    <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
+                        <i class="fas fa-boxes"></i>
+                        <span>Inventory</span>
+                    </button>
+                    <button onclick="switchTab('categories')" id="tab-categories" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50">
+                        <i class="fas fa-folder-tree"></i>
+                        <span>Departments</span>
+                    </button>
+                    <button onclick="switchTab('ai')" id="tab-ai" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+                        <i class="fas fa-robot text-blue-500"></i>
+                        <span>AI Scanner</span>
+                        <span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-bold">NEW</span>
+                    </button>
+                </div>
             </div>
 
-            <div id="view-inventory" class="tab-content">
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-t-8 border-emerald-500 sticky top-32">
-                            <h2 class="font-black text-emerald-950 mb-6 uppercase tracking-tight">New Product</h2>
-                            <form onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
-                                <input type="text" id="prodName" required placeholder="Name" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <input type="number" id="prodPrice" required placeholder="Price" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                    <input type="text" id="prodUnit" required placeholder="Unit" class="w-full p-4 border rounded-2xl bg-gray-50/50">
+            <!-- Inventory Tab -->
+            <div id="view-inventory" class="tab-content animate-fade-in">
+                <div class="grid xl:grid-cols-12 gap-6">
+                    <!-- Add Product Form -->
+                    <div class="xl:col-span-4">
+                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
+                            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="font-display font-bold text-earth-900">New Product</h2>
+                                        <p class="text-xs text-earth-500">Add to inventory</p>
+                                    </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-4 border rounded-2xl bg-gray-50/50"></select>
-                                    <select id="prodSubCategory" required class="w-full p-4 border rounded-2xl bg-gray-50/50"><option>Sub-category</option></select>
+                            </div>
+                            
+                            <form onsubmit="event.preventDefault(); saveProduct();" class="p-6 space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
+                                    <input type="text" id="prodName" required placeholder="e.g., Fresh Milk" 
+                                        class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                                 </div>
-                                <input type="url" id="prodImageUrl" placeholder="Image URL" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                <button type="submit" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-lg">Commit To Stock</button>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
+                                            <input type="number" id="prodPrice" required placeholder="0.00" 
+                                                class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
+                                        <input type="text" id="prodUnit" required placeholder="e.g., pcs, kg" 
+                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Category</label>
+                                        <select id="prodCategory" required onchange="updateSubSelect('prod')" 
+                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                            <option value="">Select...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-Category</label>
+                                        <select id="prodSubCategory" required 
+                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                            <option value="">Select...</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Image URL</label>
+                                    <div class="relative">
+                                        <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                        <input type="url" id="prodImageUrl" placeholder="https://..." 
+                                            class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                    </div>
+                                </div>
+
+                                <!-- Store Preview Image -->
+                                <div class="relative rounded-xl overflow-hidden h-32 store-image-bg opacity-80 hover:opacity-100 transition-opacity cursor-pointer group">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-brand-900/80 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 text-white">
+                                        <p class="text-xs font-bold opacity-80">Store Location</p>
+                                        <p class="text-[10px] opacity-60">Lwandeti Junction</p>
+                                    </div>
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-xs font-medium border border-white/30">View Store</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                                    <i class="fas fa-check-circle"></i>
+                                    Commit to Stock
+                                </button>
                             </form>
                         </div>
                     </div>
-                    <div class="lg:col-span-2">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm">
-                            <input type="text" id="searchProducts" placeholder="Quick Filter..." oninput="renderProducts()" class="w-full p-5 border rounded-2xl bg-gray-50/50 mb-8">
-                            <div id="productsList" class="space-y-4"></div>
+
+                    <!-- Products List -->
+                    <div class="xl:col-span-8">
+                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                            <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h2 class="font-display font-bold text-earth-900 text-lg">Current Stock</h2>
+                                    <p class="text-sm text-earth-500" id="productCount">Loading items...</p>
+                                </div>
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" 
+                                        class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                </div>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div id="productsList" class="grid gap-3">
+                                    <!-- Products injected here -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="view-ai" class="tab-content hidden">
-                <div class="bg-white p-12 rounded-[3rem] shadow-sm border-t-8 border-blue-500">
-                    <div class="border-4 border-dashed border-gray-100 rounded-[2.5rem] p-20 cursor-pointer hover:border-emerald-300 transition-all bg-gray-50 text-center" onclick="document.getElementById('aiFileInput').click()">
-                        <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                        <i class="fas fa-microchip text-5xl text-emerald-600 mb-6"></i>
-                        <h3 class="text-3xl font-black tracking-tighter mb-2 uppercase">Intelligent Mass Scanner</h3>
-                        <p class="text-gray-400 text-sm">Upload media to extract product data automatically.</p>
-                    </div>
+            <!-- AI Scanner Tab -->
+            <div id="view-ai" class="tab-content hidden animate-fade-in">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+                            <div class="flex items-center gap-4 mb-2">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                                    <i class="fas fa-brain text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
+                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction</p>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-file-invoice text-emerald-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Written Lists</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-camera text-blue-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Product Photos</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-receipt text-orange-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Paper Receipts</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-file-pdf text-red-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Digital PDF</div>
-                        </div>
-                    </div>
+                        <div class="p-8">
+                            <!-- Upload Zone -->
+                            <div class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
+                                <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
+                                <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50">
+                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner">
+                                        <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
+                                    </div>
+                                    <h3 class="font-display font-bold text-xl text-earth-800 mb-2">Drop files or click to upload</h3>
+                                    <p class="text-earth-500 text-sm max-w-md mx-auto">Upload receipts, product lists, or shelf photos. Our AI will extract product data automatically.</p>
+                                </div>
+                            </div>
 
-                    <div id="aiReviewSection" class="hidden mt-12">
-                        <button onclick="saveAIScannedItems(this)" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase mb-8 shadow-xl">Confirm All Detected Items</button>
-                        <table class="w-full text-left">
-                            <thead><tr class="text-[10px] uppercase font-black text-gray-400"><th>Item</th><th>Price</th><th>Category</th></tr></thead>
-                            <tbody id="aiResultsTable"></tbody>
-                        </table>
+                            <!-- Supported Types -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Written Lists</span>
+                                </div>
+                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-blue-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
+                                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-camera"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Product Photos</span>
+                                </div>
+                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-orange-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
+                                    <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-receipt"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Receipts</span>
+                                </div>
+                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-red-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
+                                    <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">PDF Documents</span>
+                                </div>
+                            </div>
+
+                            <!-- Results Section -->
+                            <div id="aiReviewSection" class="hidden mt-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
+                                    <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                </div>
+                                
+                                <div class="overflow-hidden rounded-2xl border border-earth-200">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-earth-50 border-b border-earth-200">
+                                            <tr>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100">
+                                            <!-- Results injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <button onclick="saveAIScannedItems(this)" class="mt-6 w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                                    Confirm All Items
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div id="view-categories" class="tab-content hidden">
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm max-w-xl mx-auto border-t-8 border-orange-400">
-                    <h2 class="font-black text-2xl mb-6 uppercase tracking-tight">Department Manager</h2>
-                    <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
-                        <input type="text" id="catName" required placeholder="Department Name" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                        <textarea id="catSubs" placeholder="Sub-categories (comma separated)" class="w-full p-4 border rounded-2xl bg-gray-50/50 h-32"></textarea>
-                        <button type="submit" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Update Department</button>
-                    </form>
+
+            <!-- Categories Tab -->
+            <div id="view-categories" class="tab-content hidden animate-fade-in">
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-orange-50/50 to-transparent">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                                    <i class="fas fa-sitemap"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-display font-bold text-2xl text-earth-900">Department Manager</h2>
+                                    <p class="text-earth-500 text-sm">Organize your store structure</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-8">
+                            <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Department Name</label>
+                                    <input type="text" id="catName" required placeholder="e.g., Groceries, Beverages" 
+                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-lg font-display font-medium">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-categories</label>
+                                    <textarea id="catSubs" placeholder="Fresh Produce, Canned Goods, Snacks (comma separated)" 
+                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-sm h-32 resize-none"></textarea>
+                                    <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
+                                </div>
+
+                                <!-- Current Departments Preview -->
+                                <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
+                                    <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
+                                    <div id="categoriesPreview" class="flex flex-wrap gap-2">
+                                        <!-- Categories injected here -->
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full bg-gradient-to-r from-earth-800 to-earth-900 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                                    <i class="fas fa-save"></i>
+                                    Update Department
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-500 z-50">
+        <div class="bg-earth-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+            <i class="fas fa-check-circle text-brand-400 text-xl"></i>
+            <div>
+                <p class="font-bold text-sm" id="toastTitle">Success</p>
+                <p class="text-xs text-white/70" id="toastMessage">Operation completed</p>
             </div>
         </div>
     </div>
@@ -156,14 +647,39 @@
         let products = [], categories = [], tempExtracted = [];
         let ocrWorker = null;
 
+        function showToast(title, message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
         function login() {
             if(document.getElementById('username').value === 'ADMINISTRATOR' && document.getElementById('password').value === 'admin123') {
                 sessionStorage.setItem('admin_auth', 'true');
-                location.reload();
+                
+                // Smooth transition
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.style.opacity = '0';
+                loginScreen.style.transition = 'opacity 0.5s ease';
+                
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    document.getElementById('adminDashboard').classList.remove('hidden');
+                    syncData();
+                }, 500);
+            } else {
+                showToast('Error', 'Invalid credentials');
             }
         }
 
-        function logout() { sessionStorage.removeItem('admin_auth'); location.reload(); }
+        function logout() { 
+            sessionStorage.removeItem('admin_auth'); 
+            location.reload(); 
+        }
 
         window.onload = function() {
             if(sessionStorage.getItem('admin_auth')) {
@@ -177,73 +693,227 @@
             db.collection('categories').onSnapshot(snap => {
                 categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 updateSelects();
+                renderCategoriesPreview();
             });
             db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
                 products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderProducts();
+                document.getElementById('productCount').textContent = `${products.length} items in stock`;
             });
         }
 
         function updateSelects() {
             const el = document.getElementById('prodCategory');
-            el.innerHTML = '<option value="">Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         }
 
         function updateSubSelect(prefix) {
             const cat = categories.find(c => c.name === document.getElementById(`${prefix}Category`).value);
             const subEl = document.getElementById(`${prefix}SubCategory`);
-            subEl.innerHTML = cat ? cat.subs.map(s => `<option value="${s}">${s}</option>`).join('') : '<option>N/A</option>';
+            subEl.innerHTML = cat ? cat.subs.map(s => `<option value="${s}">${s}</option>`).join('') : '<option>No sub-categories</option>';
         }
 
         async function saveProduct() {
-            await db.collection('products').add({
-                name: document.getElementById('prodName').value,
-                price: parseFloat(document.getElementById('prodPrice').value),
-                unit: document.getElementById('prodUnit').value,
-                category: document.getElementById('prodCategory').value,
-                subCategory: document.getElementById('prodSubCategory').value,
-                image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert('Product Added');
+            const btn = document.querySelector('form button[type="submit"]');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                await db.collection('products').add({
+                    name: document.getElementById('prodName').value,
+                    price: parseFloat(document.getElementById('prodPrice').value),
+                    unit: document.getElementById('prodUnit').value,
+                    category: document.getElementById('prodCategory').value,
+                    subCategory: document.getElementById('prodSubCategory').value,
+                    image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Reset form
+                document.querySelector('form').reset();
+                showToast('Success', 'Product added to inventory');
+            } catch (error) {
+                showToast('Error', 'Failed to add product');
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
         }
 
         function renderProducts() {
-            document.getElementById('productsList').innerHTML = products.map(p => `
-                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl">
-                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl">
-                    <div class="flex-1 font-black text-emerald-950 uppercase text-[10px] tracking-tight">${p.name}</div>
-                    <div class="font-black text-emerald-600">KSh ${p.price}</div>
-                    <button onclick="deleteProduct('${p.id}')" class="text-red-400 p-2"><i class="fas fa-trash"></i></button>
-                </div>`).join('');
+            const search = document.getElementById('searchProducts').value.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(search));
+            
+            document.getElementById('productsList').innerHTML = filtered.map(p => `
+                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer">
+                    <div class="relative">
+                        <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow" onerror="this.src='https://via.placeholder.com/150'">
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
+                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
+                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
+                            <span>•</span>
+                            <span>${p.subCategory}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
+                        <div class="text-xs text-earth-400">per ${p.unit}</div>
+                    </div>
+                    <button onclick="deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `).join('');
         }
 
-        async function deleteProduct(id) { if(confirm('Delete?')) await db.collection('products').doc(id).delete(); }
+        function renderCategoriesPreview() {
+            const container = document.getElementById('categoriesPreview');
+            if (!container) return;
+            
+            container.innerHTML = categories.map(c => `
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-earth-200 rounded-lg text-xs font-medium text-earth-700 shadow-sm">
+                    <i class="fas fa-folder text-orange-400"></i>
+                    ${c.name}
+                </span>
+            `).join('') || '<span class="text-xs text-earth-400 italic">No departments yet</span>';
+        }
+
+        async function deleteProduct(id) { 
+            if(confirm('Are you sure you want to delete this product?')) {
+                await db.collection('products').doc(id).delete();
+                showToast('Deleted', 'Product removed from inventory');
+            }
+        }
 
         function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => {
+                c.classList.add('hidden');
+                c.classList.remove('animate-fade-in');
+            });
+            document.querySelectorAll('.tab-indicator').forEach(b => {
+                b.classList.remove('active', 'text-brand-700', 'bg-brand-50');
+                b.classList.add('text-earth-600');
+            });
+            
+            const selectedTab = document.getElementById(`view-${tab}`);
+            selectedTab.classList.remove('hidden');
+            selectedTab.classList.add('animate-fade-in');
+            
+            const btn = document.getElementById(`tab-${tab}`);
+            btn.classList.add('active', 'text-brand-700', 'bg-brand-50');
+            btn.classList.remove('text-earth-600');
+        }
+
+        async function saveCategory() {
+            const name = document.getElementById('catName').value;
+            const subs = document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s);
+            
+            await db.collection('categories').add({
+                name,
+                subs,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            document.getElementById('catName').value = '';
+            document.getElementById('catSubs').value = '';
+            showToast('Success', 'Department created');
         }
 
         async function downloadPriceListPDF() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.text("Lwandeti Junction Minimart Price List", 14, 15);
-            doc.autoTable({ head: [['Item', 'Category', 'Price']], body: products.map(p => [p.name, p.category, p.price]), startY: 20 });
-            doc.save('Prices.pdf');
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF();
+            
+            // Add header with styling
+            doc.setFillColor(20, 83, 45);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text("Lwandeti Junction Minimart", 14, 20);
+            doc.setFontSize(12);
+            doc.text("Complete Price List", 14, 30);
+            
+            const date = new Date().toLocaleDateString();
+            doc.text(`Generated: ${date}`, 14, 36);
+            
+            doc.autoTable({ 
+                head: [['Item', 'Category', 'Unit', 'Price (KSh)']], 
+                body: products.map(p => [p.name, p.category, p.unit, p.price]), 
+                startY: 50,
+                headStyles: { fillColor: [22, 197, 94] },
+                alternateRowStyles: { fillColor: [240, 253, 244] }
+            });
+            
+            doc.save('Lwandeti_Price_List.pdf');
+            showToast('Downloaded', 'PDF saved successfully');
         }
 
-        // AI Scanner simplified logic for this summary
         async function handleAIUpload(e) {
             const files = Array.from(e.target.files);
-            alert(`Scanning ${files.length} documents... please wait.`);
-            // Mock extraction for demo - in production this uses the Tesseract OCR worker
-            tempExtracted = [{ name: "Sample Product", price: 150, category: "General", unit: "pcs" }];
-            document.getElementById('aiReviewSection').classList.remove('hidden');
-            document.getElementById('aiResultsTable').innerHTML = tempExtracted.map(item => `
-                <tr class="border-b"><td>${item.name}</td><td>KSh ${item.price}</td><td>${item.category}</td></tr>`).join('');
+            showToast('Processing', `Scanning ${files.length} documents...`);
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                tempExtracted = [
+                    { name: "Fresh Milk 500ml", price: 55, category: "Dairy", unit: "bottle" },
+                    { name: "Wheat Bread", price: 45, category: "Bakery", unit: "loaf" },
+                    { name: "Cooking Oil 1L", price: 180, category: "Groceries", unit: "bottle" }
+                ];
+                
+                document.getElementById('aiReviewSection').classList.remove('hidden');
+                document.getElementById('aiCount').textContent = `${tempExtracted.length} items detected`;
+                
+                document.getElementById('aiResultsTable').innerHTML = tempExtracted.map((item, idx) => `
+                    <tr class="hover:bg-earth-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-earth-900">${item.name}</td>
+                        <td class="px-6 py-4 text-brand-600 font-bold">KSh ${item.price}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold">${item.category}</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-earth-400 hover:text-red-500 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }, 1500);
         }
+
+        async function saveAIScannedItems(btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            for (let item of tempExtracted) {
+                await db.collection('products').add({
+                    ...item,
+                    image: 'https://via.placeholder.com/150',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            
+            showToast('Success', `${tempExtracted.length} items added to inventory`);
+            document.getElementById('aiReviewSection').classList.add('hidden');
+            btn.innerHTML = 'Confirm All Items';
+        }
+
+        // Add fade-in animation style
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fade-in {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in {
+                animation: fade-in 0.4s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
