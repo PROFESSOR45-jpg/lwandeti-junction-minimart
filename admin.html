@@ -1,1349 +1,1381 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal | Lwandeti Junction Minimart</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Space Grotesk', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16',
-                        },
-                        earth: {
-                            50: '#fafaf9',
-                            100: '#f5f5f4',
-                            200: '#e7e5e4',
-                            300: '#d6d3d1',
-                            400: '#a8a29e',
-                            500: '#78716c',
-                            600: '#57534e',
-                            700: '#44403c',
-                            800: '#292524',
-                            900: '#1c1917',
-                        }
-                    },
-                    animation: {
-                        'gradient-x': 'gradient-x 15s ease infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'shimmer': 'shimmer 2s linear infinite',
-                    },
-                    keyframes: {
-                        'gradient-x': {
-                            '0%, 100%': {
-                                'background-size': '200% 200%',
-                                'background-position': 'left center'
-                            },
-                            '50%': {
-                                'background-size': '200% 200%',
-                                'background-position': 'right center'
-                            },
-                        },
-                        'float': {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        },
-                        'shimmer': {
-                            '0%': { backgroundPosition: '-1000px 0' },
-                            '100%': { backgroundPosition: '1000px 0' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #fafaf9;
-        }
-        
-        .font-display {
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .glass-dark {
-            background: rgba(20, 83, 45, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .mesh-gradient {
-            background-color: #14532d;
-            background-image: 
-                radial-gradient(at 40% 20%, hsla(140,100%,26%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 0%, hsla(142,100%,20%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 50%, hsla(150,100%,15%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 50%, hsla(145,100%,22%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(140,100%,30%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 100%, hsla(142,100%,25%,1) 0px, transparent 50%);
-        }
-        
-        .noise-overlay {
-            position: relative;
-        }
-        
-        .noise-overlay::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .input-glow:focus {
-            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 20px rgba(34, 197, 94, 0.2);
-        }
-        
-        .card-hover {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .tab-indicator {
-            position: relative;
-        }
-        
-        .tab-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-            border-radius: 2px;
-        }
-        
-        .tab-indicator.active::after {
-            transform: scaleX(1);
-        }
-        
-        .btn-shine {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn-shine::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-        
-        .btn-shine:hover::before {
-            left: 100%;
-        }
-        
-        .store-image-bg {
-            background-image: url('https://kimi-web-img.moonshot.cn/img/www.upkenya.com/6bfed15afad146cab5bbb7ce820fd1b30b594cc6.jpg');
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .loader-modern {
-            width: 48px;
-            height: 48px;
-            border: 3px solid #f0fdf4;
-            border-radius: 50%;
-            display: inline-block;
-            position: relative;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-        
-        .loader-modern::after {
-            content: '';  
-            box-sizing: border-box;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-bottom-color: #22c55e;
-        }
-        
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .scroll-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scroll-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #14532d 0%, #22c55e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .floating-shape {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            animation: float 8s ease-in-out infinite;
-        }
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Admin Portal | Lwandeti Junction Minimart</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+   
+   <!-- Tesseract.js v5 -->
+   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+   <!-- PDF.js -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+   
+   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+   
+   <script>
+       tailwind.config = {
+           theme: {
+               extend: {
+                   fontFamily: {
+                       sans: ['Inter', 'sans-serif'],
+                       display: ['Space Grotesk', 'sans-serif'],
+                   },
+                   colors: {
+                       brand: {
+                           50: '#f0fdf4',
+                           100: '#dcfce7',
+                           200: '#bbf7d0',
+                           300: '#86efac',
+                           400: '#4ade80',
+                           500: '#22c55e',
+                           600: '#16a34a',
+                           700: '#15803d',
+                           800: '#166534',
+                           900: '#14532d',
+                           950: '#052e16',
+                       },
+                       earth: {
+                           50: '#fafaf9',
+                           100: '#f5f5f4',
+                           200: '#e7e5e4',
+                           300: '#d6d3d1',
+                           400: '#a8a29e',
+                           500: '#78716c',
+                           600: '#57534e',
+                           700: '#44403c',
+                           800: '#292524',
+                           900: '#1c1917',
+                       }
+                   },
+                   animation: {
+                       'gradient-x': 'gradient-x 15s ease infinite',
+                       'float': 'float 6s ease-in-out infinite',
+                       'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                       'shimmer': 'shimmer 2s linear infinite',
+                       'scan': 'scan 2s linear infinite',
+                   },
+                   keyframes: {
+                       'gradient-x': {
+                           '0%, 100%': {
+                               'background-size': '200% 200%',
+                               'background-position': 'left center'
+                           },
+                           '50%': {
+                               'background-size': '200% 200%',
+                               'background-position': 'right center'
+                           },
+                       },
+                       'float': {
+                           '0%, 100%': { transform: 'translateY(0)' },
+                           '50%': { transform: 'translateY(-20px)' },
+                       },
+                       'shimmer': {
+                           '0%': { backgroundPosition: '-1000px 0' },
+                           '100%': { backgroundPosition: '1000px 0' },
+                       },
+                       'scan': {
+                           '0%': { top: '0%' },
+                           '100%': { top: '100%' },
+                       }
+                   }
+               }
+           }
+       }
+   </script>
+   
+   <style>
+       body {
+           font-family: 'Inter', sans-serif;
+           background-color: #fafaf9;
+       }
+       
+       .font-display {
+           font-family: 'Space Grotesk', sans-serif;
+       }
+       
+       .glass-panel {
+           background: rgba(255, 255, 255, 0.7);
+           backdrop-filter: blur(20px);
+           -webkit-backdrop-filter: blur(20px);
+           border: 1px solid rgba(255, 255, 255, 0.3);
+       }
+       
+       .glass-dark {
+           background: rgba(20, 83, 45, 0.85);
+           backdrop-filter: blur(20px);
+           -webkit-backdrop-filter: blur(20px);
+           border: 1px solid rgba(255, 255, 255, 0.1);
+       }
+       
+       .mesh-gradient {
+           background-color: #14532d;
+           background-image: 
+               radial-gradient(at 40% 20%, hsla(140,100%,26%,1) 0px, transparent 50%),
+               radial-gradient(at 80% 0%, hsla(142,100%,20%,1) 0px, transparent 50%),
+               radial-gradient(at 0% 50%, hsla(150,100%,15%,1) 0px, transparent 50%),
+               radial-gradient(at 80% 50%, hsla(145,100%,22%,1) 0px, transparent 50%),
+               radial-gradient(at 0% 100%, hsla(140,100%,30%,1) 0px, transparent 50%),
+               radial-gradient(at 80% 100%, hsla(142,100%,25%,1) 0px, transparent 50%);
+       }
+       
+       .noise-overlay {
+           position: relative;
+       }
+       
+       .noise-overlay::before {
+           content: '';
+           position: absolute;
+           inset: 0;
+           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+           pointer-events: none;
+           z-index: 1;
+       }
+       
+       .input-glow:focus {
+           box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 20px rgba(34, 197, 94, 0.2);
+       }
+       
+       .card-hover {
+           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+       }
+       
+       .card-hover:hover {
+           transform: translateY(-4px);
+           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+       }
+       
+       .tab-indicator {
+           position: relative;
+       }
+       
+       .tab-indicator::after {
+           content: '';
+           position: absolute;
+           bottom: -2px;
+           left: 0;
+           width: 100%;
+           height: 3px;
+           background: linear-gradient(90deg, #22c55e, #16a34a);
+           transform: scaleX(0);
+           transition: transform 0.3s ease;
+           border-radius: 2px;
+       }
+       
+       .tab-indicator.active::after {
+           transform: scaleX(1);
+       }
+       
+       .btn-shine {
+           position: relative;
+           overflow: hidden;
+       }
+       
+       .btn-shine::before {
+           content: '';
+           position: absolute;
+           top: 0;
+           left: -100%;
+           width: 100%;
+           height: 100%;
+           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+           transition: left 0.5s;
+       }
+       
+       .btn-shine:hover::before {
+           left: 100%;
+       }
+       
+       .store-image-bg {
+           background-image: url('https://kimi-web-img.moonshot.cn/img/www.upkenya.com/6bfed15afad146cab5bbb7ce820fd1b30b594cc6.jpg');
+           background-size: cover;
+           background-position: center;
+       }
+       
+       .loader-modern {
+           width: 48px;
+           height: 48px;
+           border: 3px solid #f0fdf4;
+           border-radius: 50%;
+           display: inline-block;
+           position: relative;
+           box-sizing: border-box;
+           animation: rotation 1s linear infinite;
+       }
+       
+       .loader-modern::after {
+           content: '';  
+           box-sizing: border-box;
+           position: absolute;
+           left: 50%;
+           top: 50%;
+           transform: translate(-50%, -50%);
+           width: 40px;
+           height: 40px;
+           border-radius: 50%;
+           border: 3px solid transparent;
+           border-bottom-color: #22c55e;
+       }
+       
+       @keyframes rotation {
+           0% { transform: rotate(0deg); }
+           100% { transform: rotate(360deg); }
+       }
+       
+       .scroll-hide::-webkit-scrollbar {
+           display: none;
+       }
+       .scroll-hide {
+           -ms-overflow-style: none;
+           scrollbar-width: none;
+       }
+       
+       .gradient-text {
+           background: linear-gradient(135deg, #14532d 0%, #22c55e 100%);
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+           background-clip: text;
+       }
+       
+       .floating-shape {
+           position: absolute;
+           border-radius: 50%;
+           filter: blur(80px);
+           opacity: 0.4;
+           animation: float 8s ease-in-out infinite;
+       }
 
-        /* Image upload zone styles */
-        .upload-zone {
-            border: 2px dashed #d6d3d1;
-            transition: all 0.3s ease;
-        }
-        
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: #22c55e;
-            background-color: #f0fdf4;
-        }
+       .upload-zone {
+           border: 2px dashed #d6d3d1;
+           transition: all 0.3s ease;
+       }
+       
+       .upload-zone:hover, .upload-zone.dragover {
+           border-color: #22c55e;
+           background-color: #f0fdf4;
+       }
 
-        .image-preview-container {
-            position: relative;
-            overflow: hidden;
-        }
+       .image-preview-container {
+           position: relative;
+           overflow: hidden;
+       }
 
-        .image-preview-container img {
-            transition: transform 0.3s ease;
-        }
+       .image-preview-container img {
+           transition: transform 0.3s ease;
+       }
 
-        .image-preview-container:hover img {
-            transform: scale(1.05);
-        }
+       .image-preview-container:hover img {
+           transform: scale(1.05);
+       }
 
-        .remove-image-btn {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
+       .scan-line {
+           position: absolute;
+           left: 0;
+           right: 0;
+           height: 2px;
+           background: linear-gradient(90deg, transparent, #22c55e, transparent);
+           box-shadow: 0 0 10px #22c55e;
+           animation: scan 2s linear infinite;
+       }
 
-        .image-preview-container:hover .remove-image-btn {
-            opacity: 1;
-        }
+       .processing-pulse {
+           animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+       }
 
-        /* Edit modal styles */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-    </style>
+       @keyframes pulse-ring {
+           0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+           70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+           100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+       }
+
+       .live-indicator {
+           display: inline-flex;
+           align-items: center;
+           gap: 6px;
+       }
+
+       .live-dot {
+           width: 8px;
+           height: 8px;
+           background-color: #ef4444;
+           border-radius: 50%;
+           animation: live-pulse 2s infinite;
+       }
+
+       @keyframes live-pulse {
+           0%, 100% { opacity: 1; }
+           50% { opacity: 0.5; }
+       }
+
+       .product-row {
+           transition: all 0.3s ease;
+       }
+
+       .product-row:hover {
+           background-color: #f0fdf4;
+           transform: translateX(4px);
+       }
+
+       .product-row.confirmed {
+           background-color: #dcfce7;
+           border-left: 4px solid #22c55e;
+       }
+
+       .product-row.rejected {
+           opacity: 0.5;
+           background-color: #fee2e2;
+           border-left: 4px solid #ef4444;
+       }
+
+       .progress-bar-striped {
+           background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+           background-size: 1rem 1rem;
+           animation: progress-bar-stripes 1s linear infinite;
+       }
+
+       @keyframes progress-bar-stripes {
+           0% { background-position: 1rem 0; }
+           100% { background-position: 0 0; }
+       }
+   </style>
 </head>
 <body class="text-earth-800 antialiased">
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
-        <!-- Floating Background Elements -->
-        <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
-        <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
-        <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
-        
-        <div class="relative z-10 w-full max-w-md px-6">
-            <!-- Store Image Badge -->
-            <div class="flex justify-center mb-8">
-                <div class="relative group cursor-pointer">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
-                    <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl store-image-bg transform group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-gradient-to-t from-brand-900/60 to-transparent"></div>
-                        <div class="absolute bottom-2 left-0 right-0 text-center">
-                            <i class="fas fa-store text-white/80 text-xs"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                <!-- Decorative Corner -->
-                <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
-                
-                <div class="relative z-10">
-                    <div class="text-center mb-8">
-                        <h1 class="font-display text-3xl font-bold text-earth-900 mb-2 tracking-tight">Admin Portal</h1>
-                        <p class="text-earth-500 text-sm">Lwandeti Junction Minimart</p>
-                    </div>
-
-                    <form onsubmit="event.preventDefault(); login();" class="space-y-5">
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-user text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
-                            </div>
-                            <input type="text" id="username" required placeholder="Username" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
-                        </div>
-
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
-                            </div>
-                            <input type="password" id="password" required placeholder="Password" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
-                        </div>
-
-                        <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-2xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/30 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                            Verify Access
-                        </button>
-                    </form>
-
-                    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-earth-400">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Secure Connection</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Store Location Tag -->
-            <div class="mt-6 text-center">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
-                    <i class="fas fa-map-marker-alt text-orange-400"></i>
-                    <span>Lwandeti, Kenya</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Dashboard -->
-    <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
-        <!-- Header -->
-        <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
-            <div class="container mx-auto px-6 py-4">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <!-- Mini Store Image in Header -->
-                        <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 store-image-bg shadow-lg hidden md:block"></div>
-                        <div>
-                            <h1 class="font-display font-bold text-lg tracking-tight">Lwandeti Junction</h1>
-                            <p class="text-white/60 text-xs font-medium uppercase tracking-wider">Management Hub</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
-                            <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
-                            <span class="hidden sm:inline">Export PDF</span>
-                        </button>
-                        <button onclick="logout()" class="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-xl text-xs font-semibold transition-all duration-300 border border-red-500/30">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span class="hidden sm:inline">Logout</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <div class="container mx-auto px-4 sm:px-6 py-8">
-            <!-- Navigation Tabs -->
-            <div class="mb-8 overflow-x-auto scroll-hide">
-                <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
-                    <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
-                        <i class="fas fa-boxes"></i>
-                        <span>Inventory</span>
-                    </button>
-                    <button onclick="switchTab('categories')" id="tab-categories" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50">
-                        <i class="fas fa-folder-tree"></i>
-                        <span>Departments</span>
-                    </button>
-                    <button onclick="switchTab('ai')" id="tab-ai" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50 relative overflow-hidden">
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity"></div>
-                        <i class="fas fa-robot text-blue-500"></i>
-                        <span>AI Scanner</span>
-                        <span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-bold">NEW</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Inventory Tab -->
-            <div id="view-inventory" class="tab-content animate-fade-in">
-                <div class="grid xl:grid-cols-12 gap-6">
-                    <!-- Add Product Form -->
-                    <div class="xl:col-span-4">
-                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
-                            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
-                                        <i class="fas fa-plus"></i>
-                                    </div>
-                                    <div>
-                                        <h2 class="font-display font-bold text-earth-900">New Product</h2>
-                                        <p class="text-xs text-earth-500">Add to inventory</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <form onsubmit="event.preventDefault(); saveProduct();" class="p-6 space-y-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
-                                    <input type="text" id="prodName" required placeholder="e.g., Fresh Milk" 
-                                        class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
-                                        <div class="relative">
-                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                                            <input type="number" id="prodPrice" required placeholder="0.00" 
-                                                class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
-                                        <input type="text" id="prodUnit" required placeholder="e.g., pcs, kg" 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Category</label>
-                                        <select id="prodCategory" required onchange="updateSubSelect('prod')" 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
-                                            <option value="">Select...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-Category</label>
-                                        <select id="prodSubCategory" required 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
-                                            <option value="">Select...</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Enhanced Image Input Section -->
-                                <div>
-                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
-                                    
-                                    <!-- Image Preview Container -->
-                                    <div id="imagePreviewContainer" class="hidden mb-3">
-                                        <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
-                                            <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
-                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button type="button" onclick="removeImage()" class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
-                                                    <i class="fas fa-trash-alt mr-2"></i>Remove
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Upload Method Toggle -->
-                                    <div class="flex gap-2 mb-3">
-                                        <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
-                                            <i class="fas fa-upload mr-1"></i> Upload File
-                                        </button>
-                                        <button type="button" onclick="switchImageInput('url')" id="btn-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
-                                            <i class="fas fa-link mr-1"></i> Image URL
-                                        </button>
-                                    </div>
-
-                                    <!-- File Upload Zone -->
-                                    <div id="fileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
-                                        <input type="file" id="prodImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
-                                        <div class="pointer-events-none">
-                                            <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
-                                            <p class="text-xs text-earth-600 font-medium">Drop image here or click to browse</p>
-                                            <p class="text-[10px] text-earth-400 mt-1">Supports JPG, PNG, WebP</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- URL Input (Hidden by default) -->
-                                    <div id="urlInputZone" class="hidden relative">
-                                        <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                        <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" 
-                                            class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
-                                            oninput="handleUrlInput(this.value)">
-                                    </div>
-
-                                    <!-- Upload Progress -->
-                                    <div id="uploadProgress" class="hidden mt-3">
-                                        <div class="flex justify-between text-xs text-earth-600 mb-1">
-                                            <span>Uploading...</span>
-                                            <span id="uploadPercent">0%</span>
-                                        </div>
-                                        <div class="w-full bg-earth-200 rounded-full h-2">
-                                            <div id="uploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-
-                                    <input type="hidden" id="finalImageUrl" value="">
-                                </div>
-
-                                <button type="submit" id="submitProductBtn" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
-                                    <i class="fas fa-check-circle"></i>
-                                    Commit to Stock
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Products List -->
-                    <div class="xl:col-span-8">
-                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
-                            <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <h2 class="font-display font-bold text-earth-900 text-lg">Current Stock</h2>
-                                    <p class="text-sm text-earth-500" id="productCount">Loading items...</p>
-                                </div>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" 
-                                        class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
-                                </div>
-                            </div>
-                            
-                            <div class="p-6">
-                                <div id="productsList" class="grid gap-3">
-                                    <!-- Products injected here -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AI Scanner Tab -->
-            <div id="view-ai" class="tab-content hidden animate-fade-in">
-                <div class="max-w-4xl mx-auto">
-                    <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
-                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
-                            <div class="flex items-center gap-4 mb-2">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                                    <i class="fas fa-brain text-xl"></i>
-                                </div>
-                                <div>
-                                    <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
-                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-8">
-                            <!-- Upload Zone -->
-                            <div class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
-                                <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                                <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50">
-                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner">
-                                        <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
-                                    </div>
-                                    <h3 class="font-display font-bold text-xl text-earth-800 mb-2">Drop files or click to upload</h3>
-                                    <p class="text-earth-500 text-sm max-w-md mx-auto">Upload receipts, product lists, or shelf photos. Our AI will extract product data automatically.</p>
-                                </div>
-                            </div>
-
-                            <!-- Supported Types -->
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-file-invoice"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Written Lists</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-blue-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-camera"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Product Photos</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-orange-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-receipt"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Receipts</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-red-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">PDF Documents</span>
-                                </div>
-                            </div>
-
-                            <!-- Results Section -->
-                            <div id="aiReviewSection" class="hidden mt-8">
-                                <div class="flex items-center justify-between mb-6">
-                                    <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
-                                    <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
-                                </div>
-                                
-                                <div class="overflow-hidden rounded-2xl border border-earth-200">
-                                    <table class="w-full text-left">
-                                        <thead class="bg-earth-50 border-b border-earth-200">
-                                            <tr>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100">
-                                            <!-- Results injected here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <button onclick="saveAIScannedItems(this)" class="mt-6 w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                                    Confirm All Items
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Categories Tab -->
-            <div id="view-categories" class="tab-content hidden animate-fade-in">
-                <div class="max-w-2xl mx-auto">
-                    <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
-                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-orange-50/50 to-transparent">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-                                    <i class="fas fa-sitemap"></i>
-                                </div>
-                                <div>
-                                    <h2 class="font-display font-bold text-2xl text-earth-900">Department Manager</h2>
-                                    <p class="text-earth-500 text-sm">Organize your store structure</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-8">
-                            <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-6">
-                                <div>
-                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Department Name</label>
-                                    <input type="text" id="catName" required placeholder="e.g., Groceries, Beverages" 
-                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-lg font-display font-medium">
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-categories</label>
-                                    <textarea id="catSubs" placeholder="Fresh Produce, Canned Goods, Snacks (comma separated)" 
-                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-sm h-32 resize-none"></textarea>
-                                    <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
-                                </div>
-
-                                <!-- Current Departments Preview -->
-                                <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
-                                    <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
-                                    <div id="categoriesPreview" class="flex flex-wrap gap-2">
-                                        <!-- Categories injected here -->
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="w-full bg-gradient-to-r from-earth-800 to-earth-900 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
-                                    <i class="fas fa-save"></i>
-                                    Update Department
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Product Modal -->
-    <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-fade-in">
-            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent flex justify-between items-center">
-                <div>
-                    <h3 class="font-display font-bold text-xl text-earth-900">Edit Product</h3>
-                    <p class="text-xs text-earth-500">Update product details</p>
-                </div>
-                <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <form onsubmit="event.preventDefault(); updateProduct();" class="p-6 space-y-4">
-                <input type="hidden" id="editProductId">
-                
-                <div>
-                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
-                    <input type="text" id="editProdName" required 
-                        class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                            <input type="number" id="editProdPrice" required 
-                                class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
-                        <input type="text" id="editProdUnit" required 
-                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
-                    </div>
-                </div>
-
-                <!-- Edit Image Section -->
-                <div>
-                    <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
-                    
-                    <!-- Current Image Preview -->
-                    <div id="editImagePreviewContainer" class="mb-3">
-                        <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
-                            <img id="editImagePreview" src="" alt="Current" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span class="text-white text-sm font-medium">Current Image</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Edit Upload Method Toggle -->
-                    <div class="flex gap-2 mb-3">
-                        <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
-                            <i class="fas fa-upload mr-1"></i> New File
-                        </button>
-                        <button type="button" onclick="switchEditImageInput('url')" id="btn-edit-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
-                            <i class="fas fa-link mr-1"></i> New URL
-                        </button>
-                    </div>
-
-                    <!-- Edit File Upload Zone -->
-                    <div id="editFileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
-                        <input type="file" id="editProdImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleEditFileSelect(event)">
-                        <div class="pointer-events-none">
-                            <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
-                            <p class="text-xs text-earth-600 font-medium">Upload new image</p>
-                        </div>
-                    </div>
-
-                    <!-- Edit URL Input -->
-                    <div id="editUrlInputZone" class="hidden relative">
-                        <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                        <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" 
-                            class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
-                            oninput="handleEditUrlInput(this.value)">
-                    </div>
-
-                    <!-- Edit Upload Progress -->
-                    <div id="editUploadProgress" class="hidden mt-3">
-                        <div class="flex justify-between text-xs text-earth-600 mb-1">
-                            <span>Uploading...</span>
-                            <span id="editUploadPercent">0%</span>
-                        </div>
-                        <div class="w-full bg-earth-200 rounded-full h-2">
-                            <div id="editUploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="editFinalImageUrl" value="">
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeEditModal()" class="flex-1 py-3 bg-earth-100 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-200 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" id="updateProductBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm shadow-lg shadow-brand-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        Update Product
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-500 z-50">
-        <div class="bg-earth-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
-            <i class="fas fa-check-circle text-brand-400 text-xl"></i>
-            <div>
-                <p class="font-bold text-sm" id="toastTitle">Success</p>
-                <p class="text-xs text-white/70" id="toastMessage">Operation completed</p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
-            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
-            projectId: "lwandeti-junction-minimart",
-            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
-            messagingSenderId: "282672112956",
-            appId: "1:282672112956:web:1a85643cc1f3c410676a39"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        let products = [], categories = [], tempExtracted = [];
-        let currentImageFile = null;
-        let editCurrentImageFile = null;
-
-        function showToast(title, message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        function login() {
-            if(document.getElementById('username').value === 'ADMINISTRATOR' && document.getElementById('password').value === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
-                
-                const loginScreen = document.getElementById('loginScreen');
-                loginScreen.style.opacity = '0';
-                loginScreen.style.transition = 'opacity 0.5s ease';
-                
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    document.getElementById('adminDashboard').classList.remove('hidden');
-                    syncData();
-                }, 500);
-            } else {
-                showToast('Error', 'Invalid credentials');
-            }
-        }
-
-        function logout() { 
-            sessionStorage.removeItem('admin_auth'); 
-            location.reload(); 
-        }
-
-        window.onload = function() {
-            if(sessionStorage.getItem('admin_auth')) {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                syncData();
-            }
-        };
-
-        function syncData() {
-            db.collection('categories').onSnapshot(snap => {
-                categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                updateSelects();
-                renderCategoriesPreview();
-            });
-            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderProducts();
-                document.getElementById('productCount').textContent = `${products.length} items in stock`;
-            });
-        }
-
-        function updateSelects() {
-            const el = document.getElementById('prodCategory');
-            el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        }
-
-        function updateSubSelect(prefix) {
-            const cat = categories.find(c => c.name === document.getElementById(`${prefix}Category`).value);
-            const subEl = document.getElementById(`${prefix}SubCategory`);
-            subEl.innerHTML = cat ? cat.subs.map(s => `<option value="${s}">${s}</option>`).join('') : '<option>No sub-categories</option>';
-        }
-
-        // Image handling functions for Add Product
-        function switchImageInput(method) {
-            const fileBtn = document.getElementById('btn-file-input');
-            const urlBtn = document.getElementById('btn-url-input');
-            const fileZone = document.getElementById('fileInputZone');
-            const urlZone = document.getElementById('urlInputZone');
-
-            if (method === 'file') {
-                fileBtn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                fileBtn.classList.remove('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                urlBtn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                urlBtn.classList.add('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                fileZone.classList.remove('hidden');
-                urlZone.classList.add('hidden');
-            } else {
-                urlBtn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                urlBtn.classList.remove('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                fileBtn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                fileBtn.classList.add('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                urlZone.classList.remove('hidden');
-                fileZone.classList.add('hidden');
-            }
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                showToast('Error', 'Please select an image file');
-                return;
-            }
-
-            currentImageFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showImagePreview(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function handleUrlInput(url) {
-            if (url && isValidUrl(url)) {
-                showImagePreview(url);
-                document.getElementById('finalImageUrl').value = url;
-            }
-        }
-
-        function isValidUrl(string) {
-            try {
-                new URL(string);
-                return true;
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function showImagePreview(src) {
-            const container = document.getElementById('imagePreviewContainer');
-            const img = document.getElementById('imagePreview');
-            img.src = src;
-            container.classList.remove('hidden');
-        }
-
-        function removeImage() {
-            currentImageFile = null;
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            document.getElementById('prodImageFile').value = '';
-            document.getElementById('prodImageUrl').value = '';
-            document.getElementById('finalImageUrl').value = '';
-        }
-
-        async function uploadImageToStorage(file, progressBarId, percentId) {
-            return new Promise((resolve, reject) => {
-                const timestamp = new Date().getTime();
-                const filename = `products/${timestamp}_${file.name}`;
-                const storageRef = storage.ref(filename);
-                const uploadTask = storageRef.put(file);
-
-                uploadTask.on('state_changed', 
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        document.getElementById(progressBarId).style.width = progress + '%';
-                        document.getElementById(percentId).textContent = Math.round(progress) + '%';
-                    },
-                    (error) => {
-                        reject(error);
-                    },
-                    () => {
-                        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                            resolve(downloadURL);
-                        });
-                    }
-                );
-            });
-        }
-
-        async function saveProduct() {
-            const btn = document.getElementById('submitProductBtn');
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            btn.disabled = true;
-
-            try {
-                let imageUrl = document.getElementById('finalImageUrl').value;
-                
-                // If there's a file to upload
-                if (currentImageFile) {
-                    document.getElementById('uploadProgress').classList.remove('hidden');
-                    imageUrl = await uploadImageToStorage(currentImageFile, 'uploadProgressBar', 'uploadPercent');
-                    document.getElementById('uploadProgress').classList.add('hidden');
-                }
-
-                // If no image provided, use placeholder
-                if (!imageUrl) {
-                    imageUrl = 'https://via.placeholder.com/150?text=No+Image';
-                }
-
-                await db.collection('products').add({
-                    name: document.getElementById('prodName').value,
-                    price: parseFloat(document.getElementById('prodPrice').value),
-                    unit: document.getElementById('prodUnit').value,
-                    category: document.getElementById('prodCategory').value,
-                    subCategory: document.getElementById('prodSubCategory').value,
-                    image: imageUrl,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Reset form
-                document.querySelector('form').reset();
-                removeImage();
-                showToast('Success', 'Product added to inventory');
-            } catch (error) {
-                console.error(error);
-                showToast('Error', 'Failed to add product');
-            } finally {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            }
-        }
-
-        function renderProducts() {
-            const search = document.getElementById('searchProducts').value.toLowerCase();
-            const filtered = products.filter(p => p.name.toLowerCase().includes(search));
-            
-            document.getElementById('productsList').innerHTML = filtered.map(p => `
-                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
-                    <div class="relative">
-                        <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-pen"></i>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
-                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
-                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
-                            <span>•</span>
-                            <span>${p.subCategory}</span>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
-                        <div class="text-xs text-earth-400">per ${p.unit}</div>
-                    </div>
-                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        // Edit Modal Functions
-        function openEditModal(productId) {
-            const product = products.find(p => p.id === productId);
-            if (!product) return;
-
-            document.getElementById('editProductId').value = productId;
-            document.getElementById('editProdName').value = product.name;
-            document.getElementById('editProdPrice').value = product.price;
-            document.getElementById('editProdUnit').value = product.unit;
-            document.getElementById('editFinalImageUrl').value = product.image;
-            
-            // Show current image
-            document.getElementById('editImagePreview').src = product.image;
-            document.getElementById('editImagePreviewContainer').classList.remove('hidden');
-            
-            // Reset edit image inputs
-            editCurrentImageFile = null;
-            document.getElementById('editProdImageFile').value = '';
-            document.getElementById('editProdImageUrl').value = '';
-            document.getElementById('editUploadProgress').classList.add('hidden');
-            switchEditImageInput('file');
-            
-            document.getElementById('editModal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-        }
-
-        function switchEditImageInput(method) {
-            const fileBtn = document.getElementById('btn-edit-file-input');
-            const urlBtn = document.getElementById('btn-edit-url-input');
-            const fileZone = document.getElementById('editFileInputZone');
-            const urlZone = document.getElementById('editUrlInputZone');
-
-            if (method === 'file') {
-                fileBtn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                fileBtn.classList.remove('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                urlBtn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                urlBtn.classList.add('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                fileZone.classList.remove('hidden');
-                urlZone.classList.add('hidden');
-            } else {
-                urlBtn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                urlBtn.classList.remove('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                fileBtn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
-                fileBtn.classList.add('bg-earth-100', 'text-earth-600', 'border-earth-200');
-                urlZone.classList.remove('hidden');
-                fileZone.classList.add('hidden');
-            }
-        }
-
-        function handleEditFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                showToast('Error', 'Please select an image file');
-                return;
-            }
-
-            editCurrentImageFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('editImagePreview').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function handleEditUrlInput(url) {
-            if (url && isValidUrl(url)) {
-                document.getElementById('editImagePreview').src = url;
-                document.getElementById('editFinalImageUrl').value = url;
-            }
-        }
-
-        async function updateProduct() {
-            const btn = document.getElementById('updateProductBtn');
-            const originalText = btn.textContent;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
-            btn.disabled = true;
-
-            try {
-                const productId = document.getElementById('editProductId').value;
-                let imageUrl = document.getElementById('editFinalImageUrl').value;
-                
-                // If there's a new file to upload
-                if (editCurrentImageFile) {
-                    document.getElementById('editUploadProgress').classList.remove('hidden');
-                    imageUrl = await uploadImageToStorage(editCurrentImageFile, 'editUploadProgressBar', 'editUploadPercent');
-                }
-
-                await db.collection('products').doc(productId).update({
-                    name: document.getElementById('editProdName').value,
-                    price: parseFloat(document.getElementById('editProdPrice').value),
-                    unit: document.getElementById('editProdUnit').value,
-                    image: imageUrl,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                closeEditModal();
-                showToast('Success', 'Product updated successfully');
-            } catch (error) {
-                console.error(error);
-                showToast('Error', 'Failed to update product');
-            } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        function renderCategoriesPreview() {
-            const container = document.getElementById('categoriesPreview');
-            if (!container) return;
-            
-            container.innerHTML = categories.map(c => `
-                <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-earth-200 rounded-lg text-xs font-medium text-earth-700 shadow-sm">
-                    <i class="fas fa-folder text-orange-400"></i>
-                    ${c.name}
-                </span>
-            `).join('') || '<span class="text-xs text-earth-400 italic">No departments yet</span>';
-        }
-
-        async function deleteProduct(id) { 
-            if(confirm('Are you sure you want to delete this product?')) {
-                await db.collection('products').doc(id).delete();
-                showToast('Deleted', 'Product removed from inventory');
-            }
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(c => {
-                c.classList.add('hidden');
-                c.classList.remove('animate-fade-in');
-            });
-            document.querySelectorAll('.tab-indicator').forEach(b => {
-                b.classList.remove('active', 'text-brand-700', 'bg-brand-50');
-                b.classList.add('text-earth-600');
-            });
-            
-            const selectedTab = document.getElementById(`view-${tab}`);
-            selectedTab.classList.remove('hidden');
-            selectedTab.classList.add('animate-fade-in');
-            
-            const btn = document.getElementById(`tab-${tab}`);
-            btn.classList.add('active', 'text-brand-700', 'bg-brand-50');
-            btn.classList.remove('text-earth-600');
-        }
-
-        async function saveCategory() {
-            const name = document.getElementById('catName').value;
-            const subs = document.getElementById('catSubs').value.split(',').map(s => s.trim()).filter(s => s);
-            
-            await db.collection('categories').add({
-                name,
-                subs,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            document.getElementById('catName').value = '';
-            document.getElementById('catSubs').value = '';
-            showToast('Success', 'Department created');
-        }
-
-        async function downloadPriceListPDF() {
-            const { jsPDF } = window.jspdf; 
-            const doc = new jsPDF();
-            
-            doc.setFillColor(20, 83, 45);
-            doc.rect(0, 0, 210, 40, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(24);
-            doc.text("Lwandeti Junction Minimart", 14, 20);
-            doc.setFontSize(12);
-            doc.text("Complete Price List", 14, 30);
-            
-            const date = new Date().toLocaleDateString();
-            doc.text(`Generated: ${date}`, 14, 36);
-            
-            doc.autoTable({ 
-                head: [['Item', 'Category', 'Unit', 'Price (KSh)']], 
-                body: products.map(p => [p.name, p.category, p.unit, p.price]), 
-                startY: 50,
-                headStyles: { fillColor: [22, 197, 94] },
-                alternateRowStyles: { fillColor: [240, 253, 244] }
-            });
-            
-            doc.save('Lwandeti_Price_List.pdf');
-            showToast('Downloaded', 'PDF saved successfully');
-        }
-
-        async function handleAIUpload(e) {
-            const files = Array.from(e.target.files);
-            showToast('Processing', `Scanning ${files.length} documents...`);
-            
-            setTimeout(() => {
-                tempExtracted = [
-                    { name: "Fresh Milk 500ml", price: 55, category: "Dairy", unit: "bottle" },
-                    { name: "Wheat Bread", price: 45, category: "Bakery", unit: "loaf" },
-                    { name: "Cooking Oil 1L", price: 180, category: "Groceries", unit: "bottle" }
-                ];
-                
-                document.getElementById('aiReviewSection').classList.remove('hidden');
-                document.getElementById('aiCount').textContent = `${tempExtracted.length} items detected`;
-                
-                document.getElementById('aiResultsTable').innerHTML = tempExtracted.map((item, idx) => `
-                    <tr class="hover:bg-earth-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-earth-900">${item.name}</td>
-                        <td class="px-6 py-4 text-brand-600 font-bold">KSh ${item.price}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold">${item.category}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <button class="text-earth-400 hover:text-red-500 transition-colors">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }, 1500);
-        }
-
-        async function saveAIScannedItems(btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            
-            for (let item of tempExtracted) {
-                await db.collection('products').add({
-                    ...item,
-                    image: 'https://via.placeholder.com/150',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            showToast('Success', `${tempExtracted.length} items added to inventory`);
-            document.getElementById('aiReviewSection').classList.add('hidden');
-            btn.innerHTML = 'Confirm All Items';
-        }
-
-        // Drag and drop support
-        const uploadZone = document.getElementById('fileInputZone');
-        if (uploadZone) {
-            uploadZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadZone.classList.add('dragover');
-            });
-            
-            uploadZone.addEventListener('dragleave', () => {
-                uploadZone.classList.remove('dragover');
-            });
-            
-            uploadZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadZone.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    document.getElementById('prodImageFile').files = files;
-                    handleFileSelect({ target: { files: files } });
-                }
-            });
-        }
-
-        // Add fade-in animation style
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fade-in {
-                from { opacity: 0; transform: translateY(10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .animate-fade-in {
-                animation: fade-in 0.4s ease-out;
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
-</body>
-</html>
+   <!-- Login Screen -->
+   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
+       <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
+       <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
+       <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
+       
+       <div class="relative z-10 w-full max-w-md px-6">
+           <div class="flex justify-center mb-8">
+               <div class="relative group cursor-pointer">
+                   <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
+                   <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl store-image-bg transform group-hover:scale-105 transition-transform duration-500">
+                       <div class="absolute inset-0 bg-gradient-to-t from-brand-900/60 to-transparent"></div>
+                       <div class="absolute bottom-2 left-0 right-0 text-center">
+                           <i class="fas fa-store text-white/80 text-xs"></i>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+               <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
+               
+               <div class="relative z-10">
+                   <div class="text-center mb-8">
+                       <h1 class="font-display text-3xl font-bold text-earth-900 mb-2 tracking-tight">Admin Portal</h1>
+                       <p class="text-earth-500 text-sm">Lwandeti Junction Minimart</p>
+                   </div>
+
+                   <form onsubmit="event.preventDefault(); login();" class="space-y-5">
+                       <div class="relative group">
+                           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                               <i class="fas fa-user text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
+                           </div>
+                           <input type="text" id="username" required placeholder="Username" 
+                               class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                       </div>
+
+                       <div class="relative group">
+                           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                               <i class="fas fa-lock text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
+                           </div>
+                           <input type="password" id="password" required placeholder="Password" 
+                               class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                       </div>
+
+                       <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-2xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/30 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                           Verify Access
+                       </button>
+                   </form>
+
+                   <div class="mt-6 flex items-center justify-center gap-2 text-xs text-earth-400">
+                       <i class="fas fa-shield-alt"></i>
+                       <span>Secure Connection</span>
+                   </div>
+               </div>
+           </div>
+
+           <div class="mt-6 text-center">
+               <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
+                   <i class="fas fa-map-marker-alt text-orange-400"></i>
+                   <span>Lwandeti, Kenya</span>
+               </div>
+           </div>
+       </div>
+   </div>
+
+   <!-- Admin Dashboard -->
+   <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
+       <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
+           <div class="container mx-auto px-6 py-4">
+               <div class="flex justify-between items-center">
+                   <div class="flex items-center gap-4">
+                       <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 store-image-bg shadow-lg hidden md:block"></div>
+                       <div>
+                           <h1 class="font-display font-bold text-lg tracking-tight">Lwandeti Junction</h1>
+                           <p class="text-white/60 text-xs font-medium uppercase tracking-wider">Management Hub</p>
+                       </div>
+                   </div>
+                   
+                   <div class="flex items-center gap-3">
+                       <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
+                           <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
+                           <span class="hidden sm:inline">Export PDF</span>
+                       </button>
+                       <button onclick="logout()" class="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-xl text-xs font-semibold transition-all duration-300 border border-red-500/30">
+                           <i class="fas fa-sign-out-alt"></i>
+                           <span class="hidden sm:inline">Logout</span>
+                       </button>
+                   </div>
+               </div>
+           </div>
+       </header>
+
+       <div class="container mx-auto px-4 sm:px-6 py-8">
+           <div class="mb-8 overflow-x-auto scroll-hide">
+               <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
+                   <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
+                       <i class="fas fa-boxes"></i>
+                       <span>Inventory</span>
+                   </button>
+                   <button onclick="switchTab('categories')" id="tab-categories" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50">
+                       <i class="fas fa-folder-tree"></i>
+                       <span>Departments</span>
+                   </button>
+                   <button onclick="switchTab('ai')" id="tab-ai" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50 relative overflow-hidden">
+                       <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+                       <i class="fas fa-robot text-blue-500"></i>
+                       <span>AI Scanner</span>
+                       <span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-bold">LIVE</span>
+                   </button>
+               </div>
+           </div>
+
+           <!-- Inventory Tab -->
+           <div id="view-inventory" class="tab-content animate-fade-in">
+               <div class="grid xl:grid-cols-12 gap-6">
+                   <div class="xl:col-span-4">
+                       <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
+                           <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
+                               <div class="flex items-center gap-3 mb-1">
+                                   <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
+                                       <i class="fas fa-plus"></i>
+                                   </div>
+                                   <div>
+                                       <h2 class="font-display font-bold text-earth-900">New Product</h2>
+                                       <p class="text-xs text-earth-500">Add to inventory</p>
+                                   </div>
+                               </div>
+                           </div>
+                           
+                           <form onsubmit="event.preventDefault(); saveProduct();" class="p-6 space-y-4">
+                               <div>
+                                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
+                                   <input type="text" id="prodName" required placeholder="e.g., Fresh Milk" 
+                                       class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                               </div>
+
+                               <div class="grid grid-cols-2 gap-4">
+                                   <div>
+                                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
+                                       <div class="relative">
+                                           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
+                                           <input type="number" id="prodPrice" required placeholder="0.00" 
+                                               class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                       </div>
+                                   </div>
+                                   <div>
+                                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
+                                       <input type="text" id="prodUnit" required placeholder="e.g., pcs, kg" 
+                                           class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                   </div>
+                               </div>
+
+                               <div class="grid grid-cols-2 gap-4">
+                                   <div>
+                                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Category</label>
+                                       <select id="prodCategory" required onchange="updateSubSelect('prod')" 
+                                           class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                           <option value="">Select...</option>
+                                       </select>
+                                   </div>
+                                   <div>
+                                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-Category</label>
+                                       <select id="prodSubCategory" required 
+                                           class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                           <option value="">Select...</option>
+                                       </select>
+                                   </div>
+                               </div>
+
+                               <!-- Enhanced Image Input Section -->
+                               <div>
+                                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
+                                   
+                                   <div id="imagePreviewContainer" class="hidden mb-3">
+                                       <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
+                                           <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
+                                           <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                               <button type="button" onclick="removeImage()" class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
+                                                   <i class="fas fa-trash-alt mr-2"></i>Remove
+                                               </button>
+                                           </div>
+                                       </div>
+                                   </div>
+
+                                   <div class="flex gap-2 mb-3">
+                                       <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
+                                           <i class="fas fa-upload mr-1"></i> Upload File
+                                       </button>
+                                       <button type="button" onclick="switchImageInput('url')" id="btn-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
+                                           <i class="fas fa-link mr-1"></i> Image URL
+                                       </button>
+                                   </div>
+
+                                   <div id="fileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
+                                       <input type="file" id="prodImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
+                                       <div class="pointer-events-none">
+                                           <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
+                                           <p class="text-xs text-earth-600 font-medium">Drop image here or click to browse</p>
+                                           <p class="text-[10px] text-earth-400 mt-1">Supports JPG, PNG, WebP</p>
+                                       </div>
+                                   </div>
+
+                                   <div id="urlInputZone" class="hidden relative">
+                                       <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                       <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" 
+                                           class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
+                                           oninput="handleUrlInput(this.value)">
+                                   </div>
+
+                                   <div id="uploadProgress" class="hidden mt-3">
+                                       <div class="flex justify-between text-xs text-earth-600 mb-1">
+                                           <span>Uploading...</span>
+                                           <span id="uploadPercent">0%</span>
+                                       </div>
+                                       <div class="w-full bg-earth-200 rounded-full h-2">
+                                           <div id="uploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                       </div>
+                                   </div>
+
+                                   <input type="hidden" id="finalImageUrl" value="">
+                               </div>
+
+                               <button type="submit" id="submitProductBtn" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                                   <i class="fas fa-check-circle"></i>
+                                   Commit to Stock
+                               </button>
+                           </form>
+                       </div>
+                   </div>
+
+                   <div class="xl:col-span-8">
+                       <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                           <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                               <div>
+                                   <h2 class="font-display font-bold text-earth-900 text-lg">Current Stock</h2>
+                                   <p class="text-sm text-earth-500" id="productCount">Loading items...</p>
+                               </div>
+                               <div class="relative">
+                                   <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                   <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" 
+                                       class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                               </div>
+                           </div>
+                           
+                           <div class="p-6">
+                               <div id="productsList" class="grid gap-3">
+                                   <!-- Products injected here -->
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <!-- AI Scanner Tab - Enhanced with Real-time Processing -->
+           <div id="view-ai" class="tab-content hidden animate-fade-in">
+               <div class="max-w-6xl mx-auto">
+                   <!-- Scanner Interface -->
+                   <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden mb-6">
+                       <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+                           <div class="flex items-center gap-4 mb-2">
+                               <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 processing-pulse" id="scannerIcon">
+                                   <i class="fas fa-brain text-xl"></i>
+                               </div>
+                               <div>
+                                   <h2 class="font-display font-bold text-2xl text-earth-900">Live Mass Scanner</h2>
+                                   <p class="text-earth-500 text-sm flex items-center gap-2">
+                                       <span class="live-indicator" id="liveIndicator" style="display: none;">
+                                           <span class="live-dot"></span>
+                                           <span class="text-xs font-bold text-red-500 uppercase">Live Processing</span>
+                                       </span>
+                                       <span id="scannerStatus">Ready to scan documents</span>
+                                   </p>
+                               </div>
+                           </div>
+                       </div>
+
+                       <div class="p-8">
+                           <!-- Upload Zone -->
+                           <div id="uploadZone" class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
+                               <input type="file" id="aiFileInput" class="hidden" accept="image/*,application/pdf" multiple onchange="handleAIUpload(event)">
+                               <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50 relative overflow-hidden">
+                                   <div class="scan-line hidden" id="scanLine"></div>
+                                   <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner" id="uploadIcon">
+                                       <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
+                                   </div>
+                                   <h3 class="font-display font-bold text-xl text-earth-800 mb-2">Drop files or click to upload</h3>
+                                   <p class="text-earth-500 text-sm max-w-md mx-auto mb-4">Upload receipts, product lists, or shelf photos. AI extracts products in real-time as you review.</p>
+                                   <div class="flex justify-center gap-2 text-xs text-earth-400">
+                                       <span class="px-3 py-1 bg-white rounded-full border border-earth-200">PDF</span>
+                                       <span class="px-3 py-1 bg-white rounded-full border border-earth-200">JPG</span>
+                                       <span class="px-3 py-1 bg-white rounded-full border border-earth-200">PNG</span>
+                                   </div>
+                               </div>
+                           </div>
+
+                           <!-- Processing Progress -->
+                           <div id="processingProgress" class="hidden mt-6">
+                               <div class="flex justify-between text-sm font-medium text-earth-700 mb-2">
+                                   <span id="progressText">Initializing scanner...</span>
+                                   <span id="progressPercent">0%</span>
+                               </div>
+                               <div class="w-full bg-earth-200 rounded-full h-3 overflow-hidden">
+                                   <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-300 progress-bar-striped" style="width: 0%"></div>
+                               </div>
+                               <div class="flex justify-between text-xs text-earth-500 mt-2">
+                                   <span id="pageInfo">Page 0 of 0</span>
+                                   <span id="itemsFound">0 items detected</span>
+                               </div>
+                           </div>
+
+                           <!-- Real-time Results Section -->
+                           <div id="aiResultsSection" class="hidden mt-8">
+                               <div class="flex items-center justify-between mb-6">
+                                   <div>
+                                       <h3 class="font-display font-bold text-lg text-earth-900">Detected Products</h3>
+                                       <p class="text-xs text-earth-500 mt-1">Review and confirm items as they are detected</p>
+                                   </div>
+                                   <div class="flex gap-2">
+                                       <button onclick="confirmAllItems()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/30">
+                                           <i class="fas fa-check-double mr-2"></i>Confirm All
+                                       </button>
+                                       <button onclick="clearAllItems()" class="px-4 py-2 bg-earth-200 text-earth-700 rounded-xl text-sm font-semibold hover:bg-earth-300 transition-colors">
+                                           <i class="fas fa-trash mr-2"></i>Clear
+                                       </button>
+                                   </div>
+                               </div>
+
+                               <!-- Live Detection Stream -->
+                               <div class="bg-earth-50 rounded-2xl border border-earth-200 overflow-hidden">
+                                   <div class="grid grid-cols-12 gap-4 p-4 bg-earth-100 border-b border-earth-200 text-xs font-bold text-earth-600 uppercase tracking-wider">
+                                       <div class="col-span-5">Product Name</div>
+                                       <div class="col-span-2">Price</div>
+                                       <div class="col-span-2">Category</div>
+                                       <div class="col-span-2">Status</div>
+                                       <div class="col-span-1 text-right">Action</div>
+                                   </div>
+                                   <div id="aiResultsList" class="divide-y divide-earth-200 max-h-96 overflow-y-auto">
+                                       <!-- Real-time results appear here -->
+                                   </div>
+                               </div>
+
+                               <!-- OCR Debug View (Collapsible) -->
+                               <div class="mt-4">
+                                   <button onclick="toggleDebugView()" class="flex items-center gap-2 text-xs text-earth-500 hover:text-earth-700 transition-colors">
+                                       <i class="fas fa-code"></i>
+                                       <span>View Raw OCR Text</span>
+                                       <i class="fas fa-chevron-down" id="debugChevron"></i>
+                                   </button>
+                                   <div id="debugView" class="hidden mt-3 p-4 bg-earth-900 rounded-xl text-xs font-mono text-green-400 overflow-x-auto">
+                                       <pre id="rawOcrText" class="whitespace-pre-wrap"></pre>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+
+                   <!-- Processing Log -->
+                   <div id="processingLog" class="hidden bg-white rounded-2xl shadow-sm border border-earth-200 p-6">
+                       <h4 class="font-display font-bold text-sm text-earth-700 mb-3 uppercase tracking-wider">Processing Log</h4>
+                       <div id="logContent" class="space-y-2 text-xs text-earth-600 font-mono max-h-48 overflow-y-auto">
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <!-- Categories Tab -->
+           <div id="view-categories" class="tab-content hidden animate-fade-in">
+               <div class="max-w-2xl mx-auto">
+                   <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                       <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-orange-50/50 to-transparent">
+                           <div class="flex items-center gap-4">
+                               <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                                   <i class="fas fa-sitemap"></i>
+                               </div>
+                               <div>
+                                   <h2 class="font-display font-bold text-2xl text-earth-900">Department Manager</h2>
+                                   <p class="text-earth-500 text-sm">Organize your store structure</p>
+                               </div>
+                           </div>
+                       </div>
+
+                       <div class="p-8">
+                           <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-6">
+                               <div>
+                                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Department Name</label>
+                                   <input type="text" id="catName" required placeholder="e.g., Groceries, Beverages" 
+                                       class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-lg font-display font-medium">
+                               </div>
+
+                               <div>
+                                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-categories</label>
+                                   <textarea id="catSubs" placeholder="Fresh Produce, Canned Goods, Snacks (comma separated)" 
+                                       class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-sm h-32 resize-none"></textarea>
+                                   <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
+                               </div>
+
+                               <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
+                                   <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
+                                   <div id="categoriesPreview" class="flex flex-wrap gap-2">
+                                       <!-- Categories injected here -->
+                                   </div>
+                               </div>
+
+                               <button type="submit" class="w-full bg-gradient-to-r from-earth-800 to-earth-900 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                                   <i class="fas fa-save"></i>
+                                   Update Department
+                               </button>
+                           </form>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
+   </div>
+
+   <!-- Edit Product Modal -->
+   <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+       <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-fade-in">
+           <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent flex justify-between items-center">
+               <div>
+                   <h3 class="font-display font-bold text-xl text-earth-900">Edit Product</h3>
+                   <p class="text-xs text-earth-500">Update product details</p>
+               </div>
+               <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors">
+                   <i class="fas fa-times"></i>
+               </button>
+           </div>
+           
+           <form onsubmit="event.preventDefault(); updateProduct();" class="p-6 space-y-4">
+               <input type="hidden" id="editProductId">
+               
+               <div>
+                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
+                   <input type="text" id="editProdName" required 
+                       class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+               </div>
+
+               <div class="grid grid-cols-2 gap-4">
+                   <div>
+                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
+                       <div class="relative">
+                           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
+                           <input type="number" id="editProdPrice" required 
+                               class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                       </div>
+                   </div>
+                   <div>
+                       <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
+                       <input type="text" id="editProdUnit" required 
+                           class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                   </div>
+               </div>
+
+               <div>
+                   <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
+                   
+                   <div id="editImagePreviewContainer" class="mb-3">
+                       <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
+                           <img id="editImagePreview" src="" alt="Current" class="w-full h-full object-cover">
+                           <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                               <span class="text-white text-sm font-medium">Current Image</span>
+                           </div>
+                       </div>
+                   </div>
+
+                   <div class="flex gap-2 mb-3">
+                       <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
+                           <i class="fas fa-upload mr-1"></i> New File
+                       </button>
+                       <button type="button" onclick="switchEditImageInput('url')" id="btn-edit-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
+                           <i class="fas fa-link mr-1"></i> New URL
+                       </button>
+                   </div>
+
+                   <div id="editFileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
+                       <input type="file" id="editProdImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleEditFileSelect(event)">
+                       <div class="pointer-events-none">
+                           <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
+                           <p class="text-xs text-earth-600 font-medium">Upload new image</p>
+                       </div>
+                   </div>
+
+                   <div id="editUrlInputZone" class="hidden relative">
+                       <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                       <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" 
+                           class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
+                           oninput="handleEditUrlInput(this.value)">
+                   </div>
+
+                   <div id="editUploadProgress" class="hidden mt-3">
+                       <div class="flex justify-between text-xs text-earth-600 mb-1">
+                           <span>Uploading...</span>
+                           <span id="editUploadPercent">0%</span>
+                       </div>
+                       <div class="w-full bg-earth-200 rounded-full h-2">
+                           <div id="editUploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                       </div>
+                   </div>
+
+                   <input type="hidden" id="editFinalImageUrl" value="">
+               </div>
+
+               <div class="flex gap-3 pt-4">
+                   <button type="button" onclick="closeEditModal()" class="flex-1 py-3 bg-earth-100 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-200 transition-colors">
+                       Cancel
+                   </button>
+                   <button type="submit" id="updateProductBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm shadow-lg shadow-brand-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
+                       Update Product
+                   </button>
+               </div>
+           </form>
+       </div>
+   </div>
+
+   <!-- Toast Notification -->
+   <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-500 z-50">
+       <div class="bg-earth-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+           <i class="fas fa-check-circle text-brand-400 text-xl"></i>
+           <div>
+               <p class="font-bold text-sm" id="toastTitle">Success</p>
+               <p class="text-xs text-white/70" id="toastMessage">Operation completed</p>
+           </div>
+       </div>
+   </div>
+
+   <script>
+       // Firebase Configuration
+       const firebaseConfig = {
+           apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
+           authDomain: "lwandeti-junction-minimart.firebaseapp.com",
+           projectId: "lwandeti-junction-minimart",
+           storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+           messagingSenderId: "282672112956",
+           appId: "1:282672112956:web:1a85643cc1f3c410676a39"
+       };
+       firebase.initializeApp(firebaseConfig);
+       const db = firebase.firestore();
+       const storage = firebase.storage();
+
+       // Global variables
+       let products = [], categories = [];
+       let currentImageFile = null;
+       let editCurrentImageFile = null;
+       let tesseractWorker = null;
+       let detectedItems = [];
+       let isProcessing = false;
+
+       // Initialize Tesseract Worker
+       async function initTesseract() {
+           if (!tesseractWorker) {
+               tesseractWorker = await Tesseract.createWorker('eng', 1, {
+                   logger: m => {
+                       if (m.status === 'recognizing text') {
+                           updateProgress(m.progress);
+                       }
+                   }
+               });
+           }
+       }
+
+       // Toast notification
+       function showToast(title, message) {
+           const toast = document.getElementById('toast');
+           document.getElementById('toastTitle').textContent = title;
+           document.getElementById('toastMessage').textContent = message;
+           toast.classList.remove('translate-y-20', 'opacity-0');
+           setTimeout(() => {
+               toast.classList.add('translate-y-20', 'opacity-0');
+           }, 3000);
+       }
+
+       // Login/Logout
+       function login() {
+           if(document.getElementById('username').value === 'ADMINISTRATOR' && document.getElementById('password').value === 'admin123') {
+               sessionStorage.setItem('admin_auth', 'true');
+               const loginScreen = document.getElementById('loginScreen');
+               loginScreen.style.opacity = '0';
+               loginScreen.style.transition = 'opacity 0.5s ease';
+               setTimeout(() => {
+                   loginScreen.classList.add('hidden');
+                   document.getElementById('adminDashboard').classList.remove('hidden');
+                   syncData();
+                   initTesseract();
+               }, 500);
+           } else {
+               showToast('Error', 'Invalid credentials');
+           }
+       }
+
+       function logout() { 
+           sessionStorage.removeItem('admin_auth'); 
+           location.reload(); 
+       }
+
+       window.onload = function() {
+           if(sessionStorage.getItem('admin_auth')) {
+               document.getElementById('loginScreen').classList.add('hidden');
+               document.getElementById('adminDashboard').classList.remove('hidden');
+               syncData();
+               initTesseract();
+           }
+       };
+
+       function syncData() {
+           db.collection('categories').onSnapshot(snap => {
+               categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+               updateSelects();
+               renderCategoriesPreview();
+           });
+           db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
+               products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+               renderProducts();
+               document.getElementById('productCount').textContent = `${products.length} items in stock`;
+           });
+       }
+
+       function updateSelects() {
+           const el = document.getElementById('prodCategory');
+           el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+       }
+
+       function updateSubSelect(prefix) {
+           const cat = categories.find(c => c.name === document.getElementById(`${prefix}Category`).value);
+           const subEl = document.getElementById(`${prefix}SubCategory`);
+           subEl.innerHTML = cat ? cat.subs.map(s => `<option value="${s}">${s}</option>`).join('') : '<option>No sub-categories</option>';
+       }
+
+       // Image handling functions
+       function switchImageInput(method) {
+           const fileBtn = document.getElementById('btn-file-input');
+           const urlBtn = document.getElementById('btn-url-input');
+           const fileZone = document.getElementById('fileInputZone');
+           const urlZone = document.getElementById('urlInputZone');
+
+           if (method === 'file') {
+               fileBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all';
+               urlBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all';
+               fileZone.classList.remove('hidden');
+               urlZone.classList.add('hidden');
+           } else {
+               urlBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all';
+               fileBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all';
+               urlZone.classList.remove('hidden');
+               fileZone.classList.add('hidden');
+           }
+       }
+
+       function handleFileSelect(event) {
+           const file = event.target.files[0];
+           if (!file) return;
+           if (!file.type.startsWith('image/')) {
+               showToast('Error', 'Please select an image file');
+               return;
+           }
+           currentImageFile = file;
+           const reader = new FileReader();
+           reader.onload = function(e) {
+               showImagePreview(e.target.result);
+           };
+           reader.readAsDataURL(file);
+       }
+
+       function handleUrlInput(url) {
+           if (url && isValidUrl(url)) {
+               showImagePreview(url);
+               document.getElementById('finalImageUrl').value = url;
+           }
+       }
+
+       function isValidUrl(string) {
+           try { new URL(string); return true; } catch (_) { return false; }
+       }
+
+       function showImagePreview(src) {
+           const container = document.getElementById('imagePreviewContainer');
+           const img = document.getElementById('imagePreview');
+           img.src = src;
+           container.classList.remove('hidden');
+       }
+
+       function removeImage() {
+           currentImageFile = null;
+           document.getElementById('imagePreviewContainer').classList.add('hidden');
+           document.getElementById('prodImageFile').value = '';
+           document.getElementById('prodImageUrl').value = '';
+           document.getElementById('finalImageUrl').value = '';
+       }
+
+       async function uploadImageToStorage(file, progressBarId, percentId) {
+           return new Promise((resolve, reject) => {
+               const timestamp = new Date().getTime();
+               const filename = `products/${timestamp}_${file.name}`;
+               const storageRef = storage.ref(filename);
+               const uploadTask = storageRef.put(file);
+
+               uploadTask.on('state_changed', 
+                   (snapshot) => {
+                       const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                       document.getElementById(progressBarId).style.width = progress + '%';
+                       document.getElementById(percentId).textContent = Math.round(progress) + '%';
+                   },
+                   (error) => reject(error),
+                   () => {
+                       uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                           resolve(downloadURL);
+                       });
+                   }
+               );
+           });
+       }
+
+       async function saveProduct() {
+           const btn = document.getElementById('submitProductBtn');
+           const originalContent = btn.innerHTML;
+           btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+           btn.disabled = true;
+
+           try {
+               let imageUrl = document.getElementById('finalImageUrl').value;
+               if (currentImageFile) {
+                   document.getElementById('uploadProgress').classList.remove('hidden');
+                   imageUrl = await uploadImageToStorage(currentImageFile, 'uploadProgressBar', 'uploadPercent');
+                   document.getElementById('uploadProgress').classList.add('hidden');
+               }
+               if (!imageUrl) imageUrl = 'https://via.placeholder.com/150?text=No+Image';
+
+               await db.collection('products').add({
+                   name: document.getElementById('prodName').value,
+                   price: parseFloat(document.getElementById('prodPrice').value),
+                   unit: document.getElementById('prodUnit').value,
+                   category: document.getElementById('prodCategory').value,
+                   subCategory: document.getElementById('prodSubCategory').value,
+                   image: imageUrl,
+                   createdAt: firebase.firestore.FieldValue.serverTimestamp()
+               });
+               
+               document.querySelector('form').reset();
+               removeImage();
+               showToast('Success', 'Product added to inventory');
+           } catch (error) {
+               console.error(error);
+               showToast('Error', 'Failed to add product');
+           } finally {
+               btn.innerHTML = originalContent;
+               btn.disabled = false;
+           }
+       }
+
+       function renderProducts() {
+           const search = document.getElementById('searchProducts').value.toLowerCase();
+           const filtered = products.filter(p => p.name.toLowerCase().includes(search));
+           
+           document.getElementById('productsList').innerHTML = filtered.map(p => `
+               <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
+                   <div class="relative">
+                       <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+                       <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                           <i class="fas fa-pen"></i>
+                       </div>
+                   </div>
+                   <div class="flex-1 min-w-0">
+                       <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
+                       <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
+                           <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
+                           <span>•</span>
+                           <span>${p.subCategory}</span>
+                       </div>
+                   </div>
+                   <div class="text-right">
+                       <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
+                       <div class="text-xs text-earth-400">per ${p.unit}</div>
+                   </div>
+                   <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0">
+                       <i class="fas fa-trash-alt"></i>
+                   </button>
+               </div>
+           `).join('');
+       }
+
+       // AI Scanner Functions - Real-time Processing
+       async function handleAIUpload(event) {
+           const files = Array.from(event.target.files);
+           if (files.length === 0) return;
+
+           isProcessing = true;
+           detectedItems = [];
+           
+           // UI Updates
+           document.getElementById('aiResultsSection').classList.remove('hidden');
+           document.getElementById('processingProgress').classList.remove('hidden');
+           document.getElementById('liveIndicator').style.display = 'inline-flex';
+           document.getElementById('scannerStatus').textContent = 'Processing documents...';
+           document.getElementById('scanLine').classList.remove('hidden');
+           document.getElementById('uploadZone').classList.add('pointer-events-none', 'opacity-50');
+           document.getElementById('processingLog').classList.remove('hidden');
+           
+           addLogEntry(`Starting processing of ${files.length} file(s)...`);
+
+           for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+               const file = files[fileIndex];
+               addLogEntry(`Processing file ${fileIndex + 1}/${files.length}: ${file.name}`);
+               
+               if (file.type === 'application/pdf') {
+                   await processPDF(file, fileIndex, files.length);
+               } else if (file.type.startsWith('image/')) {
+                   await processImage(file, fileIndex, files.length);
+               }
+           }
+
+           // Complete
+           isProcessing = false;
+           document.getElementById('liveIndicator').style.display = 'none';
+           document.getElementById('scannerStatus').textContent = 'Processing complete';
+           document.getElementById('scanLine').classList.add('hidden');
+           document.getElementById('uploadZone').classList.remove('pointer-events-none', 'opacity-50');
+           document.getElementById('progressBar').style.width = '100%';
+           document.getElementById('progressPercent').textContent = '100%';
+           document.getElementById('progressText').textContent = 'Complete!';
+           
+           addLogEntry('Processing complete. Review detected items above.');
+           showToast('Success', `Detected ${detectedItems.length} items. Review and confirm.`);
+       }
+
+       async function processPDF(file, fileIndex, totalFiles) {
+           addLogEntry('Loading PDF document...');
+           
+           const arrayBuffer = await file.arrayBuffer();
+           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+           const numPages = pdf.numPages;
+           
+           addLogEntry(`PDF loaded: ${numPages} pages detected`);
+           document.getElementById('pageInfo').textContent = `Processing page 1 of ${numPages}`;
+
+           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+               if (!isProcessing) break;
+
+               updateProgressText(`Processing page ${pageNum} of ${numPages}...`);
+               document.getElementById('pageInfo').textContent = `Page ${pageNum} of ${numPages}`;
+               
+               const page = await pdf.getPage(pageNum);
+               const scale = 2;
+               const viewport = page.getViewport({ scale });
+               
+               const canvas = document.createElement('canvas');
+               const context = canvas.getContext('2d');
+               canvas.height = viewport.height;
+               canvas.width = viewport.width;
+               
+               await page.render({ canvasContext: context, viewport }).promise;
+               
+               addLogEntry(`Page ${pageNum}: Running OCR...`);
+               await performOCR(canvas, `Page ${pageNum}`);
+               
+               // Update overall progress
+               const overallProgress = ((fileIndex * numPages + pageNum) / (totalFiles * numPages)) * 100;
+               document.getElementById('progressBar').style.width = overallProgress + '%';
+               document.getElementById('progressPercent').textContent = Math.round(overallProgress) + '%';
+           }
+       }
+
+       async function processImage(file, fileIndex, totalFiles) {
+           addLogEntry(`Processing image: ${file.name}`);
+           
+           const img = await createImageFromFile(file);
+           const canvas = document.createElement('canvas');
+           canvas.width = img.width;
+           canvas.height = img.height;
+           const ctx = canvas.getContext('2d');
+           ctx.drawImage(img, 0, 0);
+           
+           await performOCR(canvas, file.name);
+           
+           const progress = ((fileIndex + 1) / totalFiles) * 100;
+           document.getElementById('progressBar').style.width = progress + '%';
+           document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+       }
+
+       function createImageFromFile(file) {
+           return new Promise((resolve, reject) => {
+               const img = new Image();
+               img.onload = () => resolve(img);
+               img.onerror = reject;
+               img.src = URL.createObjectURL(file);
+           });
+       }
+
+       async function performOCR(canvas, source) {
+           try {
+               const { data: { text, lines } } = await tesseractWorker.recognize(canvas);
+               
+               // Update debug view
+               const debugText = document.getElementById('rawOcrText');
+               debugText.textContent += `\n\n=== ${source} ===\n${text}`;
+               
+               addLogEntry(`${source}: OCR complete, analyzing text...`);
+               
+               // Extract products using regex patterns
+               const extractedProducts = extractProductsFromText(text, lines);
+               
+               addLogEntry(`${source}: Found ${extractedProducts.length} potential items`);
+               
+               // Add to real-time list
+               for (const product of extractedProducts) {
+                   await addDetectedItem(product, source);
+               }
+               
+               document.getElementById('itemsFound').textContent = `${detectedItems.length} items detected`;
+               
+           } catch (error) {
+               console.error('OCR Error:', error);
+               addLogEntry(`Error processing ${source}: ${error.message}`);
+           }
+       }
+
+       function extractProductsFromText(text, lines) {
+           const products = [];
+           const lines_array = text.split('\n').filter(line => line.trim());
+           
+           // Regex patterns for price detection (KSh or plain numbers)
+           const pricePatterns = [
+               /KSh\s*[\d,]+(?:\.\d{2})?/gi,
+               /[\d,]+(?:\.\d{2})?\s*(?:KSh|KSH|ksh)/gi,
+               /(?:^|\s)[\d,]+(?:\.\d{2})?(?=\s|$)/g
+           ];
+           
+           // Process each line
+           for (let i = 0; i < lines_array.length; i++) {
+               const line = lines_array[i].trim();
+               if (line.length < 3) continue;
+               
+               // Skip common non-product lines
+               const skipPatterns = /(?:total|subtotal|tax|vat|change|balance|date|time|receipt|invoice|tel|phone|email|www|http)/i;
+               if (skipPatterns.test(line)) continue;
+               
+               // Look for price in line
+               let price = null;
+               let priceMatch = null;
+               
+               for (const pattern of pricePatterns) {
+                   const matches = line.match(pattern);
+                   if (matches && matches.length > 0) {
+                       // Take the last match (usually the price at end of line)
+                       priceMatch = matches[matches.length - 1];
+                       const numericMatch = priceMatch.match(/[\d,]+(?:\.\d{2})?/);
+                       if (numericMatch) {
+                           price = parseFloat(numericMatch[0].replace(/,/g, ''));
+                           break;
+                       }
+                   }
+               }
+               
+               if (price && price > 0 && price < 100000) {
+                   // Extract product name (remove price from line)
+                   let name = line.replace(priceMatch, '').trim();
+                   
+                   // Clean up name
+                   name = name.replace(/[^\w\s\-']/g, ' ').replace(/\s+/g, ' ').trim();
+                   
+                   if (name.length > 2) {
+                       products.push({
+                           name: name,
+                           price: price,
+                           unit: 'pcs',
+                           category: detectCategory(name),
+                           confidence: 'medium',
+                           rawLine: line
+                       });
+                   }
+               }
+           }
+           
+           return products;
+       }
+
+       function detectCategory(name) {
+           const name_lower = name.toLowerCase();
+           const keywords = {
+               'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg'],
+               'Bakery': ['bread', 'cake', 'pastry', 'bun', 'roll', 'toast'],
+               'Beverages': ['water', 'soda', 'juice', 'tea', 'coffee', 'drink'],
+               'Produce': ['apple', 'banana', 'tomato', 'onion', 'potato', 'vegetable', 'fruit'],
+               'Meat': ['chicken', 'beef', 'pork', 'fish', 'meat', 'sausage'],
+               'Grains': ['rice', 'flour', 'wheat', 'pasta', 'noodle', 'cereal'],
+               'Cleaning': ['soap', 'detergent', 'cleaner', 'wash', 'bleach']
+           };
+           
+           for (const [category, words] of Object.entries(keywords)) {
+               if (words.some(word => name_lower.includes(word))) {
+                   return category;
+               }
+           }
+           return 'General';
+       }
+
+       async function addDetectedItem(product, source) {
+           // Check for duplicates
+           const isDuplicate = detectedItems.some(item => 
+               item.name.toLowerCase() === product.name.toLowerCase() && 
+               Math.abs(item.price - product.price) < 0.01
+           );
+           
+           if (isDuplicate) {
+               addLogEntry(`Skipped duplicate: ${product.name}`);
+               return;
+           }
+           
+           const itemId = Date.now() + Math.random().toString(36).substr(2, 9);
+           const item = { ...product, id: itemId, status: 'pending', source };
+           detectedItems.push(item);
+           
+           // Render immediately
+           renderDetectedItem(item);
+           
+           // Scroll to new item
+           const list = document.getElementById('aiResultsList');
+           list.scrollTop = list.scrollHeight;
+       }
+
+       function renderDetectedItem(item) {
+           const list = document.getElementById('aiResultsList');
+           const div = document.createElement('div');
+           div.id = `item-${item.id}`;
+           div.className = `product-row grid grid-cols-12 gap-4 p-4 items-center ${item.status === 'confirmed' ? 'confirmed' : ''} ${item.status === 'rejected' ? 'rejected' : ''}`;
+           div.innerHTML = `
+               <div class="col-span-5">
+                   <input type="text" value="${item.name}" onchange="updateItem('${item.id}', 'name', this.value)" 
+                       class="w-full px-3 py-2
