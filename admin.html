@@ -23,6 +23,19 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .upload-label { cursor: pointer; transition: all 0.3s; }
         .upload-label:hover { background: #ecfdf5; border-color: #10b981; }
+
+        /* Unified Background Effects from Storefront */
+        .hero-bg {
+            background-image: url('https://files.catbox.moe/4ika9g.jpg');
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: fixed;
+            position: relative;
+        }
+        .hero-overlay { 
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(6, 78, 59, 0.8) 50%, rgba(217, 119, 6, 0.7) 100%); 
+        }
+        .text-shadow { text-shadow: 2px 2px 8px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -32,68 +45,81 @@
         <span id="toastMessage">Done</span>
     </div>
 
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-emerald-900 p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
-            <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center hero-bg p-4">
+        <div class="hero-overlay absolute inset-0"></div>
+        <div class="bg-white/95 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl w-full max-w-md text-center relative z-10">
+            <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-6 shadow-lg">
                 <i class="fas fa-user-shield"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800 mb-2">Admin Login</h1>
-            <p class="text-gray-500 text-sm mb-6">Lwandeti Junction Minimart Management</p>
-            <input type="text" id="username" placeholder="Username" class="w-full px-5 py-4 rounded-2xl border-2 mb-3 outline-none focus:border-emerald-500 transition-all">
-            <input type="password" id="password" placeholder="Password" class="w-full px-5 py-4 rounded-2xl border-2 mb-4 outline-none focus:border-emerald-500 transition-all">
-            <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all">Access Dashboard</button>
+            <h1 class="text-3xl font-black text-emerald-900 mb-2 tracking-tighter uppercase">Admin Portal</h1>
+            <p class="text-gray-500 text-sm mb-8 font-medium uppercase tracking-widest">Store Management System</p>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500 transition-all bg-white">
+                <input type="password" id="password" placeholder="Password" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500 transition-all bg-white">
+                <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 shadow-xl transition-all transform active:scale-95">Verify Identity</button>
+            </div>
+            <p class="mt-8 text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">Authorized Access Only</p>
         </div>
     </div>
 
     <div id="adminDashboard" class="hidden min-h-screen">
-        <header class="bg-emerald-800 text-white shadow-lg sticky top-0 z-40">
-            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 class="font-bold tracking-tight">LWANDETI ADMIN</h1>
+        <header class="hero-bg text-white shadow-2xl sticky top-0 z-40">
+            <div class="hero-overlay absolute inset-0"></div>
+            <div class="container mx-auto px-4 py-6 flex justify-between items-center relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center border border-white/30">
+                        <i class="fas fa-chart-line text-xs"></i>
+                    </div>
+                    <h1 class="font-black text-xl tracking-tighter uppercase text-shadow">Lwandeti Management Dashboard</h1>
+                </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="downloadPriceListPDF()" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-file-pdf text-red-400"></i> Export PDF</button>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 p-2 rounded-lg"><i class="fas fa-lock text-sm"></i></button>
+                    <button onclick="downloadPriceListPDF()" class="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border border-white/20 transition-all"><i class="fas fa-file-pdf text-orange-400"></i> Export Price List</button>
+                    <button onclick="logout()" class="bg-red-500/80 hover:bg-red-600 backdrop-blur-md p-2 px-4 rounded-xl font-bold text-xs border border-red-400/50 flex items-center gap-2 transition-all"><i class="fas fa-power-off"></i> LOGOUT</button>
                 </div>
             </div>
         </header>
 
         <div class="container mx-auto px-4 py-6">
-            <div class="flex gap-6 border-b mb-6 overflow-x-auto bg-white px-4 rounded-t-xl">
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-4 font-bold text-sm">Inventory</button>
-                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-4 font-bold text-sm">Categories</button>
-                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-4 font-bold text-sm">AI Mass Scanner</button>
+            <div class="flex gap-6 border-b mb-6 overflow-x-auto bg-white px-6 rounded-2xl shadow-sm">
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-5 font-black text-xs uppercase tracking-widest">Inventory</button>
+                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-5 font-black text-xs uppercase tracking-widest">Categories</button>
+                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-5 font-black text-xs uppercase tracking-widest text-emerald-600"><i class="fas fa-robot mr-1"></i> AI Mass Scanner</button>
             </div>
 
             <div id="view-inventory" class="tab-content">
                 <div class="grid lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-1">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-emerald-500 sticky top-24">
-                            <h2 class="font-bold mb-4">Add Product</h2>
-                            <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
-                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm outline-none focus:border-emerald-500">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="prodPrice" required placeholder="Retail Price" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
-                                    <input type="text" id="prodUnit" required placeholder="Unit (e.g. 1kg)" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border-t-8 border-emerald-500 sticky top-32">
+                            <h2 class="font-black text-emerald-900 mb-6 uppercase tracking-tight">Register New Stock</h2>
+                            <form id="productForm" onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
+                                <input type="text" id="prodName" required placeholder="Product Name" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm outline-none focus:border-emerald-500 bg-gray-50/50">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="number" id="prodPrice" required placeholder="Retail Price" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50">
+                                    <input type="text" id="prodUnit" required placeholder="Unit (e.g. 1kg)" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50">
                                 </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm"></select>
-                                    <select id="prodSubCategory" required class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm"><option value="">Sub-category</option></select>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50"></select>
+                                    <select id="prodSubCategory" required class="w-full p-4 border-2 border-gray-50 rounded-2xl text-sm bg-gray-50/50"><option value="">Sub-category</option></select>
                                 </div>
                                 <div class="flex flex-col gap-2">
-                                    <label class="upload-label flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-4 bg-gray-50/50">
-                                        <i class="fas fa-cloud-upload-alt text-emerald-500 mb-1"></i>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase" id="uploadStatus">Upload Photo</span>
+                                    <label class="upload-label flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl py-6 bg-gray-50 hover:bg-emerald-50/50">
+                                        <i class="fas fa-camera text-emerald-500 mb-2"></i>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" id="uploadStatus">Upload Product Image</span>
                                         <input type="file" class="hidden" accept="image/*" onchange="uploadImage(this, 'prodImageUrl', 'uploadStatus')">
                                     </label>
-                                    <input type="url" id="prodImageUrl" placeholder="Or paste Image URL" class="w-full p-3 border-2 border-gray-50 rounded-xl text-sm">
+                                    <input type="url" id="prodImageUrl" placeholder="Or paste Image URL" class="w-full p-3 border-2 border-gray-50 rounded-xl text-xs bg-gray-50/30">
                                 </div>
-                                <button type="submit" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all">Add to Inventory</button>
+                                <button type="submit" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-emerald-700 transition-all uppercase tracking-widest">Commit to Database</button>
                             </form>
                         </div>
                     </div>
                     <div class="lg:col-span-2">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm">
-                            <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="w-full px-4 py-3 border-2 border-gray-50 rounded-xl text-sm mb-6 outline-none focus:border-emerald-500">
-                            <div id="productsList" class="space-y-3"></div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm">
+                            <div class="relative mb-8">
+                                <input type="text" id="searchProducts" placeholder="Quick find product..." oninput="renderProducts()" class="w-full pl-12 pr-6 py-4 border-2 border-gray-50 rounded-2xl text-sm outline-none focus:border-emerald-500 bg-gray-50/50">
+                                <i class="fas fa-search absolute left-5 top-5 text-gray-300"></i>
+                            </div>
+                            <div id="productsList" class="space-y-4"></div>
                         </div>
                     </div>
                 </div>
@@ -101,50 +127,52 @@
 
             <div id="view-categories" class="tab-content hidden">
                 <div class="grid md:grid-cols-2 gap-8">
-                    <div class="bg-white p-8 rounded-2xl shadow-sm">
-                        <h2 class="font-bold text-lg mb-6" id="catFormTitle">Manage Category</h2>
-                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
+                    <div class="bg-white p-10 rounded-3xl shadow-sm border-t-8 border-orange-400">
+                        <h2 class="font-black text-2xl mb-8 uppercase tracking-tighter" id="catFormTitle">Department Manager</h2>
+                        <form id="categoryForm" onsubmit="event.preventDefault(); saveCategory();" class="space-y-5">
                             <input type="hidden" id="catId">
-                            <input type="text" id="catName" required placeholder="Category Name" class="w-full p-4 border-2 border-gray-50 rounded-xl">
-                            <textarea id="catSubs" placeholder="Sub-categories (comma separated)" class="w-full p-4 border-2 border-gray-50 rounded-xl text-sm h-24"></textarea>
-                            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Save Category</button>
+                            <input type="text" id="catName" required placeholder="Department Name (e.g. Fresh Produce)" class="w-full p-5 border-2 border-gray-50 rounded-2xl bg-gray-50/50">
+                            <textarea id="catSubs" placeholder="Sub-categories (comma separated, e.g. Veg, Fruits, Tubers)" class="w-full p-5 border-2 border-gray-50 rounded-2xl text-sm h-32 bg-gray-50/50"></textarea>
+                            <button type="submit" class="w-full bg-gray-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl">Update Category</button>
                         </form>
                     </div>
-                    <div class="bg-white p-8 rounded-2xl shadow-sm"><div id="catAdminList" class="space-y-3"></div></div>
+                    <div class="bg-white p-10 rounded-3xl shadow-sm"><div id="catAdminList" class="space-y-4"></div></div>
                 </div>
             </div>
 
             <div id="view-ai" class="tab-content hidden">
-                <div class="bg-white p-6 md:p-10 rounded-2xl shadow-sm">
-                    <div id="dropZone" class="border-4 border-dashed border-gray-100 rounded-3xl p-10 cursor-pointer hover:border-emerald-300 transition-all bg-gray-50 text-center" onclick="document.getElementById('aiFileInput').click()">
+                <div class="bg-white p-10 rounded-[3rem] shadow-sm border-t-8 border-blue-500">
+                    <div id="dropZone" class="border-4 border-dashed border-gray-100 rounded-[2.5rem] p-16 cursor-pointer hover:border-emerald-300 transition-all bg-gray-50 text-center" onclick="document.getElementById('aiFileInput').click()">
                         <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                        <i class="fas fa-camera-retro text-5xl text-emerald-600 mb-4"></i>
-                        <h3 class="text-xl font-bold">Smart Stock Mass Scanner</h3>
-                        <p class="text-gray-400 text-sm">Upload clear photos of receipts or product lists. AI will generate a table below.</p>
+                        <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-microchip text-4xl text-emerald-600"></i>
+                        </div>
+                        <h3 class="text-3xl font-black tracking-tighter mb-2">INTELLIGENT BULK UPLOAD</h3>
+                        <p class="text-gray-400 text-sm max-w-sm mx-auto">Upload images of product lists or paper receipts. Our AI will extract the names and prices automatically.</p>
                     </div>
                     
-                    <div id="scanLoader" class="hidden mt-8 text-center bg-emerald-50 p-6 rounded-2xl">
-                        <div class="loader mx-auto mb-3"></div>
-                        <p class="text-emerald-700 font-bold">AI is reading data... <span id="progressFiles">0/0</span></p>
+                    <div id="scanLoader" class="hidden mt-10 text-center bg-emerald-50 p-10 rounded-3xl border border-emerald-100">
+                        <div class="loader mx-auto mb-4"></div>
+                        <p class="text-emerald-700 font-black tracking-widest uppercase">Processing Visual Data... <span id="progressFiles" class="text-emerald-900">0/0</span></p>
                     </div>
 
-                    <div id="aiReviewSection" class="hidden mt-10">
-                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div id="aiReviewSection" class="hidden mt-12">
+                        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
                             <div>
-                                <h3 class="font-bold text-lg">Scanned Items List (<span id="detectedCount">0</span>)</h3>
-                                <p class="text-xs text-gray-500 italic">Review product names and prices before confirming.</p>
+                                <h3 class="font-black text-2xl uppercase tracking-tighter">Detected Items (<span id="detectedCount" class="text-emerald-600">0</span>)</h3>
+                                <p class="text-sm text-gray-500 font-medium">Please review and assign categories before confirming stock entry.</p>
                             </div>
-                            <button id="aiSaveBtn" onclick="saveAIScannedItems(this)" class="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all w-full md:w-auto">Confirm & Add All to Stock</button>
+                            <button id="aiSaveBtn" onclick="saveAIScannedItems(this)" class="bg-emerald-600 text-white px-12 py-5 rounded-2xl font-black shadow-2xl hover:bg-emerald-700 transition-all transform active:scale-95 uppercase tracking-widest">Confirm & Push All To Inventory</button>
                         </div>
-                        <div class="overflow-x-auto border-2 border-gray-50 rounded-2xl">
+                        <div class="overflow-x-auto border-2 border-gray-50 rounded-3xl">
                             <table class="w-full text-sm">
-                                <thead class="bg-gray-100 text-gray-600">
+                                <thead class="bg-gray-100 text-gray-600 font-black uppercase tracking-widest text-[10px]">
                                     <tr>
-                                        <th class="p-4 text-left">Product Name</th>
-                                        <th class="p-4 text-left">Price (KSh)</th>
-                                        <th class="p-4 text-left">Category</th>
-                                        <th class="p-4 text-left">Sub-Category</th>
-                                        <th class="p-4">Action</th>
+                                        <th class="p-5 text-left">Extracted Product</th>
+                                        <th class="p-5 text-left">Unit Price (KSh)</th>
+                                        <th class="p-5 text-left">Department</th>
+                                        <th class="p-5 text-left">Sub-Type</th>
+                                        <th class="p-5">Control</th>
                                     </tr>
                                 </thead>
                                 <tbody id="aiResultsTable" class="divide-y divide-gray-50"></tbody>
@@ -156,22 +184,26 @@
         </div>
     </div>
 
-    <div id="editModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-8">
-            <h3 class="font-bold text-2xl mb-6">Edit Product</h3>
+    <div id="editModal" class="hidden fixed inset-0 bg-emerald-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] max-w-lg w-full p-10 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+            <h3 class="font-black text-3xl mb-8 tracking-tighter uppercase">Modify Item Details</h3>
             <form id="editForm" onsubmit="event.preventDefault(); updateProduct();" class="space-y-4">
                 <input type="hidden" id="editId">
-                <input type="text" id="editName" required class="w-full p-4 border-2 border-gray-50 rounded-2xl">
+                <input type="text" id="editName" required class="w-full p-5 border-2 border-gray-50 rounded-2xl font-bold bg-gray-50/50">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="editPrice" required class="w-full p-4 border-2 border-gray-50 rounded-2xl">
-                    <input type="text" id="editUnit" required class="w-full p-4 border-2 border-gray-50 rounded-2xl">
+                    <input type="number" id="editPrice" required class="w-full p-5 border-2 border-gray-50 rounded-2xl font-bold bg-gray-50/50">
+                    <input type="text" id="editUnit" required class="w-full p-5 border-2 border-gray-50 rounded-2xl bg-gray-50/50">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="editCategory" required onchange="updateSubSelect('edit')" class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
-                    <select id="editSubCategory" required class="w-full p-4 border-2 border-gray-50 rounded-2xl"></select>
+                    <select id="editCategory" required onchange="updateSubSelect('edit')" class="w-full p-5 border-2 border-gray-50 rounded-2xl bg-gray-50/50"></select>
+                    <select id="editSubCategory" required class="w-full p-5 border-2 border-gray-50 rounded-2xl bg-gray-50/50"></select>
                 </div>
-                <input type="url" id="editImageUrl" placeholder="Image URL" class="w-full p-4 border-2 border-gray-50 rounded-2xl">
-                <div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold">Update</button><button type="button" onclick="closeEditModal()" class="px-8 bg-gray-100 rounded-2xl font-bold">Cancel</button></div>
+                <input type="url" id="editImageUrl" placeholder="Image URL" class="w-full p-5 border-2 border-gray-50 rounded-2xl bg-gray-50/50">
+                <div class="flex gap-4 pt-6">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl transform transition-all active:scale-95">Update Stock</button>
+                    <button type="button" onclick="closeEditModal()" class="px-8 bg-gray-100 rounded-2xl font-black uppercase tracking-widest text-xs text-gray-500">Cancel</button>
+                </div>
             </form>
         </div>
     </div>
@@ -192,7 +224,6 @@
         let products = [], categories = [], tempExtracted = [];
         let ocrWorker = null;
 
-        // --- AUTH LOGIC (Updated to require password every return) ---
         function login() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
@@ -200,7 +231,7 @@
                 sessionStorage.setItem('admin_auth', 'true');
                 showDashboard();
             } else {
-                alert('Invalid Credentials');
+                alert('Access Denied: Invalid Admin Credentials');
             }
         }
 
@@ -209,7 +240,6 @@
             location.reload();
         }
 
-        // Force password check every time page loads or returns
         window.onload = function() {
             if(sessionStorage.getItem('admin_auth')) {
                 showDashboard();
@@ -241,19 +271,18 @@
             });
         }
 
-        // --- CORE FUNCTIONS ---
         async function uploadImage(fileInput, targetUrlInputId, statusId) {
             const file = fileInput.files[0]; if(!file) return;
             const status = document.getElementById(statusId);
-            status.innerText = "Uploading...";
+            status.innerText = "Processing Image...";
             try {
                 const storageRef = storage.ref('products/' + Date.now() + '_' + file.name);
                 const snapshot = await storageRef.put(file);
                 const url = await snapshot.ref.getDownloadURL();
                 document.getElementById(targetUrlInputId).value = url;
-                status.innerText = "Complete!";
+                status.innerText = "Upload Finished!";
                 showToast('Image Uploaded');
-            } catch (error) { status.innerText = "Failed"; }
+            } catch (error) { status.innerText = "System Error"; }
         }
 
         async function saveCategory() {
@@ -267,15 +296,17 @@
             else await db.collection('categories').add(data);
             document.getElementById('categoryForm').reset();
             document.getElementById('catId').value = "";
-            showToast('Category Updated');
+            showToast('Department Inventory Updated');
         }
 
         function updateSelects() {
             ['prodCategory', 'editCategory'].forEach(id => {
                 const el = document.getElementById(id);
-                const currentVal = el.value;
-                el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-                el.value = currentVal;
+                if(el){
+                    const currentVal = el.value;
+                    el.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                    el.value = currentVal;
+                }
             });
         }
 
@@ -300,7 +331,7 @@
             };
             await db.collection('products').add(data);
             document.getElementById('productForm').reset();
-            showToast('Product Added');
+            showToast('Inventory Item Saved');
         }
 
         async function updateProduct() {
@@ -314,7 +345,7 @@
                 image: document.getElementById('editImageUrl').value
             });
             closeEditModal();
-            showToast('Updated');
+            showToast('Stock Record Updated');
         }
 
         function renderProducts() {
@@ -322,46 +353,41 @@
             const container = document.getElementById('productsList');
             const filtered = products.filter(p => p.name.toLowerCase().includes(q));
             container.innerHTML = filtered.map(p => `
-                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl group">
-                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl">
+                <div class="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-3xl group hover:shadow-md transition-all">
+                    <img src="${p.image}" class="w-14 h-14 object-cover rounded-2xl shadow-sm">
                     <div class="flex-1">
-                        <h4 class="font-bold text-sm text-gray-800">${p.name}</h4>
-                        <span class="text-[9px] uppercase font-bold text-gray-400">${p.category} > ${p.subCategory}</span>
+                        <h4 class="font-black text-emerald-900 uppercase tracking-tight text-xs">${p.name}</h4>
+                        <span class="text-[9px] uppercase font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded mt-1 inline-block">${p.category} > ${p.subCategory}</span>
                     </div>
-                    <div class="text-right mr-4 font-bold text-emerald-600">KSh ${p.price}</div>
-                    <div class="flex gap-1">
-                        <button onclick="openEditModal('${p.id}')" class="p-2 text-blue-600 bg-blue-50 rounded-lg"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 bg-red-50 rounded-lg"><i class="fas fa-trash"></i></button>
+                    <div class="text-right mr-4 font-black text-emerald-600">KSh ${p.price}</div>
+                    <div class="flex gap-2">
+                        <button onclick="openEditModal('${p.id}')" class="w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100"><i class="fas fa-pen text-xs"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 rounded-xl hover:bg-red-100"><i class="fas fa-trash-alt text-xs"></i></button>
                     </div>
                 </div>`).join('');
         }
 
         function renderCategories() {
             document.getElementById('catAdminList').innerHTML = categories.map(c => `
-                <div class="p-4 bg-gray-50 rounded-2xl border">
-                    <div class="flex justify-between mb-2"><span class="font-bold">${c.name}</span><div class="flex gap-2"><button onclick="editCategory('${c.id}')" class="text-blue-500 text-xs">Edit</button><button onclick="deleteCategory('${c.id}')" class="text-red-400 text-xs">Delete</button></div></div>
-                    <div class="flex flex-wrap gap-1">${(c.subs || []).map(s => `<span class="text-[8px] bg-white px-2 py-1 rounded border">#${s}</span>`).join('')}</div>
+                <div class="p-6 bg-gray-50 rounded-3xl border border-gray-100 hover:border-emerald-200 transition-all">
+                    <div class="flex justify-between items-center mb-4"><span class="font-black text-emerald-900 uppercase tracking-tighter text-sm">${c.name}</span><div class="flex gap-4"><button onclick="editCategory('${c.id}')" class="text-blue-500 font-bold text-[10px] uppercase">Edit</button><button onclick="deleteCategory('${c.id}')" class="text-red-400 font-bold text-[10px] uppercase">Remove</button></div></div>
+                    <div class="flex flex-wrap gap-2">${(c.subs || []).map(s => `<span class="text-[9px] bg-white px-3 py-1 rounded-full font-bold text-gray-400 shadow-sm">#${s}</span>`).join('')}</div>
                 </div>`).join('');
         }
 
-        // --- AI SCANNER OPTIMIZED LOGIC ---
         async function handleAIUpload(e) {
             const files = Array.from(e.target.files); if(!files.length) return;
             document.getElementById('scanLoader').classList.remove('hidden');
             document.getElementById('aiReviewSection').classList.add('hidden');
             document.getElementById('progressFiles').innerText = `0/${files.length}`;
             tempExtracted = [];
-
             await initOCR(); 
 
             for(let i = 0; i < files.length; i++) {
                 const { data: { text } } = await ocrWorker.recognize(files[i]);
                 document.getElementById('progressFiles').innerText = `${i+1}/${files.length}`;
-                
                 const lines = text.split('\n');
-                // Smart Regex for Product Name + Price
                 const priceRegex = /(.+?)\s+[\.\-\_]*\s*(\d{1,6}(?:\.\d{2})?)$/;
-                
                 lines.forEach(l => {
                     const match = l.match(priceRegex);
                     if(match && match[1].trim().length > 2) {
@@ -384,17 +410,17 @@
             document.getElementById('detectedCount').innerText = tempExtracted.length;
             const tbody = document.getElementById('aiResultsTable');
             tbody.innerHTML = tempExtracted.map((item, i) => `
-                <tr>
-                    <td class="p-3"><input value="${item.name}" onchange="tempExtracted[${i}].name=this.value" class="w-full bg-transparent p-1 border rounded"></td>
-                    <td class="p-3"><input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=parseFloat(this.value)" class="w-24 bg-transparent p-1 border rounded font-bold text-emerald-600"></td>
-                    <td class="p-3">
-                        <select onchange="updateAISubList(${i}, this.value)" class="p-1 border rounded text-xs">
-                            <option value="">Select</option>
+                <tr class="hover:bg-gray-50/50">
+                    <td class="p-4"><input value="${item.name}" onchange="tempExtracted[${i}].name=this.value" class="w-full bg-white p-3 border rounded-xl font-bold text-xs"></td>
+                    <td class="p-4"><input type="number" value="${item.price}" onchange="tempExtracted[${i}].price=parseFloat(this.value)" class="w-28 bg-white p-3 border rounded-xl font-black text-emerald-600"></td>
+                    <td class="p-4">
+                        <select onchange="updateAISubList(${i}, this.value)" class="w-full p-3 border rounded-xl text-[10px] font-bold uppercase bg-white">
+                            <option value="">Choose Dept</option>
                             ${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
                         </select>
                     </td>
-                    <td class="p-3" id="aiSubCol-${i}">---</td>
-                    <td class="p-3 text-center"><button onclick="tempExtracted.splice(${i},1);renderAITable()" class="text-red-500"><i class="fas fa-trash"></i></button></td>
+                    <td class="p-4" id="aiSubCol-${i}">---</td>
+                    <td class="p-4 text-center"><button onclick="tempExtracted.splice(${i},1);renderAITable()" class="w-10 h-10 text-red-400 bg-red-50 rounded-xl"><i class="fas fa-trash"></i></button></td>
                 </tr>`).join('');
         }
 
@@ -404,20 +430,16 @@
             const subCol = document.getElementById(`aiSubCol-${index}`);
             if(cat && cat.subs) {
                 subCol.innerHTML = `
-                    <select onchange="tempExtracted[${index}].subCategory=this.value" class="p-1 border rounded text-xs">
-                        <option value="">Select</option>
+                    <select onchange="tempExtracted[${index}].subCategory=this.value" class="w-full p-3 border rounded-xl text-[10px] font-bold uppercase bg-white">
+                        <option value="">Select Type</option>
                         ${cat.subs.map(s => `<option value="${s}">${s}</option>`).join('')}
                     </select>`;
-            } else {
-                subCol.innerHTML = "N/A";
-            }
+            } else { subCol.innerHTML = "---"; }
         }
 
         async function saveAIScannedItems(btn) {
             const originalText = btn.innerText;
-            btn.innerText = "Processing Bulk Save...";
-            btn.disabled = true;
-
+            btn.innerText = "Writing to Ledger..."; btn.disabled = true;
             try {
                 const batch = db.batch();
                 for (let item of tempExtracted) {
@@ -425,8 +447,8 @@
                     batch.set(ref, {
                         name: item.name,
                         price: item.price,
-                        category: item.category || "Uncategorized",
-                        subCategory: item.subCategory || "General",
+                        category: item.category || "General",
+                        subCategory: item.subCategory || "Items",
                         unit: item.unit,
                         image: 'https://via.placeholder.com/150',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -435,30 +457,26 @@
                 await batch.commit();
                 tempExtracted = [];
                 document.getElementById('aiReviewSection').classList.add('hidden');
-                showToast('All items added to inventory');
-            } catch (e) {
-                showToast('Error saving items');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+                showToast('Bulk Inventory Update Successful');
+            } catch (e) { showToast('Database Error'); } finally {
+                btn.innerText = originalText; btn.disabled = false;
             }
         }
 
-        // --- UTILS ---
         function editCategory(id) { const c = categories.find(x => x.id === id); document.getElementById('catId').value = c.id; document.getElementById('catName').value = c.name; document.getElementById('catSubs').value = (c.subs || []).join(', '); }
         function openEditModal(id) { const p = products.find(x => x.id === id); document.getElementById('editId').value = id; document.getElementById('editName').value = p.name; document.getElementById('editPrice').value = p.price; document.getElementById('editUnit').value = p.unit; document.getElementById('editCategory').value = p.category; updateSubSelect('edit', p.subCategory); document.getElementById('editImageUrl').value = p.image; document.getElementById('editModal').classList.remove('hidden'); }
         function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
         function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toastMessage').innerText = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
         function switchTab(tab) { document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden')); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById(`view-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.add('active'); }
-        async function deleteProduct(id) { if(confirm('Delete?')) await db.collection('products').doc(id).delete(); }
-        async function deleteCategory(id) { if(confirm('Delete?')) await db.collection('categories').doc(id).delete(); }
+        async function deleteProduct(id) { if(confirm('Permanent removal?')) await db.collection('products').doc(id).delete(); }
+        async function deleteCategory(id) { if(confirm('Permanent removal?')) await db.collection('categories').doc(id).delete(); }
         
         async function downloadPriceListPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.text("Lwandeti Junction Minimart - Price List", 14, 15);
+            doc.text("Lwandeti Junction Minimart - Official Price List", 14, 15);
             const data = products.map(p => [p.name, p.category, `KSh ${p.price}`]);
-            doc.autoTable({ head: [['Name', 'Category', 'Price']], body: data, startY: 20 });
-            doc.save('PriceList.pdf');
+            doc.autoTable({ head: [['Item Name', 'Department', 'Retail Price']], body: data, startY: 20 });
+            doc.save('Lwandeti_Price_List.pdf');
         }
     </script>
 </body>
