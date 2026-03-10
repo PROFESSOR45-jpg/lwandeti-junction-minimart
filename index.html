@@ -3,128 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lwandeti Junction Minimart | Premium Retail</title>
+    <title>Lwandeti Junction Minimart | Official Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <style>
+        :root { --brand-green: #064e3b; --brand-yellow: #fbbf24; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1a1a1a; scroll-behavior: smooth; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .product-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #f0f0f0; background: white; }
-        .product-card:hover { transform: translateY(-12px); border-color: #10b981; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); }
-        
-        .hero-bg {
-            background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover; background-position: center; background-attachment: fixed; position: relative;
+        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .product-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid #f3f4f6; }
+        .product-card:hover { transform: translateY(-10px); box-shadow: 0 25px 50px -12px rgba(6, 78, 59, 0.15); border-color: var(--brand-yellow); }
+        .hero-bg { 
+            background: linear-gradient(rgba(6, 78, 59, 0.9), rgba(6, 78, 59, 0.7)), url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80');
+            background-size: cover; background-position: center;
         }
-        .hero-overlay { 
-            background: linear-gradient(to right, rgba(6, 78, 59, 0.95), rgba(6, 78, 59, 0.7), transparent); 
-        }
-        .btn-premium { background: #059669; color: white; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
-        .btn-premium:hover { background: #047857; transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(5, 150, 105, 0.4); }
-        
-        .sync-indicator {
-            position: fixed; top: 100px; right: 20px; background: #10b981; color: white;
-            padding: 10px 20px; border-radius: 30px; font-size: 11px; font-weight: 800; z-index: 100;
-            display: none; align-items: center; gap: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        .sync-indicator.show { display: flex; animation: slideIn 0.5s ease forwards; }
-        @keyframes slideIn { from { transform: translateX(150%); } to { transform: translateX(0); } }
+        .btn-yellow { background: var(--brand-yellow); color: var(--brand-green); transition: all 0.3s; }
+        .btn-yellow:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(251, 191, 36, 0.3); }
     </style>
 </head>
 <body class="bg-white">
 
-    <div id="syncIndicator" class="sync-indicator">
-        <i class="fas fa-sync-alt fa-spin"></i><span>Catalog Updated</span>
-    </div>
-
-    <div class="bg-emerald-950 text-white text-[11px] py-2 font-bold tracking-widest uppercase border-b border-emerald-800">
-        <div class="container mx-auto px-6 flex justify-between items-center">
+    <div class="bg-[#043327] text-white py-2 px-6">
+        <div class="container mx-auto flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.2em]">
             <div class="flex gap-6">
-                <span class="flex items-center gap-2"><i class="fas fa-check-circle text-yellow-400"></i> Quality Guaranteed</span>
-                <span class="flex items-center gap-2"><i class="fas fa-shipping-fast text-yellow-400"></i> Local Delivery Available</span>
+                <span><i class="fas fa-phone text-brand-yellow mr-2"></i> 0117 352700</span>
+                <span><i class="fas fa-envelope text-brand-yellow mr-2"></i> junctionsupa@gmail.com</span>
             </div>
-            <div class="hidden sm:block"><i class="fas fa-map-marker-alt text-yellow-400 mr-1"></i> Lwandeti Junction, Kenya</div>
+            <span class="hidden sm:inline">Lwandeti Junction, Webuye-Eldoret Hwy</span>
         </div>
     </div>
 
-    <header class="sticky top-0 z-50 glass border-b border-gray-100">
+    <header class="sticky top-0 z-50 glass-nav border-b border-gray-100">
         <div class="container mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="#" onclick="router('home')" class="flex items-center gap-4 group">
-                <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-xl transition-transform group-hover:rotate-12">
-                    <i class="fas fa-leaf text-2xl"></i>
+            <a href="#" onclick="router('home')" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-[#064e3b] rounded-lg flex items-center justify-center text-[#fbbf24] shadow-lg">
+                    <i class="fas fa-shopping-basket"></i>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-extrabold text-emerald-950 tracking-tighter leading-none">LWANDETI <span class="text-emerald-600">JUNCTION</span></h1>
-                    <p class="text-[10px] text-gray-400 font-black tracking-[0.3em] uppercase mt-1">Premium Minimart</p>
-                </div>
+                <h1 class="text-xl font-black text-emerald-950 tracking-tighter">LWANDETI <span class="text-emerald-600">JUNCTION</span></h1>
             </a>
-
-            <div class="hidden lg:flex items-center gap-8 font-bold text-xs text-emerald-900 uppercase tracking-widest" id="desktopNav"></div>
-
-            <div class="flex items-center gap-6">
-                <div class="hidden md:flex relative">
-                    <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') handleSearch()" placeholder="Search catalog..." class="pl-10 pr-4 py-2 rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64 bg-gray-50/50">
-                    <i class="fas fa-search absolute left-4 top-3 text-gray-300"></i>
-                </div>
-                <button onclick="toggleCart()" class="relative p-2 text-emerald-950 hover:scale-110 transition">
-                    <i class="fas fa-shopping-bag text-2xl"></i>
-                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-yellow-500 text-emerald-950 text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black hidden border-2 border-white">0</span>
-                </button>
-            </div>
+            <nav class="hidden lg:flex gap-8 text-[11px] font-black uppercase tracking-widest" id="navLinks"></nav>
+            <button onclick="toggleCart()" class="relative p-2">
+                <i class="fas fa-shopping-cart text-2xl text-emerald-950"></i>
+                <span id="cartBadge" class="absolute -top-1 -right-1 bg-[#fbbf24] text-[#064e3b] text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black border-2 border-white hidden">0</span>
+            </button>
         </div>
     </header>
 
-    <main id="app" class="min-h-screen">
-        </main>
+    <div id="app"></div>
 
-    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-emerald-950/40 backdrop-blur-sm z-50 hidden transition-opacity"></div>
-    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white z-50 translate-x-full transition-transform duration-500 shadow-2xl flex flex-col">
-        <div class="p-8 border-b flex justify-between items-center bg-gray-50">
-            <div>
-                <h2 class="text-2xl font-black text-emerald-950 uppercase tracking-tighter">Your Bag</h2>
-                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Secure checkout via WhatsApp</p>
-            </div>
-            <button onclick="toggleCart()" class="w-10 h-10 rounded-full border hover:bg-white transition"><i class="fas fa-times"></i></button>
+    <div id="cartOverlay" onclick="toggleCart()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden"></div>
+    <div id="cartSidebar" class="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-50 translate-x-full transition-transform duration-500 flex flex-col">
+        <div class="p-8 bg-[#064e3b] text-white flex justify-between items-center">
+            <h2 class="text-2xl font-black uppercase tracking-tighter">Your Cart</h2>
+            <button onclick="toggleCart()"><i class="fas fa-times text-2xl"></i></button>
         </div>
-        <div id="cartItems" class="flex-1 overflow-y-auto p-8 space-y-6"></div>
-        <div class="p-8 border-t bg-white">
-            <div class="flex justify-between text-2xl font-black text-emerald-950 mb-6 uppercase tracking-tighter">
-                <span>Total:</span>
-                <span id="cartTotal">KSh 0</span>
-            </div>
-            <button onclick="checkout()" class="w-full btn-premium py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                <i class="fab fa-whatsapp text-xl"></i> Complete Purchase
+        <div id="cartItems" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50"></div>
+        <div class="p-8 border-t">
+            <div class="flex justify-between text-2xl font-black mb-6"><span>Total:</span><span id="cartTotal">KSh 0</span></div>
+            <button onclick="checkout()" class="w-full btn-yellow py-5 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                <i class="fab fa-whatsapp"></i> Order on WhatsApp
             </button>
         </div>
     </div>
 
-    <footer class="bg-emerald-950 text-white pt-24 pb-12">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-16 border-b border-emerald-900 pb-16">
-                <div class="col-span-1 md:col-span-2">
-                    <h3 class="text-3xl font-black mb-6 uppercase tracking-tighter">Lwandeti <span class="text-emerald-500">Junction</span></h3>
-                    <p class="text-emerald-200/60 leading-loose max-w-md">The definitive shopping destination for Lwandeti. We pride ourselves on sourcing quality produce and household essentials at prices that respect your budget.</p>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-6 text-yellow-500 uppercase tracking-widest text-xs">Categories</h4>
-                    <ul class="space-y-4 text-sm font-medium" id="footerCats"></ul>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-6 text-yellow-500 uppercase tracking-widest text-xs">Direct Contact</h4>
-                    <p class="text-2xl font-black mb-2">0117 352700</p>
-                    <p class="text-emerald-200/60 text-sm">Lwandeti Junction, Webuye-Eldoret Hwy</p>
-                </div>
+    <footer class="bg-[#064e3b] text-white pt-20 pb-10 mt-20">
+        <div class="container mx-auto px-6 grid md:grid-cols-3 gap-12 border-b border-white/10 pb-12">
+            <div>
+                <h3 class="text-2xl font-black mb-4">LWANDETI <span class="text-brand-yellow">JUNCTION</span></h3>
+                <p class="text-emerald-100/60 text-sm">Your premium neighborhood partner for groceries, hardware, and essentials.</p>
             </div>
-            <div class="pt-8 text-center md:text-left text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600">
-                <p>© 2026 Lwandeti Junction Minimart.</p>
+            <div>
+                <h4 class="text-brand-yellow font-black uppercase text-[10px] mb-4">Contact Us</h4>
+                <p class="text-sm">0117 352700<br>junctionsupa@gmail.com</p>
             </div>
+            <div id="footerCats"></div>
         </div>
+        <p class="text-center pt-10 text-[10px] font-bold uppercase text-emerald-700 tracking-widest">© 2026 Lwandeti Junction Minimart</p>
     </footer>
 
     <script>
@@ -140,171 +98,90 @@
         const db = firebase.firestore();
 
         let storeData = { categories: [], products: [] };
-        let cart = JSON.parse(localStorage.getItem('lwandeti_cart')) || [];
-        let currentRoute = 'home', currentParam = null;
+        let cart = JSON.parse(localStorage.getItem('junction_cart')) || [];
 
         function init() {
-            db.collection('categories').onSnapshot(snap => {
-                storeData.categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderNavigation();
+            db.collection('categories').onSnapshot(s => {
+                storeData.categories = s.docs.map(d => d.data());
+                renderNav();
             });
-            db.collection('products').onSnapshot(snap => {
-                storeData.products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                document.getElementById('syncIndicator').classList.add('show');
-                setTimeout(() => document.getElementById('syncIndicator').classList.remove('show'), 3000);
-                router(currentRoute, currentParam);
+            db.collection('products').onSnapshot(s => {
+                storeData.products = s.docs.map(d => ({id: d.id, ...d.data()}));
+                router('home');
             });
             updateCartUI();
         }
 
-        function renderNavigation() {
-            const nav = document.getElementById('desktopNav');
-            const foot = document.getElementById('footerCats');
-            const links = storeData.categories.map(c => `
-                <button onclick="router('category', '${c.name}')" class="hover:text-emerald-600 transition">${c.name}</button>
-            `).join('');
-            nav.innerHTML = `<button onclick="router('home')">Home</button><button onclick="router('all')">Shop All</button>` + links;
-            foot.innerHTML = storeData.categories.slice(0,5).map(c => `<li><a href="#" onclick="router('category', '${c.name}')">${c.name}</a></li>`).join('');
+        function renderNav() {
+            const html = `<button onclick="router('home')">Home</button>` + storeData.categories.map(c => `<button onclick="router('cat','${c.name}')">${c.name}</button>`).join('');
+            document.getElementById('navLinks').innerHTML = html;
         }
 
-        function router(route, param = null) {
-            currentRoute = route; currentParam = param;
+        function router(page, param) {
             const app = document.getElementById('app');
-            if(route === 'home') app.innerHTML = renderHome();
-            else if (route === 'all') app.innerHTML = renderListView(storeData.products, "All Products");
-            else if (route === 'category') app.innerHTML = renderListView(storeData.products.filter(p => p.category === param), param);
-            else if (route === 'search') app.innerHTML = renderListView(storeData.products.filter(p => p.name.toLowerCase().includes(param)), `Results for "${param}"`);
+            if(page === 'home') app.innerHTML = renderHome();
+            else app.innerHTML = renderList(storeData.products.filter(p => p.category === param), param);
         }
 
         function renderHome() {
-            const featured = storeData.products.slice(0, 10);
             return `
-                <section class="hero-bg min-h-[85vh] flex items-center">
-                    <div class="hero-overlay absolute inset-0"></div>
-                    <div class="container mx-auto px-6 relative z-10">
-                        <div class="max-w-4xl">
-                            <span class="bg-yellow-500 text-emerald-950 px-4 py-1 rounded font-black text-[10px] uppercase tracking-widest mb-6 inline-block">Established Quality</span>
-                            <h1 class="text-6xl md:text-9xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">Freshness <br>Redefined.</h1>
-                            <p class="text-xl text-emerald-50 max-w-2xl font-medium leading-relaxed mb-10 opacity-80">The junction's finest selection of daily essentials, farm-fresh organics, and household hardware.</p>
-                            <div class="flex flex-wrap gap-4">
-                                <button onclick="router('all')" class="btn-premium px-12 py-5 rounded-2xl font-black uppercase tracking-widest">Browse Catalog</button>
-                            </div>
-                        </div>
+                <section class="hero-bg min-h-[60vh] flex items-center px-6">
+                    <div class="container mx-auto">
+                        <h1 class="text-5xl md:text-8xl font-black text-white leading-none uppercase tracking-tighter">Freshly Sourced.<br><span class="text-brand-yellow">Daily Essentials.</span></h1>
+                        <button onclick="router('cat','General')" class="btn-yellow mt-8 px-10 py-4 rounded-xl font-black uppercase">Browse Shop</button>
                     </div>
                 </section>
-
-                <section class="py-12 bg-gray-50 border-b">
-                    <div class="container mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">500+</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Premium Products</p>
-                        </div>
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">15+</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Local Suppliers</p>
-                        </div>
-                        <div class="text-center border-r">
-                            <h4 class="text-3xl font-black text-emerald-950">7 AM</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Open Daily</p>
-                        </div>
-                        <div class="text-center">
-                            <h4 class="text-3xl font-black text-emerald-950">100%</h4>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quality Check</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="py-24 container mx-auto px-6">
-                    <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-                        <div>
-                            <h2 class="text-5xl font-black text-emerald-950 uppercase tracking-tighter">Season's Best</h2>
-                            <p class="text-emerald-600 font-bold uppercase tracking-widest text-xs mt-2">Curated Arrivals for your daily needs</p>
-                        </div>
-                        <button onclick="router('all')" class="text-emerald-950 font-black uppercase tracking-widest text-xs border-b-2 border-emerald-600 pb-1">View Full Collection</button>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                        ${featured.map(p => renderProductCard(p)).join('')}
-                    </div>
-                </section>
-
-                <section class="py-24 bg-emerald-50 border-t">
-                    <div class="container mx-auto px-6 max-w-4xl text-center">
-                        <span class="text-emerald-600 font-black tracking-[0.4em] uppercase text-[10px]">Serving the Junction</span>
-                        <h2 class="text-4xl font-black mt-4 mb-8 text-emerald-950 uppercase tracking-tighter">Your Trusted Neighborhood Hub</h2>
-                        <p class="text-gray-600 leading-loose text-lg mb-8">We started with a simple vision: to provide a clean, organized, and affordable shopping experience for everyone. Today, we continue to grow, adding more variety and digital services like WhatsApp ordering to serve you better.</p>
-                        <div class="flex justify-center gap-12 opacity-30 grayscale">
-                           <i class="fas fa-award text-5xl"></i>
-                           <i class="fas fa-handshake text-5xl"></i>
-                           <i class="fas fa-truck text-5xl"></i>
-                        </div>
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderListView(items, title) {
-            return `
                 <div class="container mx-auto px-6 py-20">
-                    <h2 class="text-5xl font-black mb-12 uppercase tracking-tighter text-emerald-950">${title}</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                        ${items.map(p => renderProductCard(p)).join('')}
-                    </div>
-                </div>
-            `;
+                    <h2 class="text-4xl font-black mb-12 uppercase tracking-tighter text-[#064e3b]">Featured Products</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-8">${storeData.products.slice(0,10).map(p => renderCard(p)).join('')}</div>
+                </div>`;
         }
 
-        function renderProductCard(p) {
+        function renderList(items, title) {
+            return `<div class="container mx-auto px-6 py-20"><h2 class="text-4xl font-black mb-12 uppercase text-[#064e3b]">${title}</h2><div class="grid grid-cols-2 md:grid-cols-5 gap-8">${items.map(p => renderCard(p)).join('')}</div></div>`;
+        }
+
+        function renderCard(p) {
             return `
-                <div class="product-card rounded-3xl overflow-hidden flex flex-col group">
-                    <div class="h-64 relative overflow-hidden bg-gray-100">
-                        <img src="${p.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        <div class="absolute top-4 left-4 bg-emerald-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">${p.category}</div>
+                <div class="product-card rounded-2xl overflow-hidden bg-white">
+                    <div class="h-48 overflow-hidden"><img src="${p.image}" class="w-full h-full object-cover"></div>
+                    <div class="p-5">
+                        <h3 class="font-black text-sm uppercase text-emerald-950">${p.name}</h3>
+                        <p class="text-2xl font-black text-emerald-700 mt-2">KSh ${p.price}</p>
+                        <button onclick="addToCart('${p.id}')" class="w-full mt-4 bg-gray-100 py-2 rounded-lg font-bold text-xs hover:bg-brand-yellow hover:text-brand-green transition">Add to Cart</button>
                     </div>
-                    <div class="p-6 flex-1 flex flex-col">
-                        <h3 class="font-black text-emerald-950 text-sm mb-1 uppercase tracking-tight line-clamp-2">${p.name}</h3>
-                        <p class="text-gray-400 text-[10px] mb-4 font-bold tracking-widest uppercase">${p.unit}</p>
-                        <div class="mt-auto flex items-center justify-between">
-                            <p class="text-emerald-700 font-black text-2xl">KSh ${p.price}</p>
-                            <button onclick="addToCart('${p.id}')" class="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"><i class="fas fa-plus"></i></button>
-                        </div>
-                    </div>
-                </div>
-            `;
+                </div>`;
         }
 
         function addToCart(id) {
             const p = storeData.products.find(x => x.id === id);
             const exists = cart.find(x => x.id === id);
-            exists ? exists.qty++ : cart.push({...p, qty: 1});
-            localStorage.setItem('lwandeti_cart', JSON.stringify(cart));
+            exists ? exists.qty++ : cart.push({...p, qty:1});
+            localStorage.setItem('junction_cart', JSON.stringify(cart));
             updateCartUI();
         }
 
         function updateCartUI() {
-            const itemsCont = document.getElementById('cartItems');
-            const badge = document.getElementById('cartBadge');
-            const totalEl = document.getElementById('cartTotal');
+            const cont = document.getElementById('cartItems');
             let total = 0, count = 0;
-            itemsCont.innerHTML = cart.map(item => {
+            cont.innerHTML = cart.map(item => {
                 total += (item.price * item.qty); count += item.qty;
-                return `<div class="flex gap-4 items-center bg-gray-50 p-4 rounded-2xl">
-                    <img src="${item.image}" class="w-16 h-16 rounded-xl object-cover">
-                    <div class="flex-1"><h4 class="font-bold text-xs uppercase">${item.name}</h4><p class="text-emerald-600 font-black">KSh ${item.price}</p></div>
-                    <div class="flex items-center gap-3"><button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 border rounded-full">-</button><span class="font-black">${item.qty}</span><button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 border rounded-full">+</button></div>
+                return `<div class="flex gap-4 items-center bg-white p-3 rounded-xl border">
+                    <img src="${item.image}" class="w-12 h-12 rounded object-cover">
+                    <div class="flex-1"><h4 class="font-bold text-[10px] uppercase">${item.name}</h4><p class="font-black text-emerald-700 text-sm">KSh ${item.price}</p></div>
+                    <div class="flex items-center gap-2"><button onclick="changeQty('${item.id}',-1)" class="w-6 h-6 border rounded-full text-xs">-</button><span class="text-xs font-black">${item.qty}</span><button onclick="changeQty('${item.id}',1)" class="w-6 h-6 border rounded-full text-xs">+</button></div>
                 </div>`;
             }).join('');
-            badge.innerText = count; badge.classList.toggle('hidden', count === 0);
-            totalEl.innerText = `KSh ${total.toLocaleString()}`;
+            document.getElementById('cartBadge').innerText = count;
+            document.getElementById('cartBadge').classList.toggle('hidden', count === 0);
+            document.getElementById('cartTotal').innerText = `KSh ${total}`;
         }
 
-        function changeQty(id, delta) {
-            const item = cart.find(x => x.id === id);
-            if(item) {
-                item.qty += delta;
-                if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
-                localStorage.setItem('lwandeti_cart', JSON.stringify(cart));
-                updateCartUI();
-            }
+        function changeQty(id, d) {
+            const i = cart.find(x => x.id === id);
+            if(i) { i.qty += d; if(i.qty <= 0) cart = cart.filter(x => x.id !== id); }
+            localStorage.setItem('junction_cart', JSON.stringify(cart));
+            updateCartUI();
         }
 
         function toggleCart() {
@@ -312,16 +189,11 @@
             document.getElementById('cartOverlay').classList.toggle('hidden');
         }
 
-        function handleSearch() {
-            const q = document.getElementById('searchInput').value.trim().toLowerCase();
-            if(q) router('search', q);
-        }
-
         function checkout() {
-            let text = `*NEW ORDER - LWANDETI JUNCTION*%0A`;
-            cart.forEach(item => text += `- ${item.name} (x${item.qty})%0A`);
-            text += `*TOTAL: ${document.getElementById('cartTotal').innerText}*`;
-            window.open(`https://wa.me/254117352700?text=${text}`);
+            let msg = `*NEW ORDER - LWANDETI JUNCTION*%0A`;
+            cart.forEach(i => msg += `- ${i.name} (x${i.qty})%0A`);
+            msg += `*TOTAL: ${document.getElementById('cartTotal').innerText}*`;
+            window.open(`https://wa.me/254117352700?text=${msg}`);
         }
         init();
     </script>
