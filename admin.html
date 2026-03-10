@@ -3,247 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Lwandeti Junction Minimart</title>
+    <title>Management Console | Lwandeti Junction</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .hero-bg {
-            background-image: url('https://files.catbox.moe/4ika9g.jpg');
-            background-size: cover; background-position: center; background-attachment: fixed; position: relative;
-        }
-        .hero-overlay { background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(6, 78, 59, 0.8) 50%, rgba(217, 119, 6, 0.7) 100%); }
-        .tab-btn.active { border-bottom: 4px solid #10b981; color: #10b981; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        :root { --green: #064e3b; --yellow: #fbbf24; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        .sidebar { background: var(--green); }
+        .nav-btn.active { background: rgba(255,255,255,0.1); border-left: 4px solid var(--yellow); }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="flex min-h-screen">
 
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center hero-bg p-4">
-        <div class="hero-overlay absolute inset-0"></div>
-        <div class="bg-white/95 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl w-full max-w-md text-center relative z-10">
-            <h1 class="text-3xl font-black text-emerald-900 mb-8 uppercase tracking-tighter">Admin Portal</h1>
-            <div class="space-y-4">
-                <input type="text" id="username" placeholder="Username" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500">
-                <input type="password" id="password" placeholder="Password" class="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 outline-none focus:border-emerald-500">
-                <button onclick="login()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Verify Access</button>
-            </div>
+    <div id="login" class="fixed inset-0 z-[100] bg-[#064e3b] flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[2rem] w-full max-w-md text-center">
+            <h1 class="text-2xl font-black mb-8">ADMIN ACCESS</h1>
+            <input type="text" id="user" placeholder="Username" class="w-full p-4 border rounded-xl mb-4 outline-none focus:border-emerald-600">
+            <input type="password" id="pass" placeholder="Password" class="w-full p-4 border rounded-xl mb-6 outline-none focus:border-emerald-600">
+            <button onclick="doLogin()" class="w-full bg-[#064e3b] text-[#fbbf24] py-4 rounded-xl font-black uppercase">Verify</button>
         </div>
     </div>
 
-    <div id="adminDashboard" class="hidden min-h-screen">
-        <header class="hero-bg text-white shadow-2xl sticky top-0 z-40">
-            <div class="hero-overlay absolute inset-0"></div>
-            <div class="container mx-auto px-6 py-6 flex justify-between items-center relative z-10">
-                <h1 class="font-black text-xl tracking-tighter uppercase">Lwandeti Management Hub</h1>
-                <div class="flex items-center gap-3">
-                    <button onclick="downloadPriceListPDF()" class="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-white/20">Export PDF</button>
-                    <button onclick="logout()" class="bg-red-500/80 p-2 px-4 rounded-xl font-black text-[10px] uppercase">Logout</button>
+    <aside id="mainSidebar" class="hidden w-72 sidebar text-white flex flex-col sticky top-0 h-screen">
+        <div class="p-8 border-b border-white/10">
+            <h1 class="text-xl font-black tracking-tighter">LWANDETI <span class="text-brand-yellow">HUB</span></h1>
+        </div>
+        <nav class="p-6 space-y-2 flex-1">
+            <button onclick="tab('inventory')" id="b-inventory" class="nav-btn active w-full flex items-center gap-4 p-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition">
+                <i class="fas fa-boxes"></i> Inventory
+            </button>
+            <button onclick="tab('ai')" id="b-ai" class="nav-btn w-full flex items-center gap-4 p-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition text-brand-yellow">
+                <i class="fas fa-robot"></i> AI Mass Scan
+            </button>
+            <button onclick="tab('cats')" id="b-cats" class="nav-btn w-full flex items-center gap-4 p-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition">
+                <i class="fas fa-tags"></i> Departments
+            </button>
+        </nav>
+        <button onclick="logout()" class="p-8 text-left text-red-400 font-black uppercase text-[10px]">Logout Session</button>
+    </aside>
+
+    <main id="mainContent" class="hidden flex-1 p-12">
+        <div id="view-inventory">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-3xl font-black uppercase tracking-tighter">Inventory Manager</h2>
+                <button onclick="exportPDF()" class="bg-white border p-3 rounded-xl font-bold text-xs uppercase"><i class="fas fa-file-pdf mr-2"></i>Export List</button>
+            </div>
+            <div class="grid grid-cols-3 gap-10">
+                <div class="col-span-1 bg-white p-8 rounded-3xl border">
+                    <h3 class="font-black uppercase text-xs mb-6">Quick Add Item</h3>
+                    <input type="text" id="pName" placeholder="Item Name" class="w-full p-3 border rounded-lg mb-3">
+                    <input type="number" id="pPrice" placeholder="Price" class="w-full p-3 border rounded-lg mb-3">
+                    <select id="pCat" class="w-full p-3 border rounded-lg mb-6"></select>
+                    <button onclick="addItem()" class="w-full bg-[#064e3b] text-white py-3 rounded-lg font-black uppercase">Save Product</button>
                 </div>
+                <div class="col-span-2 bg-white p-8 rounded-3xl border" id="pList"></div>
             </div>
-        </header>
+        </div>
 
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex gap-8 border-b mb-8 bg-white px-8 rounded-3xl shadow-sm overflow-x-auto">
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn active py-6 font-black text-[11px] uppercase tracking-widest">Inventory</button>
-                <button onclick="switchTab('categories')" id="tab-categories" class="tab-btn py-6 font-black text-[11px] uppercase tracking-widest">Departments</button>
-                <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn py-6 font-black text-[11px] uppercase tracking-widest text-emerald-600"><i class="fas fa-robot mr-1"></i> AI Mass Scanner</button>
-            </div>
-
-            <div id="view-inventory" class="tab-content">
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-t-8 border-emerald-500 sticky top-32">
-                            <h2 class="font-black text-emerald-950 mb-6 uppercase tracking-tight">New Product</h2>
-                            <form onsubmit="event.preventDefault(); saveProduct();" class="space-y-4">
-                                <input type="text" id="prodName" required placeholder="Name" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <input type="number" id="prodPrice" required placeholder="Price" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                    <input type="text" id="prodUnit" required placeholder="Unit" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full p-4 border rounded-2xl bg-gray-50/50"></select>
-                                    <select id="prodSubCategory" required class="w-full p-4 border rounded-2xl bg-gray-50/50"><option>Sub-category</option></select>
-                                </div>
-                                <input type="url" id="prodImageUrl" placeholder="Image URL" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                                <button type="submit" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-lg">Commit To Stock</button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="lg:col-span-2">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm">
-                            <input type="text" id="searchProducts" placeholder="Quick Filter..." oninput="renderProducts()" class="w-full p-5 border rounded-2xl bg-gray-50/50 mb-8">
-                            <div id="productsList" class="space-y-4"></div>
-                        </div>
-                    </div>
+        <div id="view-ai" class="hidden">
+            <div class="bg-white p-12 rounded-[2.5rem] shadow-sm text-center">
+                <div class="border-4 border-dashed border-gray-100 rounded-[2rem] p-20 bg-gray-50 mb-10 cursor-pointer" onclick="document.getElementById('aiInput').click()">
+                    <input type="file" id="aiInput" class="hidden" multiple>
+                    <i class="fas fa-bolt text-4xl text-emerald-600 mb-4"></i>
+                    <h3 class="text-2xl font-black uppercase tracking-tighter">Bulk Scanner Engine</h3>
+                    <p class="text-gray-400 text-sm">Upload media to auto-generate inventory items.</p>
                 </div>
-            </div>
-
-            <div id="view-ai" class="tab-content hidden">
-                <div class="bg-white p-12 rounded-[3rem] shadow-sm border-t-8 border-blue-500">
-                    <div class="border-4 border-dashed border-gray-100 rounded-[2.5rem] p-20 cursor-pointer hover:border-emerald-300 transition-all bg-gray-50 text-center" onclick="document.getElementById('aiFileInput').click()">
-                        <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                        <i class="fas fa-microchip text-5xl text-emerald-600 mb-6"></i>
-                        <h3 class="text-3xl font-black tracking-tighter mb-2 uppercase">Intelligent Mass Scanner</h3>
-                        <p class="text-gray-400 text-sm">Upload media to extract product data automatically.</p>
-                    </div>
-
-                    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-file-invoice text-emerald-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Written Lists</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-camera text-blue-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Product Photos</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-receipt text-orange-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Paper Receipts</div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100">
-                            <i class="fas fa-file-pdf text-red-500"></i>
-                            <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">Digital PDF</div>
-                        </div>
-                    </div>
-
-                    <div id="aiReviewSection" class="hidden mt-12">
-                        <button onclick="saveAIScannedItems(this)" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase mb-8 shadow-xl">Confirm All Detected Items</button>
-                        <table class="w-full text-left">
-                            <thead><tr class="text-[10px] uppercase font-black text-gray-400"><th>Item</th><th>Price</th><th>Category</th></tr></thead>
-                            <tbody id="aiResultsTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="view-categories" class="tab-content hidden">
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm max-w-xl mx-auto border-t-8 border-orange-400">
-                    <h2 class="font-black text-2xl mb-6 uppercase tracking-tight">Department Manager</h2>
-                    <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-4">
-                        <input type="text" id="catName" required placeholder="Department Name" class="w-full p-4 border rounded-2xl bg-gray-50/50">
-                        <textarea id="catSubs" placeholder="Sub-categories (comma separated)" class="w-full p-4 border rounded-2xl bg-gray-50/50 h-32"></textarea>
-                        <button type="submit" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Update Department</button>
-                    </form>
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="bg-gray-100 p-4 rounded-xl"><i class="fas fa-pen text-emerald-600 mb-2"></i><p class="text-[9px] font-black uppercase">Handwritten</p></div>
+                    <div class="bg-gray-100 p-4 rounded-xl"><i class="fas fa-camera text-blue-600 mb-2"></i><p class="text-[9px] font-black uppercase">Photos</p></div>
+                    <div class="bg-gray-100 p-4 rounded-xl"><i class="fas fa-receipt text-orange-600 mb-2"></i><p class="text-[9px] font-black uppercase">Receipts</p></div>
+                    <div class="bg-gray-100 p-4 rounded-xl"><i class="fas fa-file-pdf text-red-600 mb-2"></i><p class="text-[9px] font-black uppercase">PDF Invoices</p></div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
-            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
-            projectId: "lwandeti-junction-minimart",
-            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
-            messagingSenderId: "282672112956",
-            appId: "1:282672112956:web:1a85643cc1f3c410676a39"
-        };
+        // Use previous firebaseConfig here
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let products = [], categories = [], tempExtracted = [];
-        let ocrWorker = null;
-
-        function login() {
-            if(document.getElementById('username').value === 'ADMINISTRATOR' && document.getElementById('password').value === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
-                location.reload();
+        function doLogin() {
+            if(document.getElementById('user').value === 'ADMINISTRATOR' && document.getElementById('pass').value === 'admin123') {
+                sessionStorage.setItem('auth', 'true');
+                checkAuth();
             }
         }
 
-        function logout() { sessionStorage.removeItem('admin_auth'); location.reload(); }
-
-        window.onload = function() {
-            if(sessionStorage.getItem('admin_auth')) {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                syncData();
+        function checkAuth() {
+            if(sessionStorage.getItem('auth')) {
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('mainSidebar').classList.remove('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                sync();
             }
-        };
+        }
 
-        function syncData() {
-            db.collection('categories').onSnapshot(snap => {
-                categories = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                updateSelects();
+        function logout() { sessionStorage.removeItem('auth'); location.reload(); }
+
+        let products = [], categories = [];
+        function sync() {
+            db.collection('categories').onSnapshot(s => {
+                categories = s.docs.map(d => d.data());
+                document.getElementById('pCat').innerHTML = categories.map(c => `<option>${c.name}</option>`).join('');
             });
-            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                products = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderProducts();
+            db.collection('products').onSnapshot(s => {
+                products = s.docs.map(d => ({id: d.id, ...d.data()}));
+                render();
             });
         }
 
-        function updateSelects() {
-            const el = document.getElementById('prodCategory');
-            el.innerHTML = '<option value="">Category</option>' + categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        }
-
-        function updateSubSelect(prefix) {
-            const cat = categories.find(c => c.name === document.getElementById(`${prefix}Category`).value);
-            const subEl = document.getElementById(`${prefix}SubCategory`);
-            subEl.innerHTML = cat ? cat.subs.map(s => `<option value="${s}">${s}</option>`).join('') : '<option>N/A</option>';
-        }
-
-        async function saveProduct() {
-            await db.collection('products').add({
-                name: document.getElementById('prodName').value,
-                price: parseFloat(document.getElementById('prodPrice').value),
-                unit: document.getElementById('prodUnit').value,
-                category: document.getElementById('prodCategory').value,
-                subCategory: document.getElementById('prodSubCategory').value,
-                image: document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/150',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert('Product Added');
-        }
-
-        function renderProducts() {
-            document.getElementById('productsList').innerHTML = products.map(p => `
-                <div class="flex items-center gap-4 p-4 bg-white border rounded-2xl">
-                    <img src="${p.image}" class="w-12 h-12 object-cover rounded-xl">
-                    <div class="flex-1 font-black text-emerald-950 uppercase text-[10px] tracking-tight">${p.name}</div>
-                    <div class="font-black text-emerald-600">KSh ${p.price}</div>
-                    <button onclick="deleteProduct('${p.id}')" class="text-red-400 p-2"><i class="fas fa-trash"></i></button>
+        function render() {
+            document.getElementById('pList').innerHTML = products.map(p => `
+                <div class="flex items-center justify-between border-b py-4">
+                    <span class="font-black uppercase text-xs">${p.name}</span>
+                    <span class="font-black text-emerald-700">KSh ${p.price}</span>
+                    <button onclick="del('${p.id}')" class="text-red-400"><i class="fas fa-trash"></i></button>
                 </div>`).join('');
         }
 
-        async function deleteProduct(id) { if(confirm('Delete?')) await db.collection('products').doc(id).delete(); }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            document.getElementById(`tab-${tab}`).classList.add('active');
+        async function addItem() {
+            await db.collection('products').add({
+                name: document.getElementById('pName').value,
+                price: parseFloat(document.getElementById('pPrice').value),
+                category: document.getElementById('pCat').value,
+                image: 'https://via.placeholder.com/150',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Added');
         }
 
-        async function downloadPriceListPDF() {
+        function del(id) { if(confirm('Delete?')) db.collection('products').doc(id).delete(); }
+
+        function tab(t) {
+            document.querySelectorAll('main > div').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-'+t).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('b-'+t).classList.add('active');
+        }
+
+        function exportPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.text("Lwandeti Junction Minimart Price List", 14, 15);
-            doc.autoTable({ head: [['Item', 'Category', 'Price']], body: products.map(p => [p.name, p.category, p.price]), startY: 20 });
-            doc.save('Prices.pdf');
+            doc.text("Lwandeti Junction Price List", 14, 15);
+            doc.autoTable({ head:[['Item', 'Price']], body: products.map(p => [p.name, p.price]), startY: 20 });
+            doc.save('PriceList.pdf');
         }
 
-        // AI Scanner simplified logic for this summary
-        async function handleAIUpload(e) {
-            const files = Array.from(e.target.files);
-            alert(`Scanning ${files.length} documents... please wait.`);
-            // Mock extraction for demo - in production this uses the Tesseract OCR worker
-            tempExtracted = [{ name: "Sample Product", price: 150, category: "General", unit: "pcs" }];
-            document.getElementById('aiReviewSection').classList.remove('hidden');
-            document.getElementById('aiResultsTable').innerHTML = tempExtracted.map(item => `
-                <tr class="border-b"><td>${item.name}</td><td>KSh ${item.price}</td><td>${item.category}</td></tr>`).join('');
-        }
+        window.onload = checkAuth;
     </script>
 </body>
 </html>
