@@ -868,22 +868,21 @@
         // ==========================================
         // FIREBASE CONFIGURATION
         // ==========================================
-        
-        // Replace with your Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
+// Your Firebase configuration using compat SDK format
+const firebaseConfig = {
+    apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
+    authDomain: "lwandeti-junction-minimart.firebaseapp.com",
+    projectId: "lwandeti-junction-minimart",
+    storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+    messagingSenderId: "282672112956",
+    appId: "1:282672112956:web:1a85643cc1f3c410676a39",
+    measurementId: "G-C3RV1N7D2N"
+};
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
+// Initialize Firebase (compat SDK style)
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();
         // ==========================================
         // GLOBAL STATE
         // ==========================================
