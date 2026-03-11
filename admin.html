@@ -892,6 +892,21 @@
     </div>
 
     <script>
+            <script>
+        // ==========================================
+        // FIREBASE DEBUG & CONFIGURATION
+        // ==========================================
+        
+        console.log('=== FIREBASE DEBUG START ===');
+        
+        // Check if Firebase is loaded
+        if (typeof firebase === 'undefined') {
+            console.error('❌ Firebase SDK not loaded!');
+            alert('Firebase SDK not loaded. Check your internet connection.');
+        } else {
+            console.log('✅ Firebase SDK loaded');
+        }
+
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
@@ -903,9 +918,121 @@
             measurementId: "G-C3RV1N7D2N"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+        // Validate config
+        console.log('Firebase Config:', {
+            projectId: firebaseConfig.projectId,
+            storageBucket: firebaseConfig.storageBucket,
+            authDomain: firebaseConfig.authDomain
+        });
+
+        // Initialize Firebase with error handling
+        let db, storage;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase App initialized');
+            
+            db = firebase.firestore();
+            storage = firebase.storage();
+            
+            console.log('✅ Firestore initialized');
+            console.log('✅ Storage initialized');
+            
+            // Enable offline persistence
+            db.enablePersistence({synchronizeTabs: true})
+                .then(() => console.log('✅ Offline persistence enabled'))
+                .catch(err => console.log('⚠️ Persistence error:', err.code));
+                
+        } catch (error) {
+            console.error('❌ Firebase initialization error:', error);
+            alert('Failed to initialize Firebase: ' + error.message);
+        }
+
+        // Test Firestore connection
+        function testFirestoreConnection() {
+            console.log('Testing Firestore connection...');
+            return db.collection('_test_').doc('connection').set({
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                test: true
+            })
+            .then(() => {
+                console.log('✅ Firestore WRITE test passed');
+                return db.collection('_test_').doc('connection').get();
+            })
+            .then(doc => {
+                console.log('✅ Firestore READ test passed');
+                // Clean up test doc
+                return db.collection('_test_').doc('connection').delete();
+            })
+            .then(() => {
+                console.log('✅ Firestore DELETE test passed');
+                return true;
+            })
+            .catch(error => {
+                console.error('❌ Firestore connection test failed:', error);
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                return false;
+            });
+        }
+
+        // Test Storage connection
+        function testStorageConnection() {
+            console.log('Testing Storage connection...');
+            const testRef = storage.ref('test/connection_test.txt');
+            const blob = new Blob(['test'], { type: 'text/plain' });
+            
+            return testRef.put(blob)
+                .then(() => {
+                    console.log('✅ Storage WRITE test passed');
+                    return testRef.getDownloadURL();
+                })
+                .then(url => {
+                    console.log('✅ Storage URL test passed:', url.substring(0, 50) + '...');
+                    return testRef.delete();
+                })
+                .then(() => {
+                    console.log('✅ Storage DELETE test passed');
+                    return true;
+                })
+                .catch(error => {
+                    console.error('❌ Storage connection test failed:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    
+                    // Check specific error codes
+                    if (error.code === 'storage/unauthorized') {
+                        console.error('🔴 REASON: Storage rules are blocking access');
+                        console.error('🔴 FIX: Update Firebase Storage rules (see console for template)');
+                        showStorageRulesTemplate();
+                    } else if (error.code === 'storage/bucket-not-found') {
+                        console.error('🔴 REASON: Storage bucket not configured');
+                    } else if (error.code === 'storage/quota-exceeded') {
+                        console.error('🔴 REASON: Storage quota exceeded');
+                    }
+                    return false;
+                });
+        }
+
+        function showStorageRulesTemplate() {
+            console.log('%c=== REQUIRED FIREBASE STORAGE RULES ===', 'color: red; font-size: 16px; font-weight: bold;');
+            console.log('%cCopy and paste these rules in Firebase Console > Storage > Rules:', 'color: orange;');
+            console.log(`
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+            `);
+            console.log('%c=====================================', 'color: red; font-size: 16px; font-weight: bold;');
+        }
 
         // Global State
         let products = [];
@@ -914,6 +1041,7 @@
         let currentUser = null;
         let duplicateProduct = null;
         let isStreaming = false;
+        let firebaseConnected = false;
 
         // Authentication
         const VALID_USERNAME = "admin";
@@ -927,7 +1055,17 @@
                 currentUser = username;
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('adminDashboard').classList.remove('hidden');
-                initializeApp();
+                
+                // Run connection tests before initializing
+                Promise.all([testFirestoreConnection(), testStorageConnection()])
+                    .then(([firestoreOK, storageOK]) => {
+                        firebaseConnected = firestoreOK && storageOK;
+                        if (!firebaseConnected) {
+                            showToast('Warning', 'Firebase connection issues detected. Check console.', 'warning');
+                        }
+                        initializeApp();
+                    });
+                    
                 showToast('Welcome', 'Login successful');
             } else {
                 showToast('Error', 'Invalid credentials', 'error');
@@ -946,26 +1084,77 @@
         }
 
         function initializeApp() {
+            console.log('Initializing app...');
             setupRealtimeListeners();
         }
 
         function setupRealtimeListeners() {
-            db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-                products = [];
-                snapshot.forEach(doc => {
-                    products.push({ id: doc.id, ...doc.data() });
-                });
-                renderProducts();
-            });
+            console.log('Setting up realtime listeners...');
+            
+            // Products listener with error handling
+            const productsUnsubscribe = db.collection('products')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(
+                    snapshot => {
+                        console.log(`✅ Products updated: ${snapshot.size} items`);
+                        products = [];
+                        snapshot.forEach(doc => {
+                            products.push({ id: doc.id, ...doc.data() });
+                        });
+                        renderProducts();
+                    },
+                    error => {
+                        console.error('❌ Products listener error:', error);
+                        console.error('Error code:', error.code);
+                        if (error.code === 'permission-denied') {
+                            console.error('🔴 Firestore rules are blocking read access');
+                            showFirestoreRulesTemplate();
+                        }
+                        showToast('Error', 'Failed to load products: ' + error.message, 'error');
+                    }
+                );
 
-            db.collection('categories').orderBy('name').onSnapshot(snapshot => {
-                categories = [];
-                snapshot.forEach(doc => {
-                    categories.push({ id: doc.id, ...doc.data() });
-                });
-                updateCategorySelects();
-                renderCategoriesPreview();
-            });
+            // Categories listener with error handling
+            const categoriesUnsubscribe = db.collection('categories')
+                .orderBy('name')
+                .onSnapshot(
+                    snapshot => {
+                        console.log(`✅ Categories updated: ${snapshot.size} items`);
+                        categories = [];
+                        snapshot.forEach(doc => {
+                            categories.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateCategorySelects();
+                        renderCategoriesPreview();
+                    },
+                    error => {
+                        console.error('❌ Categories listener error:', error);
+                        showToast('Error', 'Failed to load categories: ' + error.message, 'error');
+                    }
+                );
+
+            // Log listener status
+            console.log('✅ Realtime listeners active');
+        }
+
+        function showFirestoreRulesTemplate() {
+            console.log('%c=== REQUIRED FIRESTORE RULES ===', 'color: red; font-size: 16px; font-weight: bold;');
+            console.log(`
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /categories/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
+            `);
+            console.log('%c=================================', 'color: red; font-size: 16px; font-weight: bold;');
         }
 
         function updateCategorySelects() {
@@ -1028,6 +1217,7 @@
                     <div class="text-center py-12 text-earth-400">
                         <i class="fas fa-box-open text-4xl mb-3"></i>
                         <p>No products found</p>
+                        ${!firebaseConnected ? '<p class="text-red-400 text-sm mt-2">⚠️ Firebase connection issue</p>' : ''}
                     </div>
                 `;
                 return;
@@ -1098,7 +1288,8 @@
                 resetProductForm();
             })
             .catch(err => {
-                showToast('Error', 'Failed to update', 'error');
+                console.error('Update error:', err);
+                showToast('Error', 'Failed to update: ' + err.message, 'error');
             });
         }
 
@@ -1115,6 +1306,8 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             btn.disabled = true;
             
+            console.log('Saving product:', { name, price, category });
+            
             db.collection('products').add({
                 name,
                 price,
@@ -1124,12 +1317,15 @@
                 image,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
-            .then(() => {
+            .then((docRef) => {
+                console.log('✅ Product saved with ID:', docRef.id);
                 showToast('Success', 'Product added to inventory');
                 resetProductForm();
             })
             .catch(err => {
-                showToast('Error', 'Failed to save product', 'error');
+                console.error('❌ Save product error:', err);
+                console.error('Error code:', err.code);
+                showToast('Error', 'Failed to save: ' + err.message, 'error');
             })
             .finally(() => {
                 btn.innerHTML = originalText;
@@ -1150,9 +1346,17 @@
         function deleteProduct(id) {
             if (!confirm('Are you sure you want to delete this product?')) return;
             
+            console.log('Deleting product:', id);
+            
             db.collection('products').doc(id).delete()
-                .then(() => showToast('Deleted', 'Product removed'))
-                .catch(() => showToast('Error', 'Failed to delete', 'error'));
+                .then(() => {
+                    console.log('✅ Product deleted');
+                    showToast('Deleted', 'Product removed');
+                })
+                .catch(err => {
+                    console.error('❌ Delete error:', err);
+                    showToast('Error', 'Failed to delete: ' + err.message, 'error');
+                });
         }
 
         function openEditModal(id) {
@@ -1186,6 +1390,8 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Updating...';
             btn.disabled = true;
             
+            console.log('Updating product:', id, { name, price });
+            
             db.collection('products').doc(id).update({
                 name,
                 price,
@@ -1194,17 +1400,21 @@
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
+                console.log('✅ Product updated');
                 showToast('Updated', 'Product details updated');
                 closeEditModal();
             })
-            .catch(() => showToast('Error', 'Failed to update', 'error'))
+            .catch(err => {
+                console.error('❌ Update error:', err);
+                showToast('Error', 'Failed to update: ' + err.message, 'error');
+            })
             .finally(() => {
                 btn.innerHTML = 'Update Product';
                 btn.disabled = false;
             });
         }
 
-        // Image Handling - FIXED VERSION
+        // Image Handling with detailed error logging
         function switchImageInput(type) {
             const fileZone = document.getElementById('fileInputZone');
             const urlZone = document.getElementById('urlInputZone');
@@ -1255,7 +1465,8 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            // Validate file size (max 5MB)
+            console.log('File selected:', file.name, 'Size:', (file.size/1024).toFixed(2), 'KB', 'Type:', file.type);
+            
             if (file.size > 5 * 1024 * 1024) {
                 showToast('Error', 'Image too large. Max 5MB', 'error');
                 return;
@@ -1267,6 +1478,8 @@
         function handleEditFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
+            
+            console.log('Edit file selected:', file.name, 'Size:', (file.size/1024).toFixed(2), 'KB');
             
             if (file.size > 5 * 1024 * 1024) {
                 showToast('Error', 'Image too large. Max 5MB', 'error');
@@ -1289,7 +1502,6 @@
             if (preview) preview.src = url;
         }
 
-        // FIXED: Better error handling and CORS-friendly upload
         function uploadImage(file, urlFieldId, progressId, barId, percentId, statusId) {
             const progressDiv = document.getElementById(progressId);
             const bar = document.getElementById(barId);
@@ -1297,14 +1509,27 @@
             const status = document.getElementById(statusId);
             
             progressDiv.classList.remove('hidden');
-            if (status) status.textContent = 'Uploading...';
+            if (status) status.textContent = 'Starting upload...';
+            
+            console.log('Starting upload to Storage...');
             
             // Create unique filename
             const timestamp = Date.now();
             const filename = `products/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-            const storageRef = storage.ref(filename);
             
-            // Create metadata
+            console.log('Storage path:', filename);
+            
+            let storageRef;
+            try {
+                storageRef = storage.ref(filename);
+                console.log('✅ Storage reference created');
+            } catch (err) {
+                console.error('❌ Failed to create storage reference:', err);
+                showToast('Error', 'Storage not initialized', 'error');
+                progressDiv.classList.add('hidden');
+                return;
+            }
+            
             const metadata = {
                 contentType: file.type,
                 customMetadata: {
@@ -1313,7 +1538,18 @@
                 }
             };
             
-            const uploadTask = storageRef.put(file, metadata);
+            console.log('Upload metadata:', metadata);
+            
+            let uploadTask;
+            try {
+                uploadTask = storageRef.put(file, metadata);
+                console.log('✅ Upload task started');
+            } catch (err) {
+                console.error('❌ Failed to start upload:', err);
+                showToast('Error', 'Failed to start upload: ' + err.message, 'error');
+                progressDiv.classList.add('hidden');
+                return;
+            }
             
             uploadTask.on('state_changed', 
                 snapshot => {
@@ -1321,20 +1557,38 @@
                     bar.style.width = progress + '%';
                     percent.textContent = Math.round(progress) + '%';
                     if (status) status.textContent = `Uploading... ${Math.round(progress)}%`;
+                    console.log('Upload progress:', Math.round(progress) + '%');
                 },
                 error => {
-                    console.error('Upload error:', error);
+                    console.error('❌ Upload error:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    
                     let errorMsg = 'Upload failed';
                     
-                    // Handle specific Firebase Storage errors
-                    if (error.code === 'storage/unauthorized') {
-                        errorMsg = 'Permission denied. Check storage rules.';
-                    } else if (error.code === 'storage/canceled') {
-                        errorMsg = 'Upload cancelled';
-                    } else if (error.code === 'storage/unknown') {
-                        errorMsg = 'Unknown error. Check console.';
-                    } else if (error.code === 'storage/quota-exceeded') {
-                        errorMsg = 'Storage quota exceeded';
+                    switch(error.code) {
+                        case 'storage/unauthorized':
+                            errorMsg = 'Permission denied. Check Storage rules.';
+                            console.error('%c🔴 FIREBASE STORAGE RULES NEEDED:', 'color: red; font-size: 14px;');
+                            showStorageRulesTemplate();
+                            break;
+                        case 'storage/canceled':
+                            errorMsg = 'Upload cancelled';
+                            break;
+                        case 'storage/quota-exceeded':
+                            errorMsg = 'Storage quota exceeded';
+                            break;
+                        case 'storage/invalid-checksum':
+                            errorMsg = 'File corrupted during upload';
+                            break;
+                        case 'storage/retry-limit-exceeded':
+                            errorMsg = 'Network error. Retry failed.';
+                            break;
+                        case 'storage/unknown':
+                            errorMsg = 'Unknown error. Check console.';
+                            break;
+                        default:
+                            errorMsg = 'Upload error: ' + error.code;
                     }
                     
                     showToast('Error', errorMsg, 'error');
@@ -1343,12 +1597,13 @@
                     percent.textContent = '0%';
                 },
                 () => {
-                    // Success
+                    console.log('✅ Upload complete, getting download URL...');
+                    
                     uploadTask.snapshot.ref.getDownloadURL()
                         .then(url => {
+                            console.log('✅ Download URL obtained:', url.substring(0, 60) + '...');
                             document.getElementById(urlFieldId).value = url;
                             
-                            // Show preview based on which form
                             if (urlFieldId === 'finalImageUrl') {
                                 showImagePreview(url, 'imagePreview', 'imagePreviewContainer');
                             } else {
@@ -1360,17 +1615,12 @@
                             showToast('Success', 'Image uploaded successfully');
                         })
                         .catch(err => {
-                            console.error('Error getting download URL:', err);
-                            showToast('Error', 'Image uploaded but URL failed', 'error');
+                            console.error('❌ Error getting download URL:', err);
+                            showToast('Error', 'Image uploaded but URL failed: ' + err.message, 'error');
                             progressDiv.classList.add('hidden');
                         });
                 }
             );
-            
-            // Allow cancel
-            uploadTask.catch(error => {
-                console.error('Upload task error:', error);
-            });
         }
 
         function showImagePreview(url, imgId, containerId) {
@@ -1408,48 +1658,40 @@
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="loader-modern"></div><p class="mt-4 text-brand-600 font-medium">Processing image...</p>';
             
-            // Show streaming indicator
             const streamingIndicator = document.getElementById('streamingIndicator');
             if (streamingIndicator) streamingIndicator.style.display = 'inline-flex';
             isStreaming = true;
             
-            // Clear previous results
             tempExtracted = [];
             document.getElementById('aiReviewSection').classList.remove('hidden');
             renderAIResults();
             
             try {
+                console.log('Starting OCR with Tesseract...');
+                
                 const result = await Tesseract.recognize(file, 'eng', {
                     logger: m => {
-                        console.log(m);
-                        // Update progress if available
                         if (m.status === 'recognizing text') {
-                            const progress = Math.round(m.progress * 100);
-                            // Could show progress here
+                            console.log('OCR Progress:', Math.round(m.progress * 100) + '%');
                         }
                     }
                 });
                 
                 const text = result.data.text;
-                console.log('OCR Result:', text);
+                console.log('OCR Raw Result:', text);
                 
-                // Process text line by line for streaming effect
                 const lines = text.split('\n').filter(line => line.trim());
+                console.log('Processing', lines.length, 'lines...');
                 
-                // Process each line with a small delay for visual effect
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
                     const item = parseProductLine(line);
                     
                     if (item) {
+                        console.log('Found product:', item.name, 'KSh', item.price);
                         tempExtracted.push(item);
-                        // Render immediately as items are found
                         renderAIResults();
-                        
-                        // Update count
                         document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
-                        
-                        // Small delay for streaming effect
                         await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
@@ -1461,8 +1703,8 @@
                 }
                 
             } catch (error) {
-                console.error('OCR Error:', error);
-                showToast('Error', 'Failed to process image', 'error');
+                console.error('❌ OCR Error:', error);
+                showToast('Error', 'Failed to process image: ' + error.message, 'error');
             } finally {
                 btn.innerHTML = originalContent;
                 isStreaming = false;
@@ -1470,9 +1712,7 @@
             }
         }
 
-        // Parse a single line to extract product info
         function parseProductLine(line) {
-            // Pattern 1: "Product Name - KSh 100" or "Product Name: KSh 100"
             let match = line.match(/(.+?)[\s\-–—:]+[kK][sS][hH]?[\s]*([\d,]+(?:\.\d{2})?)/);
             if (match) {
                 const name = match[1].trim();
@@ -1488,7 +1728,6 @@
                 }
             }
             
-            // Pattern 2: "Product Name 100" (price at end)
             match = line.match(/(.+?)\s+([\d,]+(?:\.\d{2})?)\s*$/);
             if (match) {
                 const name = match[1].trim();
@@ -1504,7 +1743,6 @@
                 }
             }
             
-            // Pattern 3: "100 Product Name" (price at start)
             match = line.match(/^([\d,]+(?:\.\d{2})?)\s+(.+)/);
             if (match) {
                 const price = parseFloat(match[1].replace(/,/g, ''));
@@ -1524,12 +1762,11 @@
         }
 
         function cleanProductName(name) {
-            // Remove common OCR artifacts and clean up
             return name
-                .replace(/[^\w\s\-']/g, '') // Remove special chars except - and '
-                .replace(/\s+/g, ' ')       // Normalize spaces
+                .replace(/[^\w\s\-']/g, '')
+                .replace(/\s+/g, ' ')
                 .trim()
-                .substring(0, 100);         // Limit length
+                .substring(0, 100);
         }
 
         function renderAIResults() {
@@ -1607,7 +1844,6 @@
         function updateOCRItem(index, field, value) {
             if (tempExtracted[index]) {
                 tempExtracted[index][field] = value;
-                // Visual feedback
                 const row = document.getElementById(`ocr-row-${index}`);
                 if (row) {
                     row.classList.add('editing');
@@ -1620,13 +1856,9 @@
             const item = tempExtracted[index];
             if (!item) return;
             
-            // Create inline edit modal
             const row = document.getElementById(`ocr-row-${index}`);
-            
-            // Toggle expanded edit mode
             const isExpanded = row.classList.contains('expanded-edit');
             
-            // Remove any existing expanded rows
             document.querySelectorAll('.ocr-row.expanded-edit').forEach(r => {
                 r.classList.remove('expanded-edit');
                 r.style.backgroundColor = '';
@@ -1636,7 +1868,6 @@
                 row.classList.add('expanded-edit');
                 row.style.backgroundColor = '#f0fdf4';
                 
-                // Focus on name input
                 const nameInput = row.querySelector('input[type="text"]');
                 if (nameInput) {
                     nameInput.focus();
@@ -1675,18 +1906,15 @@
             let updatedCount = 0;
             let errorCount = 0;
             
-            // Process items sequentially to avoid overwhelming the database
             for (let i = 0; i < tempExtracted.length; i++) {
                 const item = tempExtracted[i];
                 
                 try {
-                    // Check for duplicates
                     const existing = products.find(p => 
                         p.name.toLowerCase() === item.name.toLowerCase()
                     );
                     
                     if (existing) {
-                        // Update if price changed
                         if (existing.price !== item.price) {
                             await db.collection('products').doc(existing.id).update({
                                 price: item.price,
@@ -1697,7 +1925,6 @@
                             updatedCount++;
                         }
                     } else {
-                        // Add new product
                         await db.collection('products').add({
                             name: item.name,
                             price: item.price,
@@ -1710,7 +1937,6 @@
                         savedCount++;
                     }
                     
-                    // Visual progress
                     const row = document.getElementById(`ocr-row-${i}`);
                     if (row) {
                         row.style.backgroundColor = '#dcfce7';
@@ -1719,7 +1945,6 @@
                         }, 300);
                     }
                     
-                    // Small delay to show progress
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
                 } catch (error) {
@@ -1769,13 +1994,6 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    ${cat.subs && cat.subs.length > 0 ? `
-                        <div class="absolute top-full left-0 mt-1 bg-white border border-earth-200 rounded-lg shadow-lg p-2 min-w-[150px] z-10 hidden group-hover:block">
-                            ${cat.subs.map(sub => `
-                                <div class="px-2 py-1 text-xs text-earth-600 hover:bg-earth-50 rounded">${sub}</div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
                 </div>
             `).join('');
         }
@@ -1817,7 +2035,8 @@
                 if (subsInput) subsInput.value = '';
                 
             } catch (error) {
-                showToast('Error', 'Failed to save department', 'error');
+                console.error('Save category error:', error);
+                showToast('Error', 'Failed to save department: ' + error.message, 'error');
             }
         }
 
@@ -1828,7 +2047,8 @@
                 await db.collection('categories').doc(id).delete();
                 showToast('Deleted', 'Department removed');
             } catch (error) {
-                showToast('Error', 'Failed to delete department', 'error');
+                console.error('Delete category error:', error);
+                showToast('Error', 'Failed to delete department: ' + error.message, 'error');
             }
         }
 
@@ -1852,7 +2072,6 @@
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 
-                // Header
                 doc.setFillColor(20, 83, 45);
                 doc.rect(0, 0, pageWidth, 40, 'F');
                 
@@ -1924,7 +2143,7 @@
                 
             } catch (error) {
                 console.error('PDF Error:', error);
-                showToast('Error', 'Failed to generate PDF', 'error');
+                showToast('Error', 'Failed to generate PDF: ' + error.message, 'error');
             } finally {
                 if (btn && originalHTML) btn.innerHTML = originalHTML;
             }
@@ -1985,6 +2204,8 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DOM LOADED ===');
+            
             const aiZone = document.querySelector('#view-ai .group');
             
             if (aiZone) {
@@ -2021,6 +2242,8 @@
             document.getElementById('editModal')?.addEventListener('click', e => {
                 if (e.target === e.currentTarget) closeEditModal();
             });
+            
+            console.log('=== INITIALIZATION COMPLETE ===');
         });
     </script>
 </body>
