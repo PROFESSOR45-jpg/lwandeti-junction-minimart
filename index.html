@@ -296,8 +296,8 @@
                     <span class="text-emerald-100">Quality Guaranteed</span>
                 </span>
                 <span class="flex items-center gap-2 hidden sm:flex">
-                    <i class="fas fa-shipping-fast text-amber-400"></i> 
-                    <span class="text-emerald-100">Local Delivery Available</span>
+                    <i class="fas fa-store text-amber-400"></i> 
+                    <span class="text-emerald-100">In-Store Pickup</span>
                 </span>
             </div>
             <div class="flex items-center gap-6">
@@ -456,7 +456,7 @@
             <button onclick="checkout()" class="w-full btn-premium py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 text-lg">
                 <i class="fab fa-whatsapp text-2xl"></i> Complete Purchase
             </button>
-            <p class="text-center text-xs text-gray-400 mt-4 uppercase tracking-widest font-semibold">Free delivery on orders above KSh 5,000</p>
+            <p class="text-center text-xs text-gray-400 mt-4 uppercase tracking-widest font-semibold">In-store pickup only • Pay at collection</p>
         </div>
     </div>
 
@@ -641,7 +641,7 @@
                                     <i class="fas fa-check-circle text-amber-400"></i> Quality Assured
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <i class="fas fa-truck text-amber-400"></i> Fast Delivery
+                                    <i class="fas fa-store text-amber-400"></i> In-Store Pickup
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-shield-alt text-amber-400"></i> Secure Payment
@@ -704,7 +704,7 @@
                         <div class="flex justify-center gap-12 opacity-40">
                            <i class="fas fa-award text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
                            <i class="fas fa-handshake text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
-                           <i class="fas fa-truck text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
+                           <i class="fas fa-store text-5xl hover:text-amber-400 hover:opacity-100 transition-all cursor-pointer"></i>
                         </div>
                     </div>
                 </section>
@@ -747,10 +747,10 @@
                     <div class="p-6 flex-1 flex flex-col bg-white">
                         <h3 class="font-bold text-emerald-950 text-sm mb-1 uppercase tracking-wide line-clamp-2 leading-tight">${p.name}</h3>
                         <p class="text-gray-400 text-[10px] mb-4 font-bold tracking-widest uppercase">${p.unit}</p>
-                        <div class="mt-auto flex items-center justify-between">
-                            <div class="price-tag px-4 py-2 rounded-xl font-black text-lg">KSh ${p.price}</div>
-                            <button onclick="addToCart('${p.id}')" class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-110">
-                                <i class="fas fa-plus"></i>
+                        <div class="mt-auto flex flex-col gap-3">
+                            <div class="price-tag px-4 py-2 rounded-xl font-black text-lg w-fit">KSh ${p.price}</div>
+                            <button onclick="addToCart('${p.id}')" class="w-full btn-premium py-3 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all duration-300">
+                                <i class="fas fa-plus"></i> Add to Cart
                             </button>
                         </div>
                     </div>
@@ -767,10 +767,11 @@
             
             // Visual feedback
             const btn = event.target.closest('button');
-            btn.innerHTML = '<i class="fas fa-check"></i>';
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Added!';
             btn.classList.add('bg-emerald-600', 'text-white');
             setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-plus"></i>';
+                btn.innerHTML = originalContent;
                 btn.classList.remove('bg-emerald-600', 'text-white');
             }, 1000);
         }
@@ -824,10 +825,33 @@
         }
 
         function checkout() {
-            let text = `*NEW ORDER - LWANDETI JUNCTION MINIMART*%0A%0A`;
-            cart.forEach(item => text += `• ${item.name} (x${item.qty}) - KSh ${item.price * item.qty}%0A`);
-            text += `%0A*TOTAL: ${document.getElementById('cartTotal').innerText}*%0A%0AThank you for shopping with us!`;
-            window.open(`https://wa.me/254117352700?text=${text}`);
+            const total = document.getElementById('cartTotal').innerText;
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+            
+            let text = `🛒 *NEW ORDER - LWANDETI JUNCTION MINIMART*\n`;
+            text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+            text += `📅 *Date:* ${dateStr} at ${timeStr}\n`;
+            text += `📍 *Pickup Location:* Lwandeti Junction, Webuye-Eldoret Highway\n\n`;
+            text += `🛍️ *ORDER DETAILS:*\n`;
+            text += `━━━━━━━━━━━━━━━━━━━━\n`;
+            
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.qty;
+                text += `\n${index + 1}. *${item.name}*\n`;
+                text += `   Qty: ${item.qty} × KSh ${item.price.toLocaleString()} = *KSh ${itemTotal.toLocaleString()}*\n`;
+            });
+            
+            text += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+            text += `💰 *TOTAL: ${total}*\n`;
+            text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+            text += `✅ *Status:* Pending Confirmation\n`;
+            text += `💳 *Payment:* Pay on pickup\n\n`;
+            text += `Thank you for choosing Lwandeti Junction Minimart! 🌟\n`;
+            text += `We'll have your order ready for collection.`;
+            
+            window.open(`https://wa.me/254117352700?text=${encodeURIComponent(text)}`);
         }
         
         init();
