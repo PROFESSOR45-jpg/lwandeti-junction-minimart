@@ -15,9 +15,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <script>
         tailwind.config = {
@@ -256,7 +255,6 @@
             animation: float 8s ease-in-out infinite;
         }
 
-        /* Image upload zone styles */
         .upload-zone {
             border: 2px dashed #d6d3d1;
             transition: all 0.3s ease;
@@ -292,15 +290,58 @@
             opacity: 1;
         }
 
-        /* Edit modal styles */
         .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
         }
 
-        /* Duplicate warning animation */
         .duplicate-warning {
             animation: slideIn 0.4s ease-out;
+        }
+
+        /* OCR Edit Modal Styles */
+        .ocr-edit-input {
+            background: transparent;
+            border: 1px solid #e7e5e4;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.875rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        
+        .ocr-edit-input:focus {
+            outline: none;
+            border-color: #22c55e;
+            background: white;
+        }
+
+        .ocr-row.editing {
+            background-color: #f0fdf4;
+        }
+
+        /* Streaming detection animation */
+        .streaming-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #16a34a;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -308,13 +349,11 @@
 
     <!-- Login Screen -->
     <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
-        <!-- Floating Background Elements -->
         <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
         <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
         <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
         
         <div class="relative z-10 w-full max-w-md px-6">
-            <!-- Store Image Badge -->
             <div class="flex justify-center mb-8">
                 <div class="relative group cursor-pointer">
                     <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
@@ -328,7 +367,6 @@
             </div>
 
             <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                <!-- Decorative Corner -->
                 <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
                 
                 <div class="relative z-10">
@@ -366,7 +404,6 @@
                 </div>
             </div>
 
-            <!-- Store Location Tag -->
             <div class="mt-6 text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
                     <i class="fas fa-map-marker-alt text-orange-400"></i>
@@ -378,12 +415,10 @@
 
     <!-- Admin Dashboard -->
     <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
-        <!-- Header -->
         <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
             <div class="container mx-auto px-6 py-4">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
-                        <!-- Mini Store Image in Header -->
                         <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 store-image-bg shadow-lg hidden md:block"></div>
                         <div>
                             <h1 class="font-display font-bold text-lg tracking-tight">Lwandeti Junction</h1>
@@ -405,9 +440,7 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <div class="container mx-auto px-4 sm:px-6 py-8">
-            <!-- Navigation Tabs -->
             <div class="mb-8 overflow-x-auto scroll-hide">
                 <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
                     <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
@@ -430,7 +463,6 @@
             <!-- Inventory Tab -->
             <div id="view-inventory" class="tab-content animate-fade-in">
                 <div class="grid xl:grid-cols-12 gap-6">
-                    <!-- Add Product Form -->
                     <div class="xl:col-span-4">
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
                             <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
@@ -457,7 +489,7 @@
                                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
                                         <div class="relative">
                                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                                            <input type="number" id="prodPrice" required placeholder="0.00" 
+                                            <input type="number" id="prodPrice" required placeholder="0.00" step="0.01"
                                                 class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                                         </div>
                                     </div>
@@ -485,11 +517,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Enhanced Image Input Section -->
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
                                     
-                                    <!-- Image Preview Container -->
                                     <div id="imagePreviewContainer" class="hidden mb-3">
                                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                                             <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
@@ -501,7 +531,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Upload Method Toggle -->
                                     <div class="flex gap-2 mb-3">
                                         <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
                                             <i class="fas fa-upload mr-1"></i> Upload File
@@ -511,7 +540,6 @@
                                         </button>
                                     </div>
 
-                                    <!-- File Upload Zone -->
                                     <div id="fileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                                         <input type="file" id="prodImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
                                         <div class="pointer-events-none">
@@ -521,7 +549,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- URL Input (Hidden by default) -->
                                     <div id="urlInputZone" class="hidden relative">
                                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
                                         <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" 
@@ -529,10 +556,9 @@
                                             oninput="handleUrlInput(this.value)">
                                     </div>
 
-                                    <!-- Upload Progress -->
                                     <div id="uploadProgress" class="hidden mt-3">
                                         <div class="flex justify-between text-xs text-earth-600 mb-1">
-                                            <span>Uploading...</span>
+                                            <span id="uploadStatus">Uploading...</span>
                                             <span id="uploadPercent">0%</span>
                                         </div>
                                         <div class="w-full bg-earth-200 rounded-full h-2">
@@ -543,7 +569,6 @@
                                     <input type="hidden" id="finalImageUrl" value="">
                                 </div>
 
-                                <!-- Duplicate Warning Section (Hidden by default) -->
                                 <div id="duplicateWarning" class="hidden duplicate-warning bg-orange-50 border-2 border-orange-200 rounded-xl p-4 space-y-3">
                                     <div class="flex items-start gap-3">
                                         <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
@@ -583,7 +608,6 @@
                         </div>
                     </div>
 
-                    <!-- Products List -->
                     <div class="xl:col-span-8">
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
                             <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -619,13 +643,12 @@
                                 </div>
                                 <div>
                                     <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
-                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction</p>
+                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction with live editing</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="p-8">
-                            <!-- Upload Zone -->
                             <div class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
                                 <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
                                 <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50">
@@ -637,7 +660,6 @@
                                 </div>
                             </div>
 
-                            <!-- Supported Types -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
                                 <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -669,7 +691,13 @@
                             <div id="aiReviewSection" class="hidden mt-8">
                                 <div class="flex items-center justify-between mb-6">
                                     <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
-                                    <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                    <div class="flex items-center gap-3">
+                                        <span class="live-indicator" id="streamingIndicator" style="display: none;">
+                                            <span class="streaming-dot"></span>
+                                            Live Processing
+                                        </span>
+                                        <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="overflow-hidden rounded-2xl border border-earth-200">
@@ -677,9 +705,10 @@
                                         <thead class="bg-earth-50 border-b border-earth-200">
                                             <tr>
                                                 <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price (KSh)</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Unit</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="aiResultsTable" class="divide-y divide-earth-100">
@@ -688,9 +717,14 @@
                                     </table>
                                 </div>
 
-                                <button onclick="saveAIScannedItems(this)" class="mt-6 w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                                    Confirm All Items
-                                </button>
+                                <div class="mt-6 flex gap-3">
+                                    <button onclick="clearAIResults()" class="px-6 py-3 bg-earth-200 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-300 transition-colors">
+                                        <i class="fas fa-trash-alt mr-2"></i>Clear All
+                                    </button>
+                                    <button onclick="saveAIScannedItems(this)" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                                        Confirm All Items
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -728,7 +762,6 @@
                                     <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
                                 </div>
 
-                                <!-- Current Departments Preview -->
                                 <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
                                     <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
                                     <div id="categoriesPreview" class="flex flex-wrap gap-2">
@@ -775,7 +808,7 @@
                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                            <input type="number" id="editProdPrice" required 
+                            <input type="number" id="editProdPrice" required step="0.01"
                                 class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                         </div>
                     </div>
@@ -786,11 +819,9 @@
                     </div>
                 </div>
 
-                <!-- Edit Image Section -->
                 <div>
                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
                     
-                    <!-- Current Image Preview -->
                     <div id="editImagePreviewContainer" class="mb-3">
                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                             <img id="editImagePreview" src="" alt="Current" class="w-full h-full object-cover">
@@ -800,7 +831,6 @@
                         </div>
                     </div>
 
-                    <!-- Edit Upload Method Toggle -->
                     <div class="flex gap-2 mb-3">
                         <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
                             <i class="fas fa-upload mr-1"></i> New File
@@ -810,7 +840,6 @@
                         </button>
                     </div>
 
-                    <!-- Edit File Upload Zone -->
                     <div id="editFileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                         <input type="file" id="editProdImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleEditFileSelect(event)">
                         <div class="pointer-events-none">
@@ -819,7 +848,6 @@
                         </div>
                     </div>
 
-                    <!-- Edit URL Input -->
                     <div id="editUrlInputZone" class="hidden relative">
                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
                         <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" 
@@ -827,10 +855,9 @@
                             oninput="handleEditUrlInput(this.value)">
                     </div>
 
-                    <!-- Edit Upload Progress -->
                     <div id="editUploadProgress" class="hidden mt-3">
                         <div class="flex justify-between text-xs text-earth-600 mb-1">
-                            <span>Uploading...</span>
+                            <span id="editUploadStatus">Uploading...</span>
                             <span id="editUploadPercent">0%</span>
                         </div>
                         <div class="w-full bg-earth-200 rounded-full h-2">
@@ -864,40 +891,31 @@
         </div>
     </div>
 
-      <script>
-        // ==========================================
-        // FIREBASE CONFIGURATION
-        // ==========================================
-// Your Firebase configuration using compat SDK format
-const firebaseConfig = {
-    apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
-    authDomain: "lwandeti-junction-minimart.firebaseapp.com",
-    projectId: "lwandeti-junction-minimart",
-    storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
-    messagingSenderId: "282672112956",
-    appId: "1:282672112956:web:1a85643cc1f3c410676a39",
-    measurementId: "G-C3RV1N7D2N"
-};
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
+            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
+            projectId: "lwandeti-junction-minimart",
+            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+            messagingSenderId: "282672112956",
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
+            measurementId: "G-C3RV1N7D2N"
+        };
 
-// Initialize Firebase (compat SDK style)
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const storage = firebase.storage();
-        // ==========================================
-        // GLOBAL STATE
-        // ==========================================
-        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Global State
         let products = [];
         let categories = [];
         let tempExtracted = [];
         let currentUser = null;
         let duplicateProduct = null;
+        let isStreaming = false;
 
-        // ==========================================
-        // AUTHENTICATION
-        // ==========================================
-        
-        // Simple auth check (replace with Firebase Auth if needed)
+        // Authentication
         const VALID_USERNAME = "admin";
         const VALID_PASSWORD = "admin123";
 
@@ -927,16 +945,11 @@ const storage = firebase.storage();
             document.getElementById('password').value = '';
         }
 
-        // ==========================================
-        // APP INITIALIZATION
-        // ==========================================
-        
         function initializeApp() {
             setupRealtimeListeners();
         }
 
         function setupRealtimeListeners() {
-            // Real-time products updates
             db.collection('products').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
                 products = [];
                 snapshot.forEach(doc => {
@@ -945,7 +958,6 @@ const storage = firebase.storage();
                 renderProducts();
             });
 
-            // Real-time categories updates
             db.collection('categories').orderBy('name').onSnapshot(snapshot => {
                 categories = [];
                 snapshot.forEach(doc => {
@@ -956,10 +968,6 @@ const storage = firebase.storage();
             });
         }
 
-        // ==========================================
-        // PRODUCTS MANAGEMENT
-        // ==========================================
-        
         function updateCategorySelects() {
             const selects = ['prodCategory'];
             selects.forEach(selectId => {
@@ -1050,10 +1058,6 @@ const storage = firebase.storage();
             `).join('');
         }
 
-        // ==========================================
-        // DUPLICATE CHECKING
-        // ==========================================
-        
         function checkDuplicateAndSave() {
             const name = document.getElementById('prodName').value.trim();
             const price = parseFloat(document.getElementById('prodPrice').value);
@@ -1098,10 +1102,6 @@ const storage = firebase.storage();
             });
         }
 
-        // ==========================================
-        // PRODUCT CRUD
-        // ==========================================
-        
         function saveProduct() {
             const name = document.getElementById('prodName').value.trim();
             const price = parseFloat(document.getElementById('prodPrice').value);
@@ -1155,10 +1155,6 @@ const storage = firebase.storage();
                 .catch(() => showToast('Error', 'Failed to delete', 'error'));
         }
 
-        // ==========================================
-        // EDIT MODAL FUNCTIONS
-        // ==========================================
-        
         function openEditModal(id) {
             const product = products.find(p => p.id === id);
             if (!product) return;
@@ -1208,10 +1204,7 @@ const storage = firebase.storage();
             });
         }
 
-        // ==========================================
-        // IMAGE HANDLING
-        // ==========================================
-        
+        // Image Handling - FIXED VERSION
         function switchImageInput(type) {
             const fileZone = document.getElementById('fileInputZone');
             const urlZone = document.getElementById('urlInputZone');
@@ -1262,14 +1255,25 @@ const storage = firebase.storage();
             const file = event.target.files[0];
             if (!file) return;
             
-            uploadImage(file, 'finalImageUrl', 'uploadProgress', 'uploadProgressBar', 'uploadPercent');
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Error', 'Image too large. Max 5MB', 'error');
+                return;
+            }
+            
+            uploadImage(file, 'finalImageUrl', 'uploadProgress', 'uploadProgressBar', 'uploadPercent', 'uploadStatus');
         }
 
         function handleEditFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
             
-            uploadImage(file, 'editFinalImageUrl', 'editUploadProgress', 'editUploadProgressBar', 'editUploadPercent');
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Error', 'Image too large. Max 5MB', 'error');
+                return;
+            }
+            
+            uploadImage(file, 'editFinalImageUrl', 'editUploadProgress', 'editUploadProgressBar', 'editUploadPercent', 'editUploadStatus');
         }
 
         function handleUrlInput(url) {
@@ -1285,35 +1289,88 @@ const storage = firebase.storage();
             if (preview) preview.src = url;
         }
 
-        function uploadImage(file, urlFieldId, progressId, barId, percentId) {
+        // FIXED: Better error handling and CORS-friendly upload
+        function uploadImage(file, urlFieldId, progressId, barId, percentId, statusId) {
             const progressDiv = document.getElementById(progressId);
             const bar = document.getElementById(barId);
             const percent = document.getElementById(percentId);
+            const status = document.getElementById(statusId);
             
             progressDiv.classList.remove('hidden');
+            if (status) status.textContent = 'Uploading...';
             
-            const storageRef = storage.ref(`products/${Date.now()}_${file.name}`);
-            const uploadTask = storageRef.put(file);
+            // Create unique filename
+            const timestamp = Date.now();
+            const filename = `products/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            const storageRef = storage.ref(filename);
+            
+            // Create metadata
+            const metadata = {
+                contentType: file.type,
+                customMetadata: {
+                    'uploadedBy': currentUser || 'unknown',
+                    'uploadTime': new Date().toISOString()
+                }
+            };
+            
+            const uploadTask = storageRef.put(file, metadata);
             
             uploadTask.on('state_changed', 
                 snapshot => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     bar.style.width = progress + '%';
                     percent.textContent = Math.round(progress) + '%';
+                    if (status) status.textContent = `Uploading... ${Math.round(progress)}%`;
                 },
                 error => {
-                    showToast('Error', 'Upload failed', 'error');
+                    console.error('Upload error:', error);
+                    let errorMsg = 'Upload failed';
+                    
+                    // Handle specific Firebase Storage errors
+                    if (error.code === 'storage/unauthorized') {
+                        errorMsg = 'Permission denied. Check storage rules.';
+                    } else if (error.code === 'storage/canceled') {
+                        errorMsg = 'Upload cancelled';
+                    } else if (error.code === 'storage/unknown') {
+                        errorMsg = 'Unknown error. Check console.';
+                    } else if (error.code === 'storage/quota-exceeded') {
+                        errorMsg = 'Storage quota exceeded';
+                    }
+                    
+                    showToast('Error', errorMsg, 'error');
                     progressDiv.classList.add('hidden');
+                    bar.style.width = '0%';
+                    percent.textContent = '0%';
                 },
                 () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then(url => {
-                        document.getElementById(urlFieldId).value = url;
-                        showImagePreview(url, 'imagePreview', 'imagePreviewContainer');
-                        progressDiv.classList.add('hidden');
-                        showToast('Success', 'Image uploaded');
-                    });
+                    // Success
+                    uploadTask.snapshot.ref.getDownloadURL()
+                        .then(url => {
+                            document.getElementById(urlFieldId).value = url;
+                            
+                            // Show preview based on which form
+                            if (urlFieldId === 'finalImageUrl') {
+                                showImagePreview(url, 'imagePreview', 'imagePreviewContainer');
+                            } else {
+                                const preview = document.getElementById('editImagePreview');
+                                if (preview) preview.src = url;
+                            }
+                            
+                            progressDiv.classList.add('hidden');
+                            showToast('Success', 'Image uploaded successfully');
+                        })
+                        .catch(err => {
+                            console.error('Error getting download URL:', err);
+                            showToast('Error', 'Image uploaded but URL failed', 'error');
+                            progressDiv.classList.add('hidden');
+                        });
                 }
             );
+            
+            // Allow cancel
+            uploadTask.catch(error => {
+                console.error('Upload task error:', error);
+            });
         }
 
         function showImagePreview(url, imgId, containerId) {
@@ -1338,7 +1395,7 @@ const storage = firebase.storage();
         }
 
         // ==========================================
-        // AI SCANNER FUNCTIONS
+        // AI SCANNER - STREAMING & EDITABLE
         // ==========================================
         
         async function handleAIUpload(event) {
@@ -1351,57 +1408,51 @@ const storage = firebase.storage();
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="loader-modern"></div><p class="mt-4 text-brand-600 font-medium">Processing image...</p>';
             
+            // Show streaming indicator
+            const streamingIndicator = document.getElementById('streamingIndicator');
+            if (streamingIndicator) streamingIndicator.style.display = 'inline-flex';
+            isStreaming = true;
+            
+            // Clear previous results
+            tempExtracted = [];
+            document.getElementById('aiReviewSection').classList.remove('hidden');
+            renderAIResults();
+            
             try {
                 const result = await Tesseract.recognize(file, 'eng', {
-                    logger: m => console.log(m)
+                    logger: m => {
+                        console.log(m);
+                        // Update progress if available
+                        if (m.status === 'recognizing text') {
+                            const progress = Math.round(m.progress * 100);
+                            // Could show progress here
+                        }
+                    }
                 });
                 
                 const text = result.data.text;
                 console.log('OCR Result:', text);
                 
+                // Process text line by line for streaming effect
                 const lines = text.split('\n').filter(line => line.trim());
-                tempExtracted = [];
                 
-                lines.forEach(line => {
-                    const match = line.match(/(.+?)[\s\-–—:]+[kK][sS][hH]?[\s]*([\d,]+)/);
-                    if (match) {
-                        const name = match[1].trim();
-                        const price = parseFloat(match[2].replace(/,/g, ''));
+                // Process each line with a small delay for visual effect
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const item = parseProductLine(line);
+                    
+                    if (item) {
+                        tempExtracted.push(item);
+                        // Render immediately as items are found
+                        renderAIResults();
                         
-                        if (name && price && !isNaN(price)) {
-                            tempExtracted.push({
-                                name: name,
-                                price: price,
-                                unit: 'pcs',
-                                category: 'Uncategorized',
-                                subCategory: ''
-                            });
-                        }
+                        // Update count
+                        document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
+                        
+                        // Small delay for streaming effect
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
-                });
-                
-                if (tempExtracted.length === 0) {
-                    lines.forEach(line => {
-                        const priceMatch = line.match(/[\d,]+/);
-                        if (priceMatch && line.length > 3) {
-                            const price = parseFloat(priceMatch[0].replace(/,/g, ''));
-                            const name = line.replace(priceMatch[0], '').trim();
-                            if (name && price && !isNaN(price) && price > 10) {
-                                tempExtracted.push({
-                                    name: name,
-                                    price: price,
-                                    unit: 'pcs',
-                                    category: 'Uncategorized',
-                                    subCategory: ''
-                                });
-                            }
-                        }
-                    });
                 }
-                
-                document.getElementById('aiReviewSection').classList.remove('hidden');
-                document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
-                renderAIResults();
                 
                 if (tempExtracted.length === 0) {
                     showToast('No items found', 'Try a clearer image with product names and prices', 'warning');
@@ -1414,31 +1465,184 @@ const storage = firebase.storage();
                 showToast('Error', 'Failed to process image', 'error');
             } finally {
                 btn.innerHTML = originalContent;
+                isStreaming = false;
+                if (streamingIndicator) streamingIndicator.style.display = 'none';
             }
+        }
+
+        // Parse a single line to extract product info
+        function parseProductLine(line) {
+            // Pattern 1: "Product Name - KSh 100" or "Product Name: KSh 100"
+            let match = line.match(/(.+?)[\s\-–—:]+[kK][sS][hH]?[\s]*([\d,]+(?:\.\d{2})?)/);
+            if (match) {
+                const name = match[1].trim();
+                const price = parseFloat(match[2].replace(/,/g, ''));
+                if (name && price && !isNaN(price) && price > 0) {
+                    return {
+                        name: cleanProductName(name),
+                        price: price,
+                        unit: 'pcs',
+                        category: 'Uncategorized',
+                        subCategory: ''
+                    };
+                }
+            }
+            
+            // Pattern 2: "Product Name 100" (price at end)
+            match = line.match(/(.+?)\s+([\d,]+(?:\.\d{2})?)\s*$/);
+            if (match) {
+                const name = match[1].trim();
+                const price = parseFloat(match[2].replace(/,/g, ''));
+                if (name && price && !isNaN(price) && price > 10 && price < 100000) {
+                    return {
+                        name: cleanProductName(name),
+                        price: price,
+                        unit: 'pcs',
+                        category: 'Uncategorized',
+                        subCategory: ''
+                    };
+                }
+            }
+            
+            // Pattern 3: "100 Product Name" (price at start)
+            match = line.match(/^([\d,]+(?:\.\d{2})?)\s+(.+)/);
+            if (match) {
+                const price = parseFloat(match[1].replace(/,/g, ''));
+                const name = match[2].trim();
+                if (name && price && !isNaN(price) && price > 10 && price < 100000) {
+                    return {
+                        name: cleanProductName(name),
+                        price: price,
+                        unit: 'pcs',
+                        category: 'Uncategorized',
+                        subCategory: ''
+                    };
+                }
+            }
+            
+            return null;
+        }
+
+        function cleanProductName(name) {
+            // Remove common OCR artifacts and clean up
+            return name
+                .replace(/[^\w\s\-']/g, '') // Remove special chars except - and '
+                .replace(/\s+/g, ' ')       // Normalize spaces
+                .trim()
+                .substring(0, 100);         // Limit length
         }
 
         function renderAIResults() {
             const tbody = document.getElementById('aiResultsTable');
             if (!tbody) return;
             
+            if (tempExtracted.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-earth-400">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p class="text-sm">Scanning for products...</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
             tbody.innerHTML = tempExtracted.map((item, index) => `
-                <tr class="hover:bg-earth-50 transition-colors group">
-                    <td class="px-6 py-4">
-                        <div class="font-medium text-earth-900">${item.name}</div>
+                <tr class="hover:bg-earth-50 transition-colors ocr-row" id="ocr-row-${index}" data-index="${index}">
+                    <td class="px-6 py-3">
+                        <input type="text" 
+                               value="${item.name}" 
+                               onchange="updateOCRItem(${index}, 'name', this.value)"
+                               class="ocr-edit-input font-medium text-earth-900"
+                               placeholder="Product name">
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-brand-600">KSh ${item.price.toFixed(2)}</div>
+                    <td class="px-6 py-3">
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-earth-400">KSh</span>
+                            <input type="number" 
+                                   value="${item.price.toFixed(2)}" 
+                                   step="0.01"
+                                   onchange="updateOCRItem(${index}, 'price', parseFloat(this.value))"
+                                   class="ocr-edit-input pl-8 font-bold text-brand-600 w-24"
+                                   placeholder="0.00">
+                        </div>
                     </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded-md text-xs font-medium">${item.category}</span>
+                    <td class="px-6 py-3">
+                        <input type="text" 
+                               value="${item.unit}" 
+                               onchange="updateOCRItem(${index}, 'unit', this.value)"
+                               class="ocr-edit-input w-20 text-center text-xs"
+                               placeholder="unit">
                     </td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
-                            <i class="fas fa-times"></i>
-                        </button>
+                    <td class="px-6 py-3">
+                        <select onchange="updateOCRItem(${index}, 'category', this.value)"
+                                class="ocr-edit-input text-xs cursor-pointer">
+                            ${getCategoryOptions(item.category)}
+                        </select>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="editOCRItem(${index})" class="text-blue-400 hover:text-blue-600 p-1.5 rounded hover:bg-blue-50 transition-colors" title="Quick Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 p-1.5 rounded hover:bg-red-50 transition-colors" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function getCategoryOptions(selected) {
+            let options = '<option value="Uncategorized">Select...</option>';
+            categories.forEach(cat => {
+                const isSelected = cat.name === selected ? 'selected' : '';
+                options += `<option value="${cat.name}" ${isSelected}>${cat.name}</option>`;
+            });
+            return options;
+        }
+
+        function updateOCRItem(index, field, value) {
+            if (tempExtracted[index]) {
+                tempExtracted[index][field] = value;
+                // Visual feedback
+                const row = document.getElementById(`ocr-row-${index}`);
+                if (row) {
+                    row.classList.add('editing');
+                    setTimeout(() => row.classList.remove('editing'), 500);
+                }
+            }
+        }
+
+        function editOCRItem(index) {
+            const item = tempExtracted[index];
+            if (!item) return;
+            
+            // Create inline edit modal
+            const row = document.getElementById(`ocr-row-${index}`);
+            
+            // Toggle expanded edit mode
+            const isExpanded = row.classList.contains('expanded-edit');
+            
+            // Remove any existing expanded rows
+            document.querySelectorAll('.ocr-row.expanded-edit').forEach(r => {
+                r.classList.remove('expanded-edit');
+                r.style.backgroundColor = '';
+            });
+            
+            if (!isExpanded) {
+                row.classList.add('expanded-edit');
+                row.style.backgroundColor = '#f0fdf4';
+                
+                // Focus on name input
+                const nameInput = row.querySelector('input[type="text"]');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.select();
+                }
+            }
         }
 
         function removeAIItem(index) {
@@ -1451,6 +1655,15 @@ const storage = firebase.storage();
             }
         }
 
+        function clearAIResults() {
+            if (tempExtracted.length > 0 && !confirm('Clear all scanned items?')) return;
+            
+            tempExtracted = [];
+            renderAIResults();
+            document.getElementById('aiReviewSection').classList.add('hidden');
+            document.getElementById('aiCount').textContent = '0 items';
+        }
+
         async function saveAIScannedItems(btn) {
             if (tempExtracted.length === 0) return;
             
@@ -1459,41 +1672,79 @@ const storage = firebase.storage();
             btn.disabled = true;
             
             let savedCount = 0;
+            let updatedCount = 0;
+            let errorCount = 0;
             
-            try {
-                for (const item of tempExtracted) {
+            // Process items sequentially to avoid overwhelming the database
+            for (let i = 0; i < tempExtracted.length; i++) {
+                const item = tempExtracted[i];
+                
+                try {
+                    // Check for duplicates
                     const existing = products.find(p => 
                         p.name.toLowerCase() === item.name.toLowerCase()
                     );
                     
                     if (existing) {
+                        // Update if price changed
                         if (existing.price !== item.price) {
                             await db.collection('products').doc(existing.id).update({
                                 price: item.price,
+                                unit: item.unit,
+                                category: item.category,
                                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                             });
+                            updatedCount++;
                         }
                     } else {
+                        // Add new product
                         await db.collection('products').add({
-                            ...item,
+                            name: item.name,
+                            price: item.price,
+                            unit: item.unit,
+                            category: item.category,
+                            subCategory: item.subCategory,
                             image: 'https://via.placeholder.com/150?text=No+Image',
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
+                        savedCount++;
                     }
-                    savedCount++;
+                    
+                    // Visual progress
+                    const row = document.getElementById(`ocr-row-${i}`);
+                    if (row) {
+                        row.style.backgroundColor = '#dcfce7';
+                        setTimeout(() => {
+                            row.style.opacity = '0.5';
+                        }, 300);
+                    }
+                    
+                    // Small delay to show progress
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                } catch (error) {
+                    console.error('Error saving item:', error);
+                    errorCount++;
+                    const row = document.getElementById(`ocr-row-${i}`);
+                    if (row) row.style.backgroundColor = '#fee2e2';
                 }
-                
-                tempExtracted = [];
-                document.getElementById('aiReviewSection').classList.add('hidden');
-                showToast('Success', `Saved ${savedCount} items`);
-                switchTab('inventory');
-                
-            } catch (error) {
-                showToast('Error', 'Failed to save items', 'error');
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
             }
+            
+            tempExtracted = [];
+            
+            if (errorCount > 0) {
+                showToast('Partial Success', `Added ${savedCount}, Updated ${updatedCount}, Errors ${errorCount}`, 'warning');
+            } else {
+                showToast('Success', `Added ${savedCount} new, Updated ${updatedCount} existing`);
+            }
+            
+            setTimeout(() => {
+                document.getElementById('aiReviewSection').classList.add('hidden');
+                switchTab('inventory');
+            }, 1000);
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
 
         // ==========================================
@@ -1518,6 +1769,13 @@ const storage = firebase.storage();
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    ${cat.subs && cat.subs.length > 0 ? `
+                        <div class="absolute top-full left-0 mt-1 bg-white border border-earth-200 rounded-lg shadow-lg p-2 min-w-[150px] z-10 hidden group-hover:block">
+                            ${cat.subs.map(sub => `
+                                <div class="px-2 py-1 text-xs text-earth-600 hover:bg-earth-50 rounded">${sub}</div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 </div>
             `).join('');
         }
@@ -1594,6 +1852,7 @@ const storage = firebase.storage();
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 
+                // Header
                 doc.setFillColor(20, 83, 45);
                 doc.rect(0, 0, pageWidth, 40, 'F');
                 
