@@ -305,78 +305,8 @@
 </head>
 <body class="text-earth-800 antialiased">
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
-        <!-- Floating Background Elements -->
-        <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
-        <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
-        <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
-        
-        <div class="relative z-10 w-full max-w-md px-6">
-            <!-- Store Image Badge -->
-            <div class="flex justify-center mb-8">
-                <div class="relative group cursor-pointer">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
-                    <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl store-image-bg transform group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-gradient-to-t from-brand-900/60 to-transparent"></div>
-                        <div class="absolute bottom-2 left-0 right-0 text-center">
-                            <i class="fas fa-store text-white/80 text-xs"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                <!-- Decorative Corner -->
-                <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
-                
-                <div class="relative z-10">
-                    <div class="text-center mb-8">
-                        <h1 class="font-display text-3xl font-bold text-earth-900 mb-2 tracking-tight">Admin Portal</h1>
-                        <p class="text-earth-500 text-sm">Lwandeti Junction Minimart</p>
-                    </div>
-
-                    <form onsubmit="event.preventDefault(); login();" class="space-y-5">
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-user text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
-                            </div>
-                            <input type="text" id="username" required placeholder="Username" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
-                        </div>
-
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
-                            </div>
-                            <input type="password" id="password" required placeholder="Password" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
-                        </div>
-
-                        <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-2xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/30 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                            Verify Access
-                        </button>
-                    </form>
-
-                    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-earth-400">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Secure Connection</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Store Location Tag -->
-            <div class="mt-6 text-center">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
-                    <i class="fas fa-map-marker-alt text-orange-400"></i>
-                    <span>Lwandeti, Kenya</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Dashboard -->
-    <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
+    <!-- Admin Dashboard (Now the default view) -->
+    <div id="adminDashboard" class="min-h-screen bg-earth-50">
         <!-- Header -->
         <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
             <div class="container mx-auto px-6 py-4">
@@ -394,10 +324,6 @@
                         <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
                             <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
                             <span class="hidden sm:inline">Export PDF</span>
-                        </button>
-                        <button onclick="logout()" class="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-xl text-xs font-semibold transition-all duration-300 border border-red-500/30">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span class="hidden sm:inline">Logout</span>
                         </button>
                     </div>
                 </div>
@@ -944,44 +870,6 @@
                 return false;
             }
         }
-
-        // ==========================================
-        // AUTHENTICATION
-        // ==========================================
-        
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'ADMINISTRATOR' && password === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
-                
-                const loginScreen = document.getElementById('loginScreen');
-                loginScreen.style.opacity = '0';
-                loginScreen.style.transition = 'opacity 0.5s ease';
-                
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    document.getElementById('adminDashboard').classList.remove('hidden');
-                    syncData();
-                }, 500);
-            } else {
-                showToast('Error', 'Invalid credentials', 'error');
-            }
-        }
-
-        function logout() { 
-            sessionStorage.removeItem('admin_auth'); 
-            location.reload(); 
-        }
-
-        window.onload = function() {
-            if (sessionStorage.getItem('admin_auth')) {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                syncData();
-            }
-        };
 
         // ==========================================
         // DATA SYNC
@@ -1610,7 +1498,7 @@
             });
         }
 
-        function parseOCRTextToProducts(text) {
+                function parseOCRTextToProducts(text) {
             const products = [];
             const lines = text.split('\n').filter(line => line.trim());
             
@@ -2077,6 +1965,9 @@
                     closeEditModal();
                 }
             });
+            
+            // Initialize data sync on load (no login required)
+            syncData();
         });
 
         // Initialize tooltips and other UI enhancements
