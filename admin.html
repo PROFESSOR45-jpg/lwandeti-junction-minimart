@@ -14,7 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     
-    <!-- Firebase SDK - Using standard compat versions -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
@@ -256,7 +255,6 @@
             animation: float 8s ease-in-out infinite;
         }
 
-        /* Image upload zone styles */
         .upload-zone {
             border: 2px dashed #d6d3d1;
             transition: all 0.3s ease;
@@ -292,18 +290,15 @@
             opacity: 1;
         }
 
-        /* Edit modal styles */
         .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
         }
 
-        /* Duplicate warning animation */
         .duplicate-warning {
             animation: slideIn 0.4s ease-out;
         }
         
-        /* Loading state */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -321,6 +316,18 @@
             opacity: 1;
             pointer-events: all;
         }
+
+        /* Permission error banner */
+        .permission-banner {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
@@ -335,13 +342,11 @@
 
     <!-- Login Screen -->
     <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
-        <!-- Floating Background Elements -->
         <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
         <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
         <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
         
         <div class="relative z-10 w-full max-w-md px-6">
-            <!-- Store Image Badge -->
             <div class="flex justify-center mb-8">
                 <div class="relative group cursor-pointer">
                     <div class="absolute -inset-1 bg-gradient-to-r from-brand-400 to-orange-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
@@ -355,7 +360,6 @@
             </div>
 
             <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                <!-- Decorative Corner -->
                 <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
                 
                 <div class="relative z-10">
@@ -393,7 +397,6 @@
                 </div>
             </div>
 
-            <!-- Store Location Tag -->
             <div class="mt-6 text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
                     <i class="fas fa-map-marker-alt text-orange-400"></i>
@@ -405,12 +408,82 @@
 
     <!-- Admin Dashboard -->
     <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
-        <!-- Header -->
+        <!-- Permission Error Banner (Hidden by default) -->
+        <div id="permissionBanner" class="hidden container mx-auto px-4 sm:px-6 pt-4">
+            <div class="permission-banner">
+                <i class="fas fa-exclamation-triangle text-amber-600 text-xl mt-0.5"></i>
+                <div class="flex-1">
+                    <h4 class="font-bold text-amber-900 text-sm mb-1">Firebase Permissions Required</h4>
+                    <p class="text-xs text-amber-800 mb-2">Your database is in test mode. Update your Firebase Security Rules to enable full functionality.</p>
+                    <button onclick="showFirebaseRules()" class="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-amber-700 transition-colors">
+                        View Setup Instructions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Firebase Rules Modal -->
+        <div id="rulesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-amber-50 to-orange-50 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-lg text-earth-900">Firebase Security Rules</h3>
+                            <p class="text-xs text-earth-500">Required for full functionality</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <h4 class="font-bold text-red-800 text-sm mb-2"><i class="fas fa-fire mr-2"></i>Firestore Rules</h4>
+                        <p class="text-xs text-red-600 mb-3">Go to Firebase Console → Firestore Database → Rules, then paste:</p>
+                        <pre class="bg-earth-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+                    </div>
+
+                    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                        <h4 class="font-bold text-orange-800 text-sm mb-2"><i class="fas fa-image mr-2"></i>Storage Rules</h4>
+                        <p class="text-xs text-orange-600 mb-3">Go to Firebase Console → Storage → Rules, then paste:</p>
+                        <pre class="bg-earth-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-info-circle mr-2"></i>Important Notes</h4>
+                        <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                            <li>These rules allow <strong>anyone</strong> to read/write (development only)</li>
+                            <li>Add authentication checks before production deployment</li>
+                            <li>Click "Publish" after updating rules</li>
+                            <li>Wait 1-2 minutes for rules to propagate</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
             <div class="container mx-auto px-6 py-4">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
-                        <!-- Mini Store Image in Header -->
                         <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 store-image-bg shadow-lg hidden md:block"></div>
                         <div>
                             <h1 class="font-display font-bold text-lg tracking-tight">Lwandeti Junction</h1>
@@ -432,9 +505,7 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <div class="container mx-auto px-4 sm:px-6 py-8">
-            <!-- Navigation Tabs -->
             <div class="mb-8 overflow-x-auto scroll-hide">
                 <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
                     <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
@@ -457,7 +528,6 @@
             <!-- Inventory Tab -->
             <div id="view-inventory" class="tab-content animate-fade-in">
                 <div class="grid xl:grid-cols-12 gap-6">
-                    <!-- Add Product Form -->
                     <div class="xl:col-span-4">
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
                             <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
@@ -512,11 +582,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Enhanced Image Input Section -->
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
                                     
-                                    <!-- Image Preview Container -->
                                     <div id="imagePreviewContainer" class="hidden mb-3">
                                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                                             <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
@@ -528,7 +596,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Upload Method Toggle -->
                                     <div class="flex gap-2 mb-3">
                                         <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
                                             <i class="fas fa-upload mr-1"></i> Upload File
@@ -538,7 +605,6 @@
                                         </button>
                                     </div>
 
-                                    <!-- File Upload Zone -->
                                     <div id="fileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                                         <input type="file" id="prodImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
                                         <div class="pointer-events-none">
@@ -548,7 +614,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- URL Input (Hidden by default) -->
                                     <div id="urlInputZone" class="hidden relative">
                                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
                                         <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" 
@@ -556,7 +621,6 @@
                                             oninput="handleUrlInput(this.value)">
                                     </div>
 
-                                    <!-- Upload Progress -->
                                     <div id="uploadProgress" class="hidden mt-3">
                                         <div class="flex justify-between text-xs text-earth-600 mb-1">
                                             <span>Uploading...</span>
@@ -570,7 +634,6 @@
                                     <input type="hidden" id="finalImageUrl" value="">
                                 </div>
 
-                                <!-- Duplicate Warning Section (Hidden by default) -->
                                 <div id="duplicateWarning" class="hidden duplicate-warning bg-orange-50 border-2 border-orange-200 rounded-xl p-4 space-y-3">
                                     <div class="flex items-start gap-3">
                                         <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
@@ -610,7 +673,6 @@
                         </div>
                     </div>
 
-                    <!-- Products List -->
                     <div class="xl:col-span-8">
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
                             <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -652,7 +714,6 @@
                         </div>
 
                         <div class="p-8">
-                            <!-- Upload Zone -->
                             <div class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
                                 <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
                                 <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50">
@@ -664,7 +725,6 @@
                                 </div>
                             </div>
 
-                            <!-- Supported Types -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
                                 <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
                                     <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -692,7 +752,6 @@
                                 </div>
                             </div>
 
-                            <!-- Results Section -->
                             <div id="aiReviewSection" class="hidden mt-8">
                                 <div class="flex items-center justify-between mb-6">
                                     <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
@@ -755,7 +814,6 @@
                                     <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
                                 </div>
 
-                                <!-- Current Departments Preview -->
                                 <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
                                     <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
                                     <div id="categoriesPreview" class="flex flex-wrap gap-2">
@@ -813,11 +871,9 @@
                     </div>
                 </div>
 
-                <!-- Edit Image Section -->
                 <div>
                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
                     
-                    <!-- Current Image Preview -->
                     <div id="editImagePreviewContainer" class="mb-3">
                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                             <img id="editImagePreview" src="" alt="Current" class="w-full h-full object-cover">
@@ -827,7 +883,6 @@
                         </div>
                     </div>
 
-                    <!-- Edit Upload Method Toggle -->
                     <div class="flex gap-2 mb-3">
                         <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
                             <i class="fas fa-upload mr-1"></i> New File
@@ -837,7 +892,6 @@
                         </button>
                     </div>
 
-                    <!-- Edit File Upload Zone -->
                     <div id="editFileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                         <input type="file" id="editProdImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleEditFileSelect(event)">
                         <div class="pointer-events-none">
@@ -846,7 +900,6 @@
                         </div>
                     </div>
 
-                    <!-- Edit URL Input -->
                     <div id="editUrlInputZone" class="hidden relative">
                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
                         <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" 
@@ -854,7 +907,6 @@
                             oninput="handleEditUrlInput(this.value)">
                     </div>
 
-                    <!-- Edit Upload Progress -->
                     <div id="editUploadProgress" class="hidden mt-3">
                         <div class="flex justify-between text-xs text-earth-600 mb-1">
                             <span>Uploading...</span>
@@ -904,12 +956,11 @@
             appId: "1:282672112956:web:1a85643cc1f3c410676a39"
         };
         
-        // Initialize Firebase with error handling
         let db, storage;
         let firebaseApp;
+        let hasPermissionError = false;
         
         try {
-            // Check if Firebase is already initialized
             if (!firebase.apps.length) {
                 firebaseApp = firebase.initializeApp(firebaseConfig);
             } else {
@@ -919,19 +970,14 @@
             db = firebase.firestore();
             storage = firebase.storage();
             
-            // Enable offline persistence for better performance
             db.enablePersistence({synchronizeTabs: true})
                 .catch((err) => {
-                    if (err.code == 'failed-precondition') {
-                        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-                    } else if (err.code == 'unimplemented') {
-                        console.warn('Browser does not support offline persistence');
-                    }
+                    console.warn('Persistence error:', err);
                 });
                 
         } catch (e) {
             console.error("Firebase initialization failed:", e);
-            showToast('Error', 'Failed to connect to database. Please refresh.', 'error');
+            showToast('Error', 'Failed to connect to database', 'error');
         }
 
         // Global state
@@ -956,7 +1002,6 @@
             document.getElementById('toastTitle').textContent = title;
             document.getElementById('toastMessage').textContent = message;
             
-            // Update icon
             const iconEl = toast.querySelector('i');
             iconEl.className = `fas ${icon} ${colorClass} text-xl`;
             
@@ -967,9 +1012,24 @@
             }, 3000);
         }
 
+        function showFirebaseRules() {
+            document.getElementById('rulesModal').classList.remove('hidden');
+        }
+
+        function checkPermissionError(error) {
+            if (error && (error.code === 'permission-denied' || 
+                         error.message?.includes('Missing or insufficient permissions') ||
+                         error.message?.includes('access'))) {
+                hasPermissionError = true;
+                document.getElementById('permissionBanner').classList.remove('hidden');
+                return true;
+            }
+            return false;
+        }
+
         function validateImageFile(file) {
             const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            const maxSize = 5 * 1024 * 1024; // 5MB
+            const maxSize = 5 * 1024 * 1024;
             
             if (!validTypes.includes(file.type)) {
                 showToast('Error', 'Invalid file type. Use JPG, PNG, WebP, or GIF', 'error');
@@ -1019,7 +1079,6 @@
         }
 
         function logout() { 
-            // Detach all listeners before logout
             dataListeners.forEach(unsubscribe => unsubscribe());
             dataListeners = [];
             
@@ -1036,13 +1095,12 @@
         };
 
         // ==========================================
-        // DATA SYNC - FIXED CATEGORY LOADING
+        // DATA SYNC WITH PERMISSION HANDLING
         // ==========================================
         
         function syncData() {
             showLoading(true);
             
-            // Categories listener - FIXED: Proper error handling and state management
             const catUnsubscribe = db.collection('categories').onSnapshot(
                 (snap) => {
                     try {
@@ -1051,7 +1109,6 @@
                             ...doc.data()
                         }));
                         
-                        // Ensure categories is always an array
                         if (!Array.isArray(categories)) {
                             categories = [];
                         }
@@ -1061,19 +1118,22 @@
                         showLoading(false);
                     } catch (err) {
                         console.error("Error processing categories:", err);
-                        showToast('Error', 'Failed to process categories', 'error');
                         showLoading(false);
                     }
                 },
                 (err) => {
                     console.error("Categories sync error:", err);
-                    showToast('Error', 'Failed to load categories: ' + err.message, 'error');
                     showLoading(false);
+                    
+                    if (checkPermissionError(err)) {
+                        showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                    } else {
+                        showToast('Error', 'Failed to load categories: ' + err.message, 'error');
+                    }
                 }
             );
             dataListeners.push(catUnsubscribe);
             
-            // Products listener
             const prodUnsubscribe = db.collection('products').orderBy('createdAt', 'desc').onSnapshot(
                 (snap) => {
                     try {
@@ -1085,12 +1145,16 @@
                         document.getElementById('productCount').textContent = `${products.length} items in stock`;
                     } catch (err) {
                         console.error("Error processing products:", err);
-                        showToast('Error', 'Failed to process products', 'error');
                     }
                 },
                 (err) => {
                     console.error("Products sync error:", err);
-                    showToast('Error', 'Failed to load products', 'error');
+                    
+                    if (checkPermissionError(err)) {
+                        showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                    } else {
+                        showToast('Error', 'Failed to load products', 'error');
+                    }
                 }
             );
             dataListeners.push(prodUnsubscribe);
@@ -1107,18 +1171,12 @@
             }
         }
 
-        // FIXED: More robust select updates with null checks
         function updateSelects() {
             const el = document.getElementById('prodCategory');
-            if (!el) {
-                console.warn('Category select element not found');
-                return;
-            }
+            if (!el) return;
             
-            // Store current selection
             const currentVal = el.value;
             
-            // Build options
             let optionsHtml = '<option value="">Select Category</option>';
             
             if (Array.isArray(categories) && categories.length > 0) {
@@ -1130,7 +1188,6 @@
             
             el.innerHTML = optionsHtml;
             
-            // Restore selection if valid
             if (currentVal && categories.find(c => c.name === currentVal)) {
                 el.value = currentVal;
             }
@@ -1155,7 +1212,7 @@
         }
 
         // ==========================================
-        // IMAGE HANDLING - ADD PRODUCT
+        // IMAGE HANDLING
         // ==========================================
         
         function switchImageInput(method) {
@@ -1195,7 +1252,7 @@
             
             reader.onload = function(e) {
                 showImagePreview(e.target.result);
-                document.getElementById('finalImageUrl').value = ''; // Clear URL when file selected
+                document.getElementById('finalImageUrl').value = '';
             };
             
             reader.onerror = function() {
@@ -1209,7 +1266,7 @@
             if (url && isValidUrl(url)) {
                 showImagePreview(url);
                 document.getElementById('finalImageUrl').value = url;
-                currentImageFile = null; // Clear file when URL entered
+                currentImageFile = null;
                 document.getElementById('prodImageFile').value = '';
             }
         }
@@ -1246,7 +1303,6 @@
                 const storageRef = storage.ref(filename);
                 const uploadTask = storageRef.put(file);
 
-                // Show progress container
                 const progressContainer = document.getElementById(progressBarId)?.parentElement?.parentElement;
                 if (progressContainer) progressContainer.classList.remove('hidden');
 
@@ -1263,9 +1319,11 @@
                         console.error('Upload error:', error);
                         if (progressContainer) progressContainer.classList.add('hidden');
                         
-                        // Detailed error messages
                         let errorMsg = 'Upload failed';
-                        if (error.code === 'storage/unauthorized') errorMsg = 'Unauthorized access';
+                        if (error.code === 'storage/unauthorized') {
+                            errorMsg = 'Storage permission denied. Check Firebase Storage Rules.';
+                            checkPermissionError({code: 'permission-denied'});
+                        }
                         else if (error.code === 'storage/canceled') errorMsg = 'Upload canceled';
                         else if (error.code === 'storage/unknown') errorMsg = 'Unknown error occurred';
                         
@@ -1282,7 +1340,6 @@
                     }
                 );
                 
-                // Allow cancel after 30 seconds timeout
                 setTimeout(() => {
                     if (uploadTask.snapshot.state === 'running') {
                         uploadTask.cancel();
@@ -1373,7 +1430,12 @@
                 showToast('Price Updated', `Updated ${productName} to KSh ${newPrice}`);
             } catch (error) {
                 console.error(error);
-                showToast('Error', 'Failed to update price', 'error');
+                
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Cannot update price.', 'error');
+                } else {
+                    showToast('Error', 'Failed to update price', 'error');
+                }
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -1381,7 +1443,7 @@
         }
 
         // ==========================================
-        // SAVE PRODUCT
+        // SAVE PRODUCT WITH PERMISSION HANDLING
         // ==========================================
         
         async function saveProduct() {
@@ -1389,18 +1451,16 @@
             if (!btn) return;
             
             const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+            btn.innerHTML = '<i
             btn.disabled = true;
 
             try {
                 let imageUrl = document.getElementById('finalImageUrl')?.value || '';
                 
-                // Upload file if exists
                 if (currentImageFile) {
                     imageUrl = await uploadImageToStorage(currentImageFile, 'uploadProgressBar', 'uploadPercent');
                 }
                 
-                // Fallback placeholder
                 if (!imageUrl) {
                     imageUrl = 'https://via.placeholder.com/150?text=No+Image';
                 }
@@ -1424,7 +1484,12 @@
                 showToast('Success', 'Product added to inventory');
             } catch (error) {
                 console.error('Save error:', error);
-                showToast('Error', error.message || 'Failed to add product', 'error');
+                
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                } else {
+                    showToast('Error', error.message || 'Failed to add product', 'error');
+                }
             } finally {
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
@@ -1479,8 +1544,7 @@
                         <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
                         <div class="text-xs text-earth-400">per ${p.unit}</div>
                     </div>
-                    <button onclick="event.stopPropagation
-; deleteProduct('${p.id}')" 
+                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" 
                             class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -1604,7 +1668,12 @@
                 showToast('Success', 'Product updated successfully');
             } catch (error) {
                 console.error(error);
-                showToast('Error', error.message || 'Failed to update product', 'error');
+                
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                } else {
+                    showToast('Error', error.message || 'Failed to update product', 'error');
+                }
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
@@ -1618,7 +1687,11 @@
                 await db.collection('products').doc(id).delete();
                 showToast('Deleted', 'Product removed from inventory');
             } catch (error) {
-                showToast('Error', 'Failed to delete product', 'error');
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Cannot delete product.', 'error');
+                } else {
+                    showToast('Error', 'Failed to delete product', 'error');
+                }
             }
         }
 
@@ -1841,6 +1914,7 @@
             
             let savedCount = 0;
             let errorCount = 0;
+            let permissionError = false;
             
             try {
                 for (const item of tempExtracted) {
@@ -1870,6 +1944,9 @@
                         savedCount++;
                     } catch (err) {
                         console.error('Error saving item:', err);
+                        if (checkPermissionError(err)) {
+                            permissionError = true;
+                        }
                         errorCount++;
                     }
                 }
@@ -1877,7 +1954,9 @@
                 tempExtracted = [];
                 document.getElementById('aiReviewSection')?.classList.add('hidden');
                 
-                if (errorCount > 0) {
+                if (permissionError) {
+                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                } else if (errorCount > 0) {
                     showToast('Partial Success', `Saved ${savedCount} items, ${errorCount} errors`, 'warning');
                 } else {
                     showToast('Success', `Added ${savedCount} items to inventory`);
@@ -1893,7 +1972,7 @@
         }
 
         // ==========================================
-        // CATEGORIES MANAGEMENT - FIXED
+        // CATEGORIES MANAGEMENT WITH PERMISSION HANDLING
         // ==========================================
         
         function renderCategoriesPreview() {
@@ -1969,7 +2048,12 @@
                 
             } catch (error) {
                 console.error(error);
-                showToast('Error', 'Failed to save department: ' + error.message, 'error');
+                
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
+                } else {
+                    showToast('Error', 'Failed to save department: ' + error.message, 'error');
+                }
             }
         }
 
@@ -1982,7 +2066,11 @@
                 await db.collection('categories').doc(id).delete();
                 showToast('Deleted', 'Department removed');
             } catch (error) {
-                showToast('Error', 'Failed to delete department', 'error');
+                if (checkPermissionError(error)) {
+                    showToast('Error', 'Permission denied. Cannot delete department.', 'error');
+                } else {
+                    showToast('Error', 'Failed to delete department', 'error');
+                }
             }
         }
 
@@ -2114,7 +2202,6 @@
             }
         }
 
-        // Drag and drop support for AI scanner
         document.addEventListener('DOMContentLoaded', function() {
             const aiZone = document.querySelector('#view-ai .group');
             
@@ -2156,6 +2243,7 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeEditModal();
+                    document.getElementById('rulesModal')?.classList.add('hidden');
                 }
                 
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -2169,6 +2257,12 @@
             document.getElementById('editModal')?.addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeEditModal();
+                }
+            });
+            
+            document.getElementById('rulesModal')?.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
                 }
             });
         });
