@@ -945,7 +945,7 @@ service firebase.storage {
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION - NO AUTH REQUIRED
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
@@ -970,6 +970,7 @@ service firebase.storage {
             db = firebase.firestore();
             storage = firebase.storage();
             
+            // Enable offline persistence
             db.enablePersistence({synchronizeTabs: true})
                 .catch((err) => {
                     console.warn('Persistence error:', err);
@@ -1054,13 +1055,14 @@ service firebase.storage {
         }
 
         // ==========================================
-        // AUTHENTICATION
+        // AUTHENTICATION - SIMPLE HARDCODED LOGIN (NO FIREBASE AUTH)
         // ==========================================
         
         function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
+            // Simple hardcoded authentication - no Firebase Auth required
             if (username === 'ADMINISTRATOR' && password === 'admin123') {
                 sessionStorage.setItem('admin_auth', 'true');
                 
@@ -1079,6 +1081,7 @@ service firebase.storage {
         }
 
         function logout() { 
+            // Clean up listeners
             dataListeners.forEach(unsubscribe => unsubscribe());
             dataListeners = [];
             
@@ -1095,7 +1098,7 @@ service firebase.storage {
         };
 
         // ==========================================
-        // DATA SYNC WITH PERMISSION HANDLING
+        // DATA SYNC - NO AUTH REQUIRED, ONLY FIRESTORE RULES
         // ==========================================
         
         function syncData() {
@@ -1292,7 +1295,7 @@ service firebase.storage {
         }
 
         // ==========================================
-        // FIREBASE STORAGE UPLOAD
+        // FIREBASE STORAGE UPLOAD - NO AUTH REQUIRED
         // ==========================================
         
         async function uploadImageToStorage(file, progressBarId, percentId) {
@@ -1437,13 +1440,13 @@ service firebase.storage {
                     showToast('Error', 'Failed to update price', 'error');
                 }
             } finally {
-                btn.innerHTML = originalText;
+                btn.innerHTML
                 btn.disabled = false;
             }
         }
 
         // ==========================================
-        // SAVE PRODUCT WITH PERMISSION HANDLING
+        // SAVE PRODUCT - NO AUTH REQUIRED
         // ==========================================
         
         async function saveProduct() {
@@ -1451,7 +1454,7 @@ service firebase.storage {
             if (!btn) return;
             
             const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             btn.disabled = true;
 
             try {
@@ -1972,7 +1975,7 @@ service firebase.storage {
         }
 
         // ==========================================
-        // CATEGORIES MANAGEMENT WITH PERMISSION HANDLING
+        // CATEGORIES MANAGEMENT - NO AUTH REQUIRED
         // ==========================================
         
         function renderCategoriesPreview() {
