@@ -16,7 +16,6 @@
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <script>
         tailwind.config = {
@@ -317,7 +316,6 @@
             pointer-events: all;
         }
 
-        /* Permission error banner */
         .permission-banner {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             border: 2px solid #f59e0b;
@@ -453,29 +451,6 @@ service cloud.firestore {
   }
 }</pre>
                     </div>
-
-                    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                        <h4 class="font-bold text-orange-800 text-sm mb-2"><i class="fas fa-image mr-2"></i>Storage Rules</h4>
-                        <p class="text-xs text-orange-600 mb-3">Go to Firebase Console → Storage → Rules, then paste:</p>
-                        <pre class="bg-earth-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if true;
-    }
-  }
-}</pre>
-                    </div>
-
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-info-circle mr-2"></i>Important Notes</h4>
-                        <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                            <li>These rules allow <strong>anyone</strong> to read/write (development only)</li>
-                            <li>Add authentication checks before production deployment</li>
-                            <li>Click "Publish" after updating rules</li>
-                            <li>Wait 1-2 minutes for rules to propagate</li>
-                        </ul>
-                    </div>
                 </div>
             </div>
         </div>
@@ -610,7 +585,7 @@ service firebase.storage {
                                         <div class="pointer-events-none">
                                             <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
                                             <p class="text-xs text-earth-600 font-medium">Drop image here or click to browse</p>
-                                            <p class="text-[10px] text-earth-400 mt-1">Supports JPG, PNG, WebP</p>
+                                            <p class="text-[10px] text-earth-400 mt-1">Max 500KB recommended</p>
                                         </div>
                                     </div>
 
@@ -623,11 +598,10 @@ service firebase.storage {
 
                                     <div id="uploadProgress" class="hidden mt-3">
                                         <div class="flex justify-between text-xs text-earth-600 mb-1">
-                                            <span>Uploading...</span>
-                                            <span id="uploadPercent">0%</span>
+                                            <span>Processing...</span>
                                         </div>
                                         <div class="w-full bg-earth-200 rounded-full h-2">
-                                            <div id="uploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                            <div id="uploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
                                         </div>
                                     </div>
 
@@ -897,6 +871,7 @@ service firebase.storage {
                         <div class="pointer-events-none">
                             <i class="fas fa-cloud-upload-alt text-2xl text-earth-400 mb-2"></i>
                             <p class="text-xs text-earth-600 font-medium">Upload new image</p>
+                            <p class="text-[10px] text-earth-400 mt-1">Max 500KB</p>
                         </div>
                     </div>
 
@@ -909,11 +884,10 @@ service firebase.storage {
 
                     <div id="editUploadProgress" class="hidden mt-3">
                         <div class="flex justify-between text-xs text-earth-600 mb-1">
-                            <span>Uploading...</span>
-                            <span id="editUploadPercent">0%</span>
+                            <span>Processing...</span>
                         </div>
                         <div class="w-full bg-earth-200 rounded-full h-2">
-                            <div id="editUploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            <div id="editUploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
                         </div>
                     </div>
 
@@ -945,7 +919,7 @@ service firebase.storage {
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION - NO AUTH REQUIRED
+        // FIREBASE CONFIGURATION - NO STORAGE, ONLY FIRESTORE
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
@@ -956,7 +930,7 @@ service firebase.storage {
             appId: "1:282672112956:web:1a85643cc1f3c410676a39"
         };
         
-        let db, storage;
+        let db;
         let firebaseApp;
         let hasPermissionError = false;
         
@@ -968,7 +942,6 @@ service firebase.storage {
             }
             
             db = firebase.firestore();
-            storage = firebase.storage();
             
             // Enable offline persistence
             db.enablePersistence({synchronizeTabs: true})
@@ -983,8 +956,8 @@ service firebase.storage {
 
         // Global state
         let products = [], categories = [], tempExtracted = [];
-        let currentImageFile = null;
-        let editCurrentImageFile = null;
+        let currentImageBase64 = null;
+        let editImageBase64 = null;
         let duplicateProduct = null;
         let isProcessingOCR = false;
         let dataListeners = [];
@@ -1030,7 +1003,7 @@ service firebase.storage {
 
         function validateImageFile(file) {
             const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            const maxSize = 5 * 1024 * 1024;
+            const maxSize = 500 * 1024; // 500KB max for Base64 storage
             
             if (!validTypes.includes(file.type)) {
                 showToast('Error', 'Invalid file type. Use JPG, PNG, WebP, or GIF', 'error');
@@ -1038,7 +1011,7 @@ service firebase.storage {
             }
             
             if (file.size > maxSize) {
-                showToast('Error', 'File too large. Maximum 5MB allowed', 'error');
+                showToast('Error', 'File too large. Maximum 500KB allowed for Base64 storage', 'error');
                 return false;
             }
             
@@ -1055,14 +1028,13 @@ service firebase.storage {
         }
 
         // ==========================================
-        // AUTHENTICATION - SIMPLE HARDCODED LOGIN (NO FIREBASE AUTH)
+        // AUTHENTICATION - SIMPLE HARDCODED LOGIN
         // ==========================================
         
         function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            // Simple hardcoded authentication - no Firebase Auth required
             if (username === 'ADMINISTRATOR' && password === 'admin123') {
                 sessionStorage.setItem('admin_auth', 'true');
                 
@@ -1081,7 +1053,6 @@ service firebase.storage {
         }
 
         function logout() { 
-            // Clean up listeners
             dataListeners.forEach(unsubscribe => unsubscribe());
             dataListeners = [];
             
@@ -1098,7 +1069,7 @@ service firebase.storage {
         };
 
         // ==========================================
-        // DATA SYNC - NO AUTH REQUIRED, ONLY FIRESTORE RULES
+        // DATA SYNC
         // ==========================================
         
         function syncData() {
@@ -1215,7 +1186,7 @@ service firebase.storage {
         }
 
         // ==========================================
-        // IMAGE HANDLING
+        // IMAGE HANDLING - BASE64 (NO STORAGE NEEDED)
         // ==========================================
         
         function switchImageInput(method) {
@@ -1250,12 +1221,12 @@ service firebase.storage {
                 return;
             }
 
-            currentImageFile = file;
             const reader = new FileReader();
             
             reader.onload = function(e) {
-                showImagePreview(e.target.result);
-                document.getElementById('finalImageUrl').value = '';
+                currentImageBase64 = e.target.result;
+                showImagePreview(currentImageBase64);
+                document.getElementById('finalImageUrl').value = currentImageBase64;
             };
             
             reader.onerror = function() {
@@ -1269,7 +1240,7 @@ service firebase.storage {
             if (url && isValidUrl(url)) {
                 showImagePreview(url);
                 document.getElementById('finalImageUrl').value = url;
-                currentImageFile = null;
+                currentImageBase64 = url;
                 document.getElementById('prodImageFile').value = '';
             }
         }
@@ -1282,7 +1253,7 @@ service firebase.storage {
         }
 
         function removeImage() {
-            currentImageFile = null;
+            currentImageBase64 = null;
             const container = document.getElementById('imagePreviewContainer');
             const fileInput = document.getElementById('prodImageFile');
             const urlInput = document.getElementById('prodImageUrl');
@@ -1292,64 +1263,6 @@ service firebase.storage {
             if (fileInput) fileInput.value = '';
             if (urlInput) urlInput.value = '';
             if (finalUrl) finalUrl.value = '';
-        }
-
-        // ==========================================
-        // FIREBASE STORAGE UPLOAD - NO AUTH REQUIRED
-        // ==========================================
-        
-        async function uploadImageToStorage(file, progressBarId, percentId) {
-            return new Promise((resolve, reject) => {
-                const timestamp = new Date().getTime();
-                const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-                const filename = `products/${timestamp}_${safeName}`;
-                const storageRef = storage.ref(filename);
-                const uploadTask = storageRef.put(file);
-
-                const progressContainer = document.getElementById(progressBarId)?.parentElement?.parentElement;
-                if (progressContainer) progressContainer.classList.remove('hidden');
-
-                uploadTask.on('state_changed', 
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        const bar = document.getElementById(progressBarId);
-                        const percent = document.getElementById(percentId);
-                        
-                        if (bar) bar.style.width = progress + '%';
-                        if (percent) percent.textContent = Math.round(progress) + '%';
-                    },
-                    (error) => {
-                        console.error('Upload error:', error);
-                        if (progressContainer) progressContainer.classList.add('hidden');
-                        
-                        let errorMsg = 'Upload failed';
-                        if (error.code === 'storage/unauthorized') {
-                            errorMsg = 'Storage permission denied. Check Firebase Storage Rules.';
-                            checkPermissionError({code: 'permission-denied'});
-                        }
-                        else if (error.code === 'storage/canceled') errorMsg = 'Upload canceled';
-                        else if (error.code === 'storage/unknown') errorMsg = 'Unknown error occurred';
-                        
-                        reject(new Error(errorMsg));
-                    },
-                    async () => {
-                        try {
-                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                            if (progressContainer) progressContainer.classList.add('hidden');
-                            resolve(downloadURL);
-                        } catch (err) {
-                            reject(err);
-                        }
-                    }
-                );
-                
-                setTimeout(() => {
-                    if (uploadTask.snapshot.state === 'running') {
-                        uploadTask.cancel();
-                        reject(new Error('Upload timeout - check CORS configuration'));
-                    }
-                }, 30000);
-            });
         }
 
         // ==========================================
@@ -1440,13 +1353,13 @@ service firebase.storage {
                     showToast('Error', 'Failed to update price', 'error');
                 }
             } finally {
-                btn.innerHTML
+                btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         }
 
         // ==========================================
-        // SAVE PRODUCT - NO AUTH REQUIRED
+        // SAVE PRODUCT - BASE64 IMAGES
         // ==========================================
         
         async function saveProduct() {
@@ -1460,10 +1373,7 @@ service firebase.storage {
             try {
                 let imageUrl = document.getElementById('finalImageUrl')?.value || '';
                 
-                if (currentImageFile) {
-                    imageUrl = await uploadImageToStorage(currentImageFile, 'uploadProgressBar', 'uploadPercent');
-                }
-                
+                // If no image, use placeholder
                 if (!imageUrl) {
                     imageUrl = 'https://via.placeholder.com/150?text=No+Image';
                 }
@@ -1574,7 +1484,7 @@ service firebase.storage {
             
             document.getElementById('editImagePreviewContainer')?.classList.remove('hidden');
             
-            editCurrentImageFile = null;
+            editImageBase64 = null;
             document.getElementById('editProdImageFile').value = '';
             document.getElementById('editProdImageUrl').value = '';
             document.getElementById('editUploadProgress')?.classList.add('hidden');
@@ -1619,12 +1529,13 @@ service firebase.storage {
                 return;
             }
 
-            editCurrentImageFile = file;
             const reader = new FileReader();
             
             reader.onload = function(e) {
+                editImageBase64 = e.target.result;
                 const img = document.getElementById('editImagePreview');
-                if (img) img.src = e.target.result;
+                if (img) img.src = editImageBase64;
+                document.getElementById('editFinalImageUrl').value = editImageBase64;
             };
             
             reader.readAsDataURL(file);
@@ -1635,7 +1546,7 @@ service firebase.storage {
                 const img = document.getElementById('editImagePreview');
                 if (img) img.src = url;
                 document.getElementById('editFinalImageUrl').value = url;
-                editCurrentImageFile = null;
+                editImageBase64 = url;
                 document.getElementById('editProdImageFile').value = '';
             }
         }
@@ -1653,11 +1564,6 @@ service firebase.storage {
                 if (!productId) throw new Error('Product ID not found');
                 
                 let imageUrl = document.getElementById('editFinalImageUrl')?.value || '';
-                
-                if (editCurrentImageFile) {
-                    document.getElementById('editUploadProgress')?.classList.remove('hidden');
-                    imageUrl = await uploadImageToStorage(editCurrentImageFile, 'editUploadProgressBar', 'editUploadPercent');
-                }
 
                 await db.collection('products').doc(productId).update({
                     name: document.getElementById('editProdName')?.value,
@@ -1975,7 +1881,7 @@ service firebase.storage {
         }
 
         // ==========================================
-        // CATEGORIES MANAGEMENT - NO AUTH REQUIRED
+        // CATEGORIES MANAGEMENT
         // ==========================================
         
         function renderCategoriesPreview() {
@@ -2280,3 +2186,4 @@ service firebase.storage {
     </script>
 </body>
 </html>
+
