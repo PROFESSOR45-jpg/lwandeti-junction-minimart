@@ -1073,26 +1073,32 @@ service cloud.firestore {
         // AUTHENTICATION
         // ==========================================
         
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'ADMINISTRATOR' && password === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
-                
-                const loginScreen = document.getElementById('loginScreen');
-                loginScreen.style.opacity = '0';
-                loginScreen.style.transition = 'opacity 0.5s ease';
-                
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    document.getElementById('adminDashboard').classList.remove('hidden');
-                    syncData();
-                }, 500);
-            } else {
-                showToast('Error', 'Invalid credentials', 'error');
-            }
-        }
+       function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if (username === 'ADMINISTRATOR' && password === 'admin123') {
+        sessionStorage.setItem('admin_auth', 'true');
+        
+        const loginScreen = document.getElementById('loginScreen');
+        const adminDashboard = document.getElementById('adminDashboard');
+        
+        // CRITICAL FIX: Use display:none instead of hidden class + opacity
+        loginScreen.style.display = 'none';
+        
+        // Show dashboard and force visible
+        adminDashboard.classList.remove('hidden');
+        adminDashboard.style.opacity = '1';
+        adminDashboard.style.display = 'block';
+        
+        // Initialize data sync
+        syncData();
+        
+        showToast('Success', 'Welcome to Admin Portal');
+    } else {
+        showToast('Error', 'Invalid credentials', 'error');
+    }
+}
 
         function logout() { 
             dataListeners.forEach(unsubscribe => unsubscribe());
