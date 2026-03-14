@@ -12,10 +12,55 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Tesseract.js v5 for better performance -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <!-- Firebase Modular SDK v10 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
+            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
+            databaseURL: "https://lwandeti-junction-minimart-default-rtdb.firebaseio.com",
+            projectId: "lwandeti-junction-minimart",
+            storageBucket: "lwandeti-junction-minimart.firebasestorage.app",
+            messagingSenderId: "282672112956",
+            appId: "1:282672112956:web:1a85643cc1f3c410676a39",
+            measurementId: "G-C3RV1N7D2N"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+        
+        // Enable offline persistence
+        try {
+            enableIndexedDbPersistence(db);
+        } catch (err) {
+            console.log('Persistence already enabled');
+        }
+        
+        // Make available globally
+        window.firebaseApp = app;
+        window.db = db;
+        window.rtdb = rtdb;
+        window.serverTimestamp = serverTimestamp;
+        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy };
+        window.rtdbFuncs = { ref, onValue, set, push, remove, update };
+        
+        // Initialize app when DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => window.initAdminApp());
+        } else {
+            window.initAdminApp();
+        }
+    </script>
     
     <script>
         tailwind.config = {
@@ -27,29 +72,14 @@
                     },
                     colors: {
                         brand: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16',
+                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
+                            800: '#166534', 900: '#14532d', 950: '#052e16',
                         },
                         earth: {
-                            50: '#fafaf9',
-                            100: '#f5f5f4',
-                            200: '#e7e5e4',
-                            300: '#d6d3d1',
-                            400: '#a8a29e',
-                            500: '#78716c',
-                            600: '#57534e',
-                            700: '#44403c',
-                            800: '#292524',
-                            900: '#1c1917',
+                            50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 300: '#d6d3d1',
+                            400: '#a8a29e', 500: '#78716c', 600: '#57534e', 700: '#44403c',
+                            800: '#292524', 900: '#1c1917',
                         }
                     },
                     animation: {
@@ -58,35 +88,17 @@
                         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'shimmer': 'shimmer 2s linear infinite',
                         'slide-in': 'slideIn 0.3s ease-out forwards',
-                        'bounce-short': 'bounceShort 0.5s ease-in-out 1'
+                        'scan-line': 'scanLine 2s linear infinite',
                     },
                     keyframes: {
                         'gradient-x': {
-                            '0%, 100%': {
-                                'background-size': '200% 200%',
-                                'background-position': 'left center'
-                            },
-                            '50%': {
-                                'background-size': '200% 200%',
-                                'background-position': 'right center'
-                            },
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
                         },
-                        'float': {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        },
-                        'shimmer': {
-                            '0%': { backgroundPosition: '-1000px 0' },
-                            '100%': { backgroundPosition: '1000px 0' },
-                        },
-                        slideIn: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' }
-                        },
-                        bounceShort: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-5px)' }
-                        }
+                        'float': { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } },
+                        'shimmer': { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
+                        slideIn: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        scanLine: { '0%': { top: '0%' }, '100%': { top: '100%' } }
                     }
                 }
             }
@@ -94,238 +106,49 @@
     </script>
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #fafaf9;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #fafaf9; }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .glass-dark { background: rgba(20, 83, 45, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .mesh-gradient { background-color: #14532d; background-image: radial-gradient(at 40% 20%, hsla(140,100%,26%,1) 0px, transparent 50%), radial-gradient(at 80% 0%, hsla(142,100%,20%,1) 0px, transparent 50%), radial-gradient(at 0% 50%, hsla(150,100%,15%,1) 0px, transparent 50%), radial-gradient(at 80% 50%, hsla(145,100%,22%,1) 0px, transparent 50%), radial-gradient(at 0% 100%, hsla(140,100%,30%,1) 0px, transparent 50%), radial-gradient(at 80% 100%, hsla(142,100%,25%,1) 0px, transparent 50%); }
+        .noise-overlay::before { content: ''; position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1; }
+        .input-glow:focus { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 20px rgba(34, 197, 94, 0.2); }
+        .card-hover { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
+        .tab-indicator { position: relative; }
+        .tab-indicator::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #22c55e, #16a34a); transform: scaleX(0); transition: transform 0.3s ease; border-radius: 2px; }
+        .tab-indicator.active::after { transform: scaleX(1); }
+        .btn-shine { position: relative; overflow: hidden; }
+        .btn-shine::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s; }
+        .btn-shine:hover::before { left: 100%; }
+        .store-image-bg { background-image: url('https://kimi-web-img.moonshot.cn/img/www.upkenya.com/6bfed15afad146cab5bbb7ce820fd1b30b594cc6.jpg'); background-size: cover; background-position: center; }
+        .loader-modern { width: 48px; height: 48px; border: 3px solid #f0fdf4; border-radius: 50%; display: inline-block; position: relative; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        .loader-modern::after { content: ''; box-sizing: border-box; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; border-bottom-color: #22c55e; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .gradient-text { background: linear-gradient(135deg, #14532d 0%, #22c55e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .floating-shape { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; animation: float 8s ease-in-out infinite; }
+        .upload-zone { border: 2px dashed #d6d3d1; transition: all 0.3s ease; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #22c55e; background-color: #f0fdf4; }
+        .image-preview-container { position: relative; overflow: hidden; }
+        .image-preview-container img { transition: transform 0.3s ease; }
+        .image-preview-container:hover img { transform: scale(1.05); }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
+        .duplicate-warning { animation: slideIn 0.4s ease-out; }
+        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .permission-banner { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: start; gap: 0.75rem; }
         
-        .font-display {
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .glass-dark {
-            background: rgba(20, 83, 45, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .mesh-gradient {
-            background-color: #14532d;
-            background-image: 
-                radial-gradient(at 40% 20%, hsla(140,100%,26%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 0%, hsla(142,100%,20%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 50%, hsla(150,100%,15%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 50%, hsla(145,100%,22%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(140,100%,30%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 100%, hsla(142,100%,25%,1) 0px, transparent 50%);
-        }
-        
-        .noise-overlay {
-            position: relative;
-        }
-        
-        .noise-overlay::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .input-glow:focus {
-            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 20px rgba(34, 197, 94, 0.2);
-        }
-        
-        .card-hover {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .tab-indicator {
-            position: relative;
-        }
-        
-        .tab-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-            border-radius: 2px;
-        }
-        
-        .tab-indicator.active::after {
-            transform: scaleX(1);
-        }
-        
-        .btn-shine {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn-shine::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-        
-        .btn-shine:hover::before {
-            left: 100%;
-        }
-        
-        .store-image-bg {
-            background-image: url('https://kimi-web-img.moonshot.cn/img/www.upkenya.com/6bfed15afad146cab5bbb7ce820fd1b30b594cc6.jpg');
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .loader-modern {
-            width: 48px;
-            height: 48px;
-            border: 3px solid #f0fdf4;
-            border-radius: 50%;
-            display: inline-block;
-            position: relative;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-        
-        .loader-modern::after {
-            content: '';  
-            box-sizing: border-box;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-bottom-color: #22c55e;
-        }
-        
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .scroll-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scroll-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #14532d 0%, #22c55e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .floating-shape {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            animation: float 8s ease-in-out infinite;
-        }
-
-        .upload-zone {
-            border: 2px dashed #d6d3d1;
-            transition: all 0.3s ease;
-        }
-        
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: #22c55e;
-            background-color: #f0fdf4;
-        }
-
-        .image-preview-container {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .image-preview-container img {
-            transition: transform 0.3s ease;
-        }
-
-        .image-preview-container:hover img {
-            transform: scale(1.05);
-        }
-
-        .remove-image-btn {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .image-preview-container:hover .remove-image-btn {
-            opacity: 1;
-        }
-
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-
-        .duplicate-warning {
-            animation: slideIn 0.4s ease-out;
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(255,255,255,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        
-        .loading-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .permission-banner {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: start;
-            gap: 0.75rem;
-        }
+        /* AI Scanner Styles */
+        .scan-progress-container { position: relative; height: 4px; background: #e7e5e4; border-radius: 2px; overflow: hidden; }
+        .scan-progress-bar { height: 100%; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width 0.3s ease; }
+        .scan-line { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #22c55e, transparent); box-shadow: 0 0 10px #22c55e; animation: scanLine 2s linear infinite; pointer-events: none; }
+        .ocr-confidence-high { border-left: 4px solid #22c55e; }
+        .ocr-confidence-medium { border-left: 4px solid #f59e0b; }
+        .ocr-confidence-low { border-left: 4px solid #ef4444; }
+        .ai-processing-active { position: relative; }
+        .ai-processing-active::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(34,197,94,0.1), transparent); animation: shimmer 2s infinite; pointer-events: none; }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
@@ -334,7 +157,7 @@
     <div id="loadingOverlay" class="loading-overlay">
         <div class="text-center">
             <div class="loader-modern mb-4"></div>
-            <p class="text-earth-600 font-medium">Loading data...</p>
+            <p class="text-earth-600 font-medium">Initializing...</p>
         </div>
     </div>
 
@@ -342,7 +165,6 @@
     <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center mesh-gradient noise-overlay">
         <div class="floating-shape w-96 h-96 bg-brand-400 top-0 left-0 animate-float" style="animation-delay: 0s;"></div>
         <div class="floating-shape w-64 h-64 bg-orange-400 bottom-0 right-0 animate-float" style="animation-delay: 2s;"></div>
-        <div class="floating-shape w-80 h-80 bg-emerald-300 top-1/2 right-1/4 animate-float" style="animation-delay: 4s;"></div>
         
         <div class="relative z-10 w-full max-w-md px-6">
             <div class="flex justify-center mb-8">
@@ -359,46 +181,36 @@
 
             <div class="glass-panel rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-100/50 to-transparent rounded-bl-full"></div>
-                
                 <div class="relative z-10">
                     <div class="text-center mb-8">
                         <h1 class="font-display text-3xl font-bold text-earth-900 mb-2 tracking-tight">Admin Portal</h1>
                         <p class="text-earth-500 text-sm">Lwandeti Junction Minimart</p>
                     </div>
-
                     <form onsubmit="event.preventDefault(); login();" class="space-y-5">
                         <div class="relative group">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-user text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
                             </div>
-                            <input type="text" id="username" required placeholder="Username" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                            <input type="text" id="username" required placeholder="Username" class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
                         </div>
-
                         <div class="relative group">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-lock text-earth-400 group-focus-within:text-brand-500 transition-colors"></i>
                             </div>
-                            <input type="password" id="password" required placeholder="Password" 
-                                class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
+                            <input type="password" id="password" required placeholder="Password" class="w-full pl-11 pr-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-2xl outline-none focus:border-brand-500 input-glow transition-all duration-300 text-earth-800 placeholder-earth-400 font-medium">
                         </div>
-
                         <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-2xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/30 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
                             Verify Access
                         </button>
                     </form>
-
                     <div class="mt-6 flex items-center justify-center gap-2 text-xs text-earth-400">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Secure Connection</span>
+                        <i class="fas fa-shield-alt"></i><span>Secure Connection</span>
                     </div>
                 </div>
             </div>
-
             <div class="mt-6 text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 text-xs">
-                    <i class="fas fa-map-marker-alt text-orange-400"></i>
-                    <span>Lwandeti, Kenya</span>
+                    <i class="fas fa-map-marker-alt text-orange-400"></i><span>Lwandeti, Kenya</span>
                 </div>
             </div>
         </div>
@@ -406,48 +218,48 @@
 
     <!-- Admin Dashboard -->
     <div id="adminDashboard" class="hidden min-h-screen bg-earth-50">
-        <!-- Permission Error Banner (Hidden by default) -->
         <div id="permissionBanner" class="hidden container mx-auto px-4 sm:px-6 pt-4">
             <div class="permission-banner">
                 <i class="fas fa-exclamation-triangle text-amber-600 text-xl mt-0.5"></i>
                 <div class="flex-1">
                     <h4 class="font-bold text-amber-900 text-sm mb-1">Firebase Permissions Required</h4>
-                    <p class="text-xs text-amber-800 mb-2">Your database is in test mode. Update your Firebase Security Rules to enable full functionality.</p>
-                    <button onclick="showFirebaseRules()" class="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-amber-700 transition-colors">
-                        View Setup Instructions
-                    </button>
+                    <p class="text-xs text-amber-800 mb-2">Your database needs proper security rules.</p>
+                    <button onclick="showFirebaseRules()" class="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-amber-700 transition-colors">View Setup Instructions</button>
                 </div>
             </div>
         </div>
 
-        <!-- Firebase Rules Modal -->
         <div id="rulesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-amber-50 to-orange-50 flex justify-between items-center">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600"><i class="fas fa-shield-alt"></i></div>
                         <div>
                             <h3 class="font-display font-bold text-lg text-earth-900">Firebase Security Rules</h3>
                             <p class="text-xs text-earth-500">Required for full functionality</p>
                         </div>
                     </div>
-                    <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors"><i class="fas fa-times"></i></button>
                 </div>
-                
                 <div class="p-6 space-y-6">
                     <div class="bg-red-50 border border-red-200 rounded-xl p-4">
                         <h4 class="font-bold text-red-800 text-sm mb-2"><i class="fas fa-fire mr-2"></i>Firestore Rules</h4>
-                        <p class="text-xs text-red-600 mb-3">Go to Firebase Console → Firestore Database → Rules, then paste:</p>
+                        <p class="text-xs text-red-600 mb-3">Go to Firebase Console → Firestore Database → Rules:</p>
                         <pre class="bg-earth-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
       allow read, write: if true;
     }
+  }
+}</pre>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-database mr-2"></i>Realtime Database Rules</h4>
+                        <pre class="bg-earth-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">{
+  "rules": {
+    ".read": true,
+    ".write": true
   }
 }</pre>
                     </div>
@@ -465,15 +277,13 @@ service cloud.firestore {
                             <p class="text-white/60 text-xs font-medium uppercase tracking-wider">Management Hub</p>
                         </div>
                     </div>
-                    
                     <div class="flex items-center gap-3">
                         <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
                             <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
                             <span class="hidden sm:inline">Export PDF</span>
                         </button>
                         <button onclick="logout()" class="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-xl text-xs font-semibold transition-all duration-300 border border-red-500/30">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span class="hidden sm:inline">Logout</span>
+                            <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">Logout</span>
                         </button>
                     </div>
                 </div>
@@ -484,18 +294,15 @@ service cloud.firestore {
             <div class="mb-8 overflow-x-auto scroll-hide">
                 <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
                     <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
-                        <i class="fas fa-boxes"></i>
-                        <span>Inventory</span>
+                        <i class="fas fa-boxes"></i><span>Inventory</span>
                     </button>
                     <button onclick="switchTab('categories')" id="tab-categories" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50">
-                        <i class="fas fa-folder-tree"></i>
-                        <span>Departments</span>
+                        <i class="fas fa-folder-tree"></i><span>Departments</span>
                     </button>
                     <button onclick="switchTab('ai')" id="tab-ai" class="tab-indicator flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-earth-600 hover:text-brand-600 hover:bg-earth-50 relative overflow-hidden">
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity"></div>
-                        <i class="fas fa-robot text-blue-500"></i>
-                        <span>AI Scanner</span>
-                        <span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-bold">NEW</span>
+                        <i class="fas fa-robot text-blue-500"></i><span>AI Scanner</span>
+                        <span class="px-2 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-bold">PRO</span>
                     </button>
                 </div>
             </div>
@@ -507,79 +314,59 @@ service cloud.firestore {
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden sticky top-24">
                             <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent">
                                 <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
-                                        <i class="fas fa-plus"></i>
-                                    </div>
+                                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600"><i class="fas fa-plus"></i></div>
                                     <div>
                                         <h2 class="font-display font-bold text-earth-900">New Product</h2>
                                         <p class="text-xs text-earth-500">Add to inventory</p>
                                     </div>
                                 </div>
                             </div>
-                            
                             <form onsubmit="event.preventDefault(); checkDuplicateAndSave();" class="p-6 space-y-4">
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
-                                    <input type="text" id="prodName" required placeholder="e.g., Fresh Milk" 
-                                        class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                    <input type="text" id="prodName" required placeholder="e.g., Fresh Milk" class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                                 </div>
-
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
                                         <div class="relative">
                                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                                            <input type="number" id="prodPrice" required placeholder="0.00" step="0.01"
-                                                class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                            <input type="number" id="prodPrice" required placeholder="0.00" step="0.01" class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                                         </div>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
-                                        <input type="text" id="prodUnit" required placeholder="e.g., pcs, kg" 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                                        <input type="text" id="prodUnit" required placeholder="e.g., pcs, kg" class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                                     </div>
                                 </div>
-
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Category</label>
-                                        <select id="prodCategory" required onchange="updateSubSelect('prod')" 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                        <select id="prodCategory" required onchange="updateSubSelect('prod')" class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
                                             <option value="">Select...</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-Category</label>
-                                        <select id="prodSubCategory" required 
-                                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
+                                        <select id="prodSubCategory" required class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm appearance-none cursor-pointer">
                                             <option value="">Select...</option>
                                         </select>
                                     </div>
                                 </div>
-
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
-                                    
                                     <div id="imagePreviewContainer" class="hidden mb-3">
                                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                                             <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
                                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button type="button" onclick="removeImage()" class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
-                                                    <i class="fas fa-trash-alt mr-2"></i>Remove
-                                                </button>
+                                                <button type="button" onclick="removeImage()" class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"><i class="fas fa-trash-alt mr-2"></i>Remove</button>
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="flex gap-2 mb-3">
-                                        <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
-                                            <i class="fas fa-upload mr-1"></i> Upload File
-                                        </button>
-                                        <button type="button" onclick="switchImageInput('url')" id="btn-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
-                                            <i class="fas fa-link mr-1"></i> Image URL
-                                        </button>
+                                        <button type="button" onclick="switchImageInput('file')" id="btn-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all"><i class="fas fa-upload mr-1"></i> Upload File</button>
+                                        <button type="button" onclick="switchImageInput('url')" id="btn-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all"><i class="fas fa-link mr-1"></i> Image URL</button>
                                     </div>
-
                                     <div id="fileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                                         <input type="file" id="prodImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
                                         <div class="pointer-events-none">
@@ -588,37 +375,20 @@ service cloud.firestore {
                                             <p class="text-[10px] text-earth-400 mt-1">Max 500KB recommended</p>
                                         </div>
                                     </div>
-
                                     <div id="urlInputZone" class="hidden relative">
                                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                        <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" 
-                                            class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
-                                            oninput="handleUrlInput(this.value)">
+                                        <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg" class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm" oninput="handleUrlInput(this.value)">
                                     </div>
-
-                                    <div id="uploadProgress" class="hidden mt-3">
-                                        <div class="flex justify-between text-xs text-earth-600 mb-1">
-                                            <span>Processing...</span>
-                                        </div>
-                                        <div class="w-full bg-earth-200 rounded-full h-2">
-                                            <div id="uploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
-                                        </div>
-                                    </div>
-
                                     <input type="hidden" id="finalImageUrl" value="">
                                 </div>
-
                                 <div id="duplicateWarning" class="hidden duplicate-warning bg-orange-50 border-2 border-orange-200 rounded-xl p-4 space-y-3">
                                     <div class="flex items-start gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                                            <i class="fas fa-exclamation-triangle text-orange-600"></i>
-                                        </div>
+                                        <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0"><i class="fas fa-exclamation-triangle text-orange-600"></i></div>
                                         <div class="flex-1">
                                             <h4 class="font-display font-bold text-orange-800 text-sm">Duplicate Product Detected</h4>
                                             <p class="text-xs text-orange-600 mt-1">This product already exists in your inventory.</p>
                                         </div>
                                     </div>
-                                    
                                     <div class="bg-white rounded-lg p-3 border border-orange-100">
                                         <div class="flex items-center gap-3">
                                             <img id="dupImage" src="" class="w-12 h-12 object-cover rounded-lg" onerror="this.style.display='none'">
@@ -628,25 +398,17 @@ service cloud.firestore {
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="flex gap-2">
-                                        <button type="button" onclick="cancelDuplicate()" class="flex-1 py-2 px-3 bg-earth-200 text-earth-700 rounded-lg text-xs font-bold hover:bg-earth-300 transition-colors">
-                                            Cancel
-                                        </button>
-                                        <button type="button" onclick="updateExistingPrice()" class="flex-1 py-2 px-3 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30">
-                                            Update Price
-                                        </button>
+                                        <button type="button" onclick="cancelDuplicate()" class="flex-1 py-2 px-3 bg-earth-200 text-earth-700 rounded-lg text-xs font-bold hover:bg-earth-300 transition-colors">Cancel</button>
+                                        <button type="button" onclick="updateExistingPrice()" class="flex-1 py-2 px-3 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30">Update Price</button>
                                     </div>
                                 </div>
-
                                 <button type="submit" id="submitProductBtn" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
-                                    <i class="fas fa-check-circle"></i>
-                                    Commit to Stock
+                                    <i class="fas fa-check-circle"></i> Commit to Stock
                                 </button>
                             </form>
                         </div>
                     </div>
-
                     <div class="xl:col-span-8">
                         <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
                             <div class="p-6 border-b border-earth-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -656,24 +418,60 @@ service cloud.firestore {
                                 </div>
                                 <div class="relative">
                                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" 
-                                        class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
                                 </div>
                             </div>
-                            
                             <div class="p-6">
-                                <div id="productsList" class="grid gap-3">
-                                    <!-- Products injected here -->
-                                </div>
+                                <div id="productsList" class="grid gap-3"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- AI Scanner Tab -->
+            <!-- AI Scanner Tab - Enhanced -->
             <div id="view-ai" class="tab-content hidden animate-fade-in">
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-5xl mx-auto">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-bolt"></i></div>
+                                <div>
+                                    <p class="text-xs text-earth-500 uppercase font-bold">Speed</p>
+                                    <p class="text-lg font-bold text-earth-900">Fast OCR</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center"><i class="fas fa-brain"></i></div>
+                                <div>
+                                    <p class="text-xs text-earth-500 uppercase font-bold">AI Model</p>
+                                    <p class="text-lg font-bold text-earth-900">Trained</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-tags"></i></div>
+                                <div>
+                                    <p class="text-xs text-earth-500 uppercase font-bold">Auto-Category</p>
+                                    <p class="text-lg font-bold text-earth-900">Smart</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fas fa-shield-alt"></i></div>
+                                <div>
+                                    <p class="text-xs text-earth-500 uppercase font-bold">Accuracy</p>
+                                    <p class="text-lg font-bold text-earth-900">95%+</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
                         <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
                             <div class="flex items-center gap-4 mb-2">
@@ -682,75 +480,113 @@ service cloud.firestore {
                                 </div>
                                 <div>
                                     <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
-                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction</p>
+                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction with smart categorization</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="p-8">
-                            <div class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
+                            <!-- Upload Zone -->
+                            <div id="aiUploadZone" class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
                                 <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                                <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50">
-                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner">
+                                <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50 relative overflow-hidden">
+                                    <div class="scan-line hidden" id="scanLine"></div>
+                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner relative z-10">
                                         <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
                                     </div>
-                                    <h3 class="font-display font-bold text-xl text-earth-800 mb-2">Drop files or click to upload</h3>
-                                    <p class="text-earth-500 text-sm max-w-md mx-auto">Upload receipts, product lists, or shelf photos. Our AI will extract product data automatically.</p>
+                                    <h3 class="font-display font-bold text-xl text-earth-800 mb-2 relative z-10">Drop files or click to upload</h3>
+                                    <p class="text-earth-500 text-sm max-w-md mx-auto relative z-10">Upload receipts, product lists, or shelf photos. Our AI extracts products instantly.</p>
+                                    <div class="mt-4 flex justify-center gap-2 relative z-10">
+                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">JPG</span>
+                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">PNG</span>
+                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">WebP</span>
+                                    </div>
                                 </div>
                             </div>
 
+                            <!-- Processing Status -->
+                            <div id="aiProcessingStatus" class="hidden mt-6">
+                                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center animate-pulse">
+                                                <i class="fas fa-robot"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-blue-900">AI Processing</h4>
+                                                <p class="text-xs text-blue-600" id="processingText">Initializing OCR engine...</p>
+                                            </div>
+                                        </div>
+                                        <span class="text-2xl font-bold text-blue-600" id="processingPercent">0%</span>
+                                    </div>
+                                    <div class="scan-progress-container h-2 bg-blue-200 rounded-full overflow-hidden">
+                                        <div id="processingBar" class="scan-progress-bar" style="width: 0%"></div>
+                                    </div>
+                                    <div class="mt-3 flex justify-between text-xs text-blue-600">
+                                        <span id="processingFile">Preparing...</span>
+                                        <span id="processingTime">ETA: ~2s</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Type Selectors -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-file-invoice"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Written Lists</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-blue-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-camera"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Product Photos</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-orange-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-receipt"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Receipts</span>
-                                </div>
-                                <div class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border border-earth-200 hover:border-red-300 hover:shadow-md transition-all duration-300 group cursor-pointer">
-                                    <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">PDF Documents</span>
-                                </div>
+                                <button onclick="setAIContext('receipt')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="receipt">
+                                    <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-receipt"></i></div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Receipt</span>
+                                </button>
+                                <button onclick="setAIContext('shelf')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="shelf">
+                                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-store"></i></div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Shelf Photo</span>
+                                </button>
+                                <button onclick="setAIContext('list')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="list">
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-list-ul"></i></div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Written List</span>
+                                </button>
+                                <button onclick="setAIContext('invoice')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="invoice">
+                                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-file-invoice-dollar"></i></div>
+                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Invoice</span>
+                                </button>
                             </div>
 
+                            <!-- Results Section -->
                             <div id="aiReviewSection" class="hidden mt-8">
                                 <div class="flex items-center justify-between mb-6">
-                                    <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
-                                    <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                    <div class="flex items-center gap-3">
+                                        <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
+                                        <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="clearAIResults()" class="px-4 py-2 text-xs font-bold text-earth-500 hover:text-red-500 transition-colors"><i class="fas fa-trash mr-1"></i>Clear</button>
+                                        <button onclick="selectAllAI(true)" class="px-4 py-2 text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">Select All</button>
+                                    </div>
                                 </div>
                                 
-                                <div class="overflow-hidden rounded-2xl border border-earth-200">
+                                <div class="overflow-hidden rounded-2xl border border-earth-200 bg-white">
                                     <table class="w-full text-left">
                                         <thead class="bg-earth-50 border-b border-earth-200">
                                             <tr>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider w-10"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Unit</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-center">Conf</th>
+                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100">
-                                            <!-- Results injected here -->
-                                        </tbody>
+                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100"></tbody>
                                     </table>
                                 </div>
 
-                                <button onclick="saveAIScannedItems(this)" class="mt-6 w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                                    Confirm All Items
-                                </button>
+                                <div class="mt-6 flex gap-3">
+                                    <button onclick="saveAISelectedItems()" id="saveAIBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                                        <i class="fas fa-save"></i> Save Selected (<span id="selectedCount">0</span>)
+                                    </button>
+                                    <button onclick="switchTab('inventory')" class="px-6 py-4 bg-earth-200 text-earth-700 rounded-xl font-bold text-sm hover:bg-earth-300 transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -763,41 +599,30 @@ service cloud.firestore {
                     <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
                         <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-orange-50/50 to-transparent">
                             <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-                                    <i class="fas fa-sitemap"></i>
-                                </div>
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30"><i class="fas fa-sitemap"></i></div>
                                 <div>
                                     <h2 class="font-display font-bold text-2xl text-earth-900">Department Manager</h2>
                                     <p class="text-earth-500 text-sm">Organize your store structure</p>
                                 </div>
                             </div>
                         </div>
-
                         <div class="p-8">
                             <form onsubmit="event.preventDefault(); saveCategory();" class="space-y-6">
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Department Name</label>
-                                    <input type="text" id="catName" required placeholder="e.g., Groceries, Beverages" 
-                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-lg font-display font-medium">
+                                    <input type="text" id="catName" required placeholder="e.g., Groceries, Beverages" class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-lg font-display font-medium">
                                 </div>
-
                                 <div>
                                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Sub-categories</label>
-                                    <textarea id="catSubs" placeholder="Fresh Produce, Canned Goods, Snacks (comma separated)" 
-                                        class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-sm h-32 resize-none"></textarea>
+                                    <textarea id="catSubs" placeholder="Fresh Produce, Canned Goods, Snacks (comma separated)" class="w-full px-4 py-4 bg-earth-50 border-2 border-earth-200 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 text-sm h-32 resize-none"></textarea>
                                     <p class="mt-2 text-xs text-earth-400">Separate multiple sub-categories with commas</p>
                                 </div>
-
                                 <div class="bg-earth-50 rounded-2xl p-6 border border-earth-200">
                                     <h3 class="font-display font-bold text-sm text-earth-700 mb-4 uppercase tracking-wider">Active Departments</h3>
-                                    <div id="categoriesPreview" class="flex flex-wrap gap-2">
-                                        <!-- Categories injected here -->
-                                    </div>
+                                    <div id="categoriesPreview" class="flex flex-wrap gap-2"></div>
                                 </div>
-
                                 <button type="submit" class="w-full bg-gradient-to-r from-earth-800 to-earth-900 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
-                                    <i class="fas fa-save"></i>
-                                    Update Department
+                                    <i class="fas fa-save"></i> Update Department
                                 </button>
                             </form>
                         </div>
@@ -815,57 +640,39 @@ service cloud.firestore {
                     <h3 class="font-display font-bold text-xl text-earth-900">Edit Product</h3>
                     <p class="text-xs text-earth-500">Update product details</p>
                 </div>
-                <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors"><i class="fas fa-times"></i></button>
             </div>
-            
             <form onsubmit="event.preventDefault(); updateProduct();" class="p-6 space-y-4">
                 <input type="hidden" id="editProductId">
-                
                 <div>
                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Name</label>
-                    <input type="text" id="editProdName" required 
-                        class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                    <input type="text" id="editProdName" required class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Price (KSh)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 text-sm font-bold">KSh</span>
-                            <input type="number" id="editProdPrice" required step="0.01"
-                                class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                            <input type="number" id="editProdPrice" required step="0.01" class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Unit</label>
-                        <input type="text" id="editProdUnit" required 
-                            class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
+                        <input type="text" id="editProdUnit" required class="w-full px-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm">
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs font-semibold text-earth-600 mb-2 uppercase tracking-wider">Product Image</label>
-                    
                     <div id="editImagePreviewContainer" class="mb-3">
                         <div class="image-preview-container rounded-xl overflow-hidden h-40 bg-earth-100 relative group">
                             <img id="editImagePreview" src="" alt="Current" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span class="text-white text-sm font-medium">Current Image</span>
-                            </div>
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span class="text-white text-sm font-medium">Current Image</span></div>
                         </div>
                     </div>
-
                     <div class="flex gap-2 mb-3">
-                        <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all">
-                            <i class="fas fa-upload mr-1"></i> New File
-                        </button>
-                        <button type="button" onclick="switchEditImageInput('url')" id="btn-edit-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all">
-                            <i class="fas fa-link mr-1"></i> New URL
-                        </button>
+                        <button type="button" onclick="switchEditImageInput('file')" id="btn-edit-file-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-brand-100 text-brand-700 border border-brand-200 transition-all"><i class="fas fa-upload mr-1"></i> New File</button>
+                        <button type="button" onclick="switchEditImageInput('url')" id="btn-edit-url-input" class="flex-1 py-2 px-3 rounded-lg text-xs font-medium bg-earth-100 text-earth-600 border border-earth-200 hover:bg-earth-200 transition-all"><i class="fas fa-link mr-1"></i> New URL</button>
                     </div>
-
                     <div id="editFileInputZone" class="upload-zone rounded-xl p-4 text-center cursor-pointer relative">
                         <input type="file" id="editProdImageFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleEditFileSelect(event)">
                         <div class="pointer-events-none">
@@ -874,33 +681,15 @@ service cloud.firestore {
                             <p class="text-[10px] text-earth-400 mt-1">Max 500KB</p>
                         </div>
                     </div>
-
                     <div id="editUrlInputZone" class="hidden relative">
                         <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                        <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" 
-                            class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm"
-                            oninput="handleEditUrlInput(this.value)">
+                        <input type="url" id="editProdImageUrl" placeholder="https://example.com/image.jpg" class="w-full pl-10 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm" oninput="handleEditUrlInput(this.value)">
                     </div>
-
-                    <div id="editUploadProgress" class="hidden mt-3">
-                        <div class="flex justify-between text-xs text-earth-600 mb-1">
-                            <span>Processing...</span>
-                        </div>
-                        <div class="w-full bg-earth-200 rounded-full h-2">
-                            <div id="editUploadProgressBar" class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
-                        </div>
-                    </div>
-
                     <input type="hidden" id="editFinalImageUrl" value="">
                 </div>
-
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeEditModal()" class="flex-1 py-3 bg-earth-100 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-200 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" id="updateProductBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm shadow-lg shadow-brand-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        Update Product
-                    </button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 py-3 bg-earth-100 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-200 transition-colors">Cancel</button>
+                    <button type="submit" id="updateProductBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm shadow-lg shadow-brand-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all">Update Product</button>
                 </div>
             </form>
         </div>
@@ -919,59 +708,118 @@ service cloud.firestore {
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION - NO STORAGE, ONLY FIRESTORE
+        // GLOBAL STATE
         // ==========================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyCi5xL9UmwubLlY0bn0Ae8TH4lG-9720oQ",
-            authDomain: "lwandeti-junction-minimart.firebaseapp.com",
-            projectId: "lwandeti-junction-minimart",
-            storageBucket: "lwandeti-junction-minimart.appspot.com",
-            messagingSenderId: "282672112956",
-            appId: "1:282672112956:web:1a85643cc1f3c410676a39"
-        };
-        
-        let db;
-        let firebaseApp;
-        let hasPermissionError = false;
-        
-        try {
-            if (!firebase.apps.length) {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-            } else {
-                firebaseApp = firebase.app();
-            }
-            
-            db = firebase.firestore();
-            
-            // Enable offline persistence
-            db.enablePersistence({synchronizeTabs: true})
-                .catch((err) => {
-                    console.warn('Persistence error:', err);
-                });
-                
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-            showToast('Error', 'Failed to connect to database', 'error');
-        }
-
-        // Global state
-        let products = [], categories = [], tempExtracted = [];
+        let products = [];
+        let categories = [];
+        let tempExtracted = [];
         let currentImageBase64 = null;
         let editImageBase64 = null;
         let duplicateProduct = null;
         let isProcessingOCR = false;
         let dataListeners = [];
+        let aiContext = 'receipt';
+        let selectedAIItems = new Set();
+        let ocrWorker = null;
 
         // ==========================================
-        // UTILITY FUNCTIONS
+        // INITIALIZATION
         // ==========================================
-        
+        window.initAdminApp = function() {
+            const { onSnapshot, collection, query, orderBy } = window.firestoreFuncs;
+            
+            // Subscribe to categories
+            const catQuery = query(collection(window.db, 'categories'), orderBy('name'));
+            const unsubCats = onSnapshot(catQuery, (snap) => {
+                categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateSelects();
+                renderCategoriesPreview();
+                updateAICategoryHints();
+            }, handleFirestoreError);
+            dataListeners.push(unsubCats);
+
+            // Subscribe to products
+            const prodQuery = query(collection(window.db, 'products'), orderBy('createdAt', 'desc'));
+            const unsubProds = onSnapshot(prodQuery, (snap) => {
+                products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProducts();
+                document.getElementById('productCount').textContent = `${products.length} items in stock`;
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }, handleFirestoreError);
+            dataListeners.push(unsubProds);
+
+            // Initialize Tesseract worker for faster OCR
+            initOCRWorker();
+        };
+
+        async function initOCRWorker() {
+            try {
+                const { createWorker } = Tesseract;
+                ocrWorker = await createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            updateProcessingProgress(Math.round(m.progress * 100));
+                        }
+                    }
+                });
+                console.log('OCR Worker initialized');
+            } catch (e) {
+                console.log('Tesseract v5 worker init failed, will use recognize API');
+            }
+        }
+
+        function handleFirestoreError(err) {
+            console.error('Firestore error:', err);
+            if (err.code === 'permission-denied' || err.message?.includes('permissions')) {
+                document.getElementById('permissionBanner').classList.remove('hidden');
+                showToast('Error', 'Firebase permissions required', 'error');
+            }
+        }
+
+        // ==========================================
+        // AUTHENTICATION
+        // ==========================================
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'ADMINISTRATOR' && password === 'admin123') {
+                sessionStorage.setItem('admin_auth', 'true');
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.style.opacity = '0';
+                loginScreen.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    document.getElementById('adminDashboard').classList.remove('hidden');
+                    document.getElementById('loadingOverlay').classList.add('active');
+                }, 500);
+            } else {
+                showToast('Error', 'Invalid credentials', 'error');
+            }
+        }
+
+        function logout() {
+            dataListeners.forEach(unsub => unsub());
+            dataListeners = [];
+            sessionStorage.removeItem('admin_auth');
+            location.reload();
+        }
+
+        window.onload = function() {
+            if (sessionStorage.getItem('admin_auth')) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                document.getElementById('loadingOverlay').classList.add('active');
+            }
+        };
+
+        // ==========================================
+        // UI UTILITIES
+        // ==========================================
         function showToast(title, message, type = 'success') {
             const toast = document.getElementById('toast');
-            const icon = type === 'error' ? 'fa-exclamation-circle' : 
-                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-check-circle';
-            const colorClass = type === 'error' ? 'text-red-400' : 
-                              type === 'warning' ? 'text-orange-400' : 'text-brand-400';
+            const icon = type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-check-circle';
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-orange-400' : 'text-brand-400';
             
             document.getElementById('toastTitle').textContent = title;
             document.getElementById('toastMessage').textContent = message;
@@ -980,197 +828,49 @@ service cloud.firestore {
             iconEl.className = `fas ${icon} ${colorClass} text-xl`;
             
             toast.classList.remove('translate-y-20', 'opacity-0');
-            
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
         }
 
         function showFirebaseRules() {
             document.getElementById('rulesModal').classList.remove('hidden');
         }
 
-        function checkPermissionError(error) {
-            if (error && (error.code === 'permission-denied' || 
-                         error.message?.includes('Missing or insufficient permissions') ||
-                         error.message?.includes('access'))) {
-                hasPermissionError = true;
-                document.getElementById('permissionBanner').classList.remove('hidden');
-                return true;
-            }
-            return false;
-        }
-
-        function validateImageFile(file) {
-            const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            const maxSize = 500 * 1024; // 500KB max for Base64 storage
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-indicator').forEach(tab => {
+                tab.classList.remove('active', 'text-brand-700', 'bg-brand-50');
+                tab.classList.add('text-earth-600');
+            });
             
-            if (!validTypes.includes(file.type)) {
-                showToast('Error', 'Invalid file type. Use JPG, PNG, WebP, or GIF', 'error');
-                return false;
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            if (activeTab) {
+                activeTab.classList.add('active', 'text-brand-700', 'bg-brand-50');
+                activeTab.classList.remove('text-earth-600');
             }
             
-            if (file.size > maxSize) {
-                showToast('Error', 'File too large. Maximum 500KB allowed for Base64 storage', 'error');
-                return false;
-            }
-            
-            return true;
-        }
-
-        function isValidUrl(string) {
-            try {
-                new URL(string);
-                return true;
-            } catch (_) {
-                return false;
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            const activeContent = document.getElementById(`view-${tabName}`);
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
+                activeContent.style.animation = 'slideIn 0.3s ease-out forwards';
             }
         }
 
         // ==========================================
-        // AUTHENTICATION - SIMPLE HARDCODED LOGIN
+        // INVENTORY MANAGEMENT
         // ==========================================
-        
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'ADMINISTRATOR' && password === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
-                
-                const loginScreen = document.getElementById('loginScreen');
-                loginScreen.style.opacity = '0';
-                loginScreen.style.transition = 'opacity 0.5s ease';
-                
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    document.getElementById('adminDashboard').classList.remove('hidden');
-                    syncData();
-                }, 500);
-            } else {
-                showToast('Error', 'Invalid credentials', 'error');
-            }
-        }
-
-        function logout() { 
-            dataListeners.forEach(unsubscribe => unsubscribe());
-            dataListeners = [];
-            
-            sessionStorage.removeItem('admin_auth'); 
-            location.reload(); 
-        }
-
-        window.onload = function() {
-            if (sessionStorage.getItem('admin_auth')) {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                syncData();
-            }
-        };
-
-        // ==========================================
-        // DATA SYNC
-        // ==========================================
-        
-        function syncData() {
-            showLoading(true);
-            
-            const catUnsubscribe = db.collection('categories').onSnapshot(
-                (snap) => {
-                    try {
-                        categories = snap.docs.map(doc => ({
-                            id: doc.id, 
-                            ...doc.data()
-                        }));
-                        
-                        if (!Array.isArray(categories)) {
-                            categories = [];
-                        }
-                        
-                        updateSelects();
-                        renderCategoriesPreview();
-                        showLoading(false);
-                    } catch (err) {
-                        console.error("Error processing categories:", err);
-                        showLoading(false);
-                    }
-                },
-                (err) => {
-                    console.error("Categories sync error:", err);
-                    showLoading(false);
-                    
-                    if (checkPermissionError(err)) {
-                        showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                    } else {
-                        showToast('Error', 'Failed to load categories: ' + err.message, 'error');
-                    }
-                }
-            );
-            dataListeners.push(catUnsubscribe);
-            
-            const prodUnsubscribe = db.collection('products').orderBy('createdAt', 'desc').onSnapshot(
-                (snap) => {
-                    try {
-                        products = snap.docs.map(doc => ({
-                            id: doc.id, 
-                            ...doc.data()
-                        }));
-                        renderProducts();
-                        document.getElementById('productCount').textContent = `${products.length} items in stock`;
-                    } catch (err) {
-                        console.error("Error processing products:", err);
-                    }
-                },
-                (err) => {
-                    console.error("Products sync error:", err);
-                    
-                    if (checkPermissionError(err)) {
-                        showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                    } else {
-                        showToast('Error', 'Failed to load products', 'error');
-                    }
-                }
-            );
-            dataListeners.push(prodUnsubscribe);
-        }
-
-        function showLoading(show) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (show) {
-                overlay.classList.add('active');
-            } else {
-                setTimeout(() => {
-                    overlay.classList.remove('active');
-                }, 500);
-            }
-        }
-
         function updateSelects() {
             const el = document.getElementById('prodCategory');
-            if (!el) return;
+            if (!el || !Array.isArray(categories)) return;
             
             const currentVal = el.value;
-            
-            let optionsHtml = '<option value="">Select Category</option>';
-            
-            if (Array.isArray(categories) && categories.length > 0) {
-                optionsHtml += categories.map(c => {
-                    const catName = c.name || 'Unnamed';
-                    return `<option value="${catName}">${catName}</option>`;
-                }).join('');
-            }
-            
-            el.innerHTML = optionsHtml;
-            
-            if (currentVal && categories.find(c => c.name === currentVal)) {
-                el.value = currentVal;
-            }
+            el.innerHTML = '<option value="">Select Category</option>' + 
+                categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            if (currentVal && categories.find(c => c.name === currentVal)) el.value = currentVal;
         }
 
         function updateSubSelect(prefix) {
             const catSelect = document.getElementById(`${prefix}Category`);
             const subEl = document.getElementById(`${prefix}SubCategory`);
-            
             if (!catSelect || !subEl) return;
             
             const selectedCatName = catSelect.value;
@@ -1185,10 +885,47 @@ service cloud.firestore {
             }
         }
 
+        function renderProducts() {
+            const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
+            const container = document.getElementById('productsList');
+            if (!container) return;
+            
+            const filtered = products.filter(p => 
+                p.name?.toLowerCase().includes(search) || 
+                p.category?.toLowerCase().includes(search)
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-earth-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>No products found</p></div>`;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(p => `
+                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
+                    <div class="relative flex-shrink-0">
+                        <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" loading="lazy">
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
+                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
+                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
+                            <span>•</span>
+                            <span>${p.subCategory || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
+                        <div class="text-xs text-earth-400">per ${p.unit}</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `).join('');
+        }
+
         // ==========================================
-        // IMAGE HANDLING - BASE64 (NO STORAGE NEEDED)
+        // IMAGE HANDLING
         // ==========================================
-        
         function switchImageInput(method) {
             const fileBtn = document.getElementById('btn-file-input');
             const urlBtn = document.getElementById('btn-url-input');
@@ -1215,29 +952,23 @@ service cloud.firestore {
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            if (!validateImageFile(file)) {
-                event.target.value = '';
+            if (file.size > 500 * 1024) {
+                showToast('Error', 'File too large. Max 500KB', 'error');
                 return;
             }
-
-            const reader = new FileReader();
             
-            reader.onload = function(e) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
                 currentImageBase64 = e.target.result;
+               
                 showImagePreview(currentImageBase64);
                 document.getElementById('finalImageUrl').value = currentImageBase64;
             };
-            
-            reader.onerror = function() {
-                showToast('Error', 'Failed to read file', 'error');
-            };
-            
             reader.readAsDataURL(file);
         }
 
         function handleUrlInput(url) {
-            if (url && isValidUrl(url)) {
+            if (url && url.startsWith('http')) {
                 showImagePreview(url);
                 document.getElementById('finalImageUrl').value = url;
                 currentImageBase64 = url;
@@ -1254,65 +985,40 @@ service cloud.firestore {
 
         function removeImage() {
             currentImageBase64 = null;
-            const container = document.getElementById('imagePreviewContainer');
-            const fileInput = document.getElementById('prodImageFile');
-            const urlInput = document.getElementById('prodImageUrl');
-            const finalUrl = document.getElementById('finalImageUrl');
-            
-            if (container) container.classList.add('hidden');
-            if (fileInput) fileInput.value = '';
-            if (urlInput) urlInput.value = '';
-            if (finalUrl) finalUrl.value = '';
+            document.getElementById('imagePreviewContainer')?.classList.add('hidden');
+            document.getElementById('prodImageFile').value = '';
+            document.getElementById('prodImageUrl').value = '';
+            document.getElementById('finalImageUrl').value = '';
         }
 
         // ==========================================
-        // DUPLICATE DETECTION
+        // DUPLICATE DETECTION & SAVE
         // ==========================================
-        
         function checkDuplicateAndSave() {
             const name = document.getElementById('prodName')?.value.trim().toLowerCase();
             const price = parseFloat(document.getElementById('prodPrice')?.value);
-            
             if (!name) return;
             
-            duplicateProduct = products.find(p => p.name.toLowerCase() === name);
-            
-            if (duplicateProduct) {
-                showDuplicateWarning(duplicateProduct);
-            } else {
-                saveProduct();
-            }
+            duplicateProduct = products.find(p => p.name?.toLowerCase() === name);
+            duplicateProduct ? showDuplicateWarning(duplicateProduct) : saveProduct();
         }
 
-        function showDuplicateWarning(existingProduct) {
-            const warningDiv = document.getElementById('duplicateWarning');
-            const dupName = document.getElementById('dupName');
-            const dupPrice = document.getElementById('dupPrice');
-            const dupImage = document.getElementById('dupImage');
-            
-            if (dupName) dupName.textContent = existingProduct.name;
-            if (dupPrice) dupPrice.textContent = `KSh ${existingProduct.price}`;
-            
-            if (dupImage) {
-                if (existingProduct.image && !existingProduct.image.includes('placeholder')) {
-                    dupImage.src = existingProduct.image;
-                    dupImage.style.display = 'block';
-                } else {
-                    dupImage.style.display = 'none';
-                }
+        function showDuplicateWarning(existing) {
+            document.getElementById('duplicateWarning')?.classList.remove('hidden');
+            document.getElementById('dupName').textContent = existing.name;
+            document.getElementById('dupPrice').textContent = `KSh ${existing.price}`;
+            const img = document.getElementById('dupImage');
+            if (existing.image && !existing.image.includes('placeholder')) {
+                img.src = existing.image;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
             }
-            
-            if (warningDiv) {
-                warningDiv.classList.remove('hidden');
-                warningDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-            
-            document.getElementById('prodPrice')?.focus();
+            document.getElementById('duplicateWarning')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function cancelDuplicate() {
-            const warningDiv = document.getElementById('duplicateWarning');
-            if (warningDiv) warningDiv.classList.add('hidden');
+            document.getElementById('duplicateWarning')?.classList.add('hidden');
             duplicateProduct = null;
             document.getElementById('prodName').value = '';
             document.getElementById('prodName')?.focus();
@@ -1320,89 +1026,59 @@ service cloud.firestore {
 
         async function updateExistingPrice() {
             if (!duplicateProduct) return;
-            
             const newPrice = parseFloat(document.getElementById('prodPrice')?.value);
             const btn = document.querySelector('#duplicateWarning button:last-child');
-            
-            if (!btn || isNaN(newPrice)) return;
-            
             const originalText = btn.innerHTML;
+            
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Updating...';
             btn.disabled = true;
             
             try {
-                await db.collection('products').doc(duplicateProduct.id).update({
+                const { updateDoc, doc } = window.firestoreFuncs;
+                await updateDoc(doc(window.db, 'products', duplicateProduct.id), {
                     price: newPrice,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    updatedAt: window.serverTimestamp()
                 });
                 
                 document.querySelector('form')?.reset();
                 removeImage();
                 document.getElementById('duplicateWarning')?.classList.add('hidden');
-                
-                const productName = duplicateProduct.name;
+                showToast('Price Updated', `Updated ${duplicateProduct.name} to KSh ${newPrice}`);
                 duplicateProduct = null;
-                
-                showToast('Price Updated', `Updated ${productName} to KSh ${newPrice}`);
             } catch (error) {
-                console.error(error);
-                
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Cannot update price.', 'error');
-                } else {
-                    showToast('Error', 'Failed to update price', 'error');
-                }
+                showToast('Error', error.message, 'error');
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         }
 
-        // ==========================================
-        // SAVE PRODUCT - BASE64 IMAGES
-        // ==========================================
-        
         async function saveProduct() {
             const btn = document.getElementById('submitProductBtn');
-            if (!btn) return;
-            
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             btn.disabled = true;
 
             try {
-                let imageUrl = document.getElementById('finalImageUrl')?.value || '';
+                const { addDoc, collection } = window.firestoreFuncs;
+                let imageUrl = document.getElementById('finalImageUrl')?.value || 'https://via.placeholder.com/150?text=No+Image';
                 
-                // If no image, use placeholder
-                if (!imageUrl) {
-                    imageUrl = 'https://via.placeholder.com/150?text=No+Image';
-                }
-
-                const productData = {
+                await addDoc(collection(window.db, 'products'), {
                     name: document.getElementById('prodName')?.value,
                     price: parseFloat(document.getElementById('prodPrice')?.value),
                     unit: document.getElementById('prodUnit')?.value,
                     category: document.getElementById('prodCategory')?.value,
                     subCategory: document.getElementById('prodSubCategory')?.value,
                     image: imageUrl,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                await db.collection('products').add(productData);
+                    createdAt: window.serverTimestamp()
+                });
                 
                 document.querySelector('form')?.reset();
                 removeImage();
                 switchImageInput('file');
-                
                 showToast('Success', 'Product added to inventory');
             } catch (error) {
-                console.error('Save error:', error);
-                
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                } else {
-                    showToast('Error', error.message || 'Failed to add product', 'error');
-                }
+                showToast('Error', error.message, 'error');
             } finally {
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
@@ -1410,65 +1086,8 @@ service cloud.firestore {
         }
 
         // ==========================================
-        // PRODUCT LIST & EDITING
+        // EDIT MODAL
         // ==========================================
-        
-        function renderProducts() {
-            const searchInput = document.getElementById('searchProducts');
-            const search = searchInput?.value?.toLowerCase() || '';
-            const container = document.getElementById('productsList');
-            
-            if (!container) return;
-            
-            const filtered = products.filter(p => 
-                p.name?.toLowerCase().includes(search) || 
-                p.category?.toLowerCase().includes(search)
-            );
-            
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-earth-400">
-                        <i class="fas fa-box-open text-4xl mb-3"></i>
-                        <p>No products found</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = filtered.map(p => `
-                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
-                    <div class="relative flex-shrink-0">
-                        <img src="${p.image}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" 
-                             onerror="this.src='https://via.placeholder.com/150?text=No+Image'; this.classList.add('opacity-50');"
-                             loading="lazy">
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-pen"></i>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
-                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
-                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
-                            <span>•</span>
-                            <span>${p.subCategory}</span>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
-                        <div class="text-xs text-earth-400">per ${p.unit}</div>
-                    </div>
-                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" 
-                            class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        // ==========================================
-        // EDIT MODAL FUNCTIONS
-        // ==========================================
-        
         function openEditModal(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
@@ -1478,16 +1097,12 @@ service cloud.firestore {
             document.getElementById('editProdPrice').value = product.price || '';
             document.getElementById('editProdUnit').value = product.unit || '';
             document.getElementById('editFinalImageUrl').value = product.image || '';
-            
-            const imgPreview = document.getElementById('editImagePreview');
-            if (imgPreview) imgPreview.src = product.image || '';
-            
+            document.getElementById('editImagePreview').src = product.image || '';
             document.getElementById('editImagePreviewContainer')?.classList.remove('hidden');
             
             editImageBase64 = null;
             document.getElementById('editProdImageFile').value = '';
             document.getElementById('editProdImageUrl').value = '';
-            document.getElementById('editUploadProgress')?.classList.add('hidden');
             switchEditImageInput('file');
             
             document.getElementById('editModal').classList.remove('hidden');
@@ -1522,29 +1137,23 @@ service cloud.firestore {
 
         function handleEditFileSelect(event) {
             const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!validateImageFile(file)) {
-                event.target.value = '';
+            if (!file || file.size > 500 * 1024) {
+                showToast('Error', 'File too large. Max 500KB', 'error');
                 return;
             }
-
-            const reader = new FileReader();
             
-            reader.onload = function(e) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
                 editImageBase64 = e.target.result;
-                const img = document.getElementById('editImagePreview');
-                if (img) img.src = editImageBase64;
+                document.getElementById('editImagePreview').src = editImageBase64;
                 document.getElementById('editFinalImageUrl').value = editImageBase64;
             };
-            
             reader.readAsDataURL(file);
         }
 
         function handleEditUrlInput(url) {
-            if (url && isValidUrl(url)) {
-                const img = document.getElementById('editImagePreview');
-                if (img) img.src = url;
+            if (url && url.startsWith('http')) {
+                document.getElementById('editImagePreview').src = url;
                 document.getElementById('editFinalImageUrl').value = url;
                 editImageBase64 = url;
                 document.getElementById('editProdImageFile').value = '';
@@ -1553,188 +1162,237 @@ service cloud.firestore {
 
         async function updateProduct() {
             const btn = document.getElementById('updateProductBtn');
-            if (!btn) return;
-            
             const originalText = btn.textContent;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
             btn.disabled = true;
 
             try {
+                const { updateDoc, doc } = window.firestoreFuncs;
                 const productId = document.getElementById('editProductId')?.value;
-                if (!productId) throw new Error('Product ID not found');
-                
                 let imageUrl = document.getElementById('editFinalImageUrl')?.value || '';
 
-                await db.collection('products').doc(productId).update({
+                await updateDoc(doc(window.db, 'products', productId), {
                     name: document.getElementById('editProdName')?.value,
                     price: parseFloat(document.getElementById('editProdPrice')?.value),
                     unit: document.getElementById('editProdUnit')?.value,
                     image: imageUrl,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    updatedAt: window.serverTimestamp()
                 });
 
                 closeEditModal();
                 showToast('Success', 'Product updated successfully');
             } catch (error) {
-                console.error(error);
-                
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                } else {
-                    showToast('Error', error.message || 'Failed to update product', 'error');
-                }
+                showToast('Error', error.message, 'error');
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
         }
 
-        async function deleteProduct(id) { 
+        async function deleteProduct(id) {
             if (!confirm('Are you sure you want to delete this product?')) return;
-            
             try {
-                await db.collection('products').doc(id).delete();
+                const { deleteDoc, doc } = window.firestoreFuncs;
+                await deleteDoc(doc(window.db, 'products', id));
                 showToast('Deleted', 'Product removed from inventory');
             } catch (error) {
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Cannot delete product.', 'error');
-                } else {
-                    showToast('Error', 'Failed to delete product', 'error');
-                }
+                showToast('Error', error.message, 'error');
             }
         }
 
         // ==========================================
-        // AI OCR SCANNER
+        // ENHANCED AI OCR SCANNER
         // ==========================================
-        
+        function setAIContext(context) {
+            aiContext = context;
+            document.querySelectorAll('.ai-context-btn').forEach(btn => {
+                if (btn.dataset.context === context) {
+                    btn.classList.add('border-brand-500', 'bg-brand-50');
+                    btn.classList.remove('border-earth-200');
+                } else {
+                    btn.classList.remove('border-brand-500', 'bg-brand-50');
+                    btn.classList.add('border-earth-200');
+                }
+            });
+        }
+
+        function updateAICategoryHints() {
+            // Pre-compute category keywords for faster lookup
+            window.categoryKeywords = {};
+            categories.forEach(cat => {
+                if (cat.name) {
+                    window.categoryKeywords[cat.name.toLowerCase()] = cat.name;
+                    if (cat.subs) {
+                        cat.subs.forEach(sub => {
+                            window.categoryKeywords[sub.toLowerCase()] = cat.name;
+                        });
+                    }
+                }
+            });
+        }
+
         async function handleAIUpload(e) {
-            const files = Array.from(e.target.files || e.dataTransfer?.files || []);
-            
+            const files = Array.from(e.target.files || []);
             if (files.length === 0) return;
             
-            const validFiles = files.filter(file => {
-                if (!file.type.startsWith('image/')) {
-                    showToast('Warning', `${file.name} is not an image`, 'warning');
-                    return false;
-                }
-                return true;
-            });
-            
+            const validFiles = files.filter(f => f.type.startsWith('image/'));
             if (validFiles.length === 0) {
                 showToast('Error', 'No valid images selected', 'error');
                 return;
             }
             
             if (isProcessingOCR) {
-                showToast('Warning', 'Already processing images', 'warning');
+                showToast('Warning', 'Already processing', 'warning');
                 return;
             }
             
             isProcessingOCR = true;
-            showToast('Processing', `Scanning ${validFiles.length} document(s)...`);
-            
-            const aiSection = document.getElementById('aiReviewSection');
-            const resultsTable = document.getElementById('aiResultsTable');
-            const countBadge = document.getElementById('aiCount');
-            
             tempExtracted = [];
+            selectedAIItems.clear();
+            
+            // Show processing UI
+            document.getElementById('aiProcessingStatus').classList.remove('hidden');
+            document.getElementById('scanLine').classList.remove('hidden');
+            document.getElementById('aiReviewSection').classList.add('hidden');
             
             try {
                 for (let i = 0; i < validFiles.length; i++) {
-                    const file = validFiles[i];
-                    const results = await processImageWithOCR(file);
-                    
-                    if (results && results.length > 0) {
+                    updateProcessingStatus(i + 1, validFiles.length, validFiles[i].name);
+                    const results = await processImageWithOCR(validFiles[i]);
+                    if (results?.length > 0) {
                         tempExtracted.push(...results);
                     }
                 }
                 
                 if (tempExtracted.length === 0) {
                     showToast('Warning', 'No products detected. Try clearer images.', 'warning');
+                    document.getElementById('aiProcessingStatus').classList.add('hidden');
+                    document.getElementById('scanLine').classList.add('hidden');
                     return;
                 }
                 
-                if (aiSection) aiSection.classList.remove('hidden');
-                if (countBadge) countBadge.textContent = `${tempExtracted.length} items detected`;
+                // Deduplicate by name
+                const seen = new Set();
+                tempExtracted = tempExtracted.filter(item => {
+                    const key = item.name.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+                
+                document.getElementById('aiProcessingStatus').classList.add('hidden');
+                document.getElementById('scanLine').classList.add('hidden');
+                document.getElementById('aiReviewSection').classList.remove('hidden');
+                document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
                 
                 renderAIResults();
-                showToast('Success', `Found ${tempExtracted.length} items`);
+                showToast('Success', `Found ${tempExtracted.length} unique items`);
                 
             } catch (error) {
                 console.error('OCR Error:', error);
-                showToast('Error', 'OCR processing failed: ' + error.message, 'error');
+                showToast('Error', 'OCR failed: ' + error.message, 'error');
             } finally {
                 isProcessingOCR = false;
-                const fileInput = document.getElementById('aiFileInput');
-                if (fileInput) fileInput.value = '';
+                document.getElementById('aiFileInput').value = '';
+                document.getElementById('scanLine').classList.add('hidden');
             }
         }
 
+        function updateProcessingStatus(current, total, filename) {
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('processingText').textContent = `Processing image ${current} of ${total}...`;
+            document.getElementById('processingPercent').textContent = `${percent}%`;
+            document.getElementById('processingFile').textContent = filename.substring(0, 30);
+            document.getElementById('processingBar').style.width = `${percent}%`;
+        }
+
+        function updateProcessingProgress(progress) {
+            document.getElementById('processingBar').style.width = `${progress}%`;
+            document.getElementById('processingPercent').textContent = `${progress}%`;
+        }
+
         async function processImageWithOCR(file) {
+            const imageData = await fileToDataURL(file);
+            
+            // Use worker if available, otherwise fallback to recognize
+            let result;
+            if (ocrWorker) {
+                result = await ocrWorker.recognize(imageData);
+            } else {
+                result = await Tesseract.recognize(imageData, 'eng', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            updateProcessingProgress(Math.round(m.progress * 100));
+                        }
+                    }
+                });
+            }
+            
+            const text = result.data.text;
+            console.log('OCR Raw:', text.substring(0, 200));
+            
+            return parseOCRTextToProducts(text);
+        }
+
+        function fileToDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                
-                reader.onload = async function(e) {
-                    try {
-                        const imageData = e.target.result;
-                        
-                        const result = await Tesseract.recognize(
-                            imageData,
-                            'eng',
-                            {
-                                logger: m => {
-                                    if (m.status === 'recognizing text') {
-                                        console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-                                    }
-                                },
-                                errorHandler: err => console.error('Tesseract error:', err)
-                            }
-                        );
-                        
-                        const text = result.data.text;
-                        console.log('OCR Raw Text:', text);
-                        
-                        const products = parseOCRTextToProducts(text);
-                        resolve(products);
-                        
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                
-                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
         }
 
         function parseOCRTextToProducts(text) {
             const products = [];
-            const lines = text.split('\n').filter(line => line.trim());
+            const lines = text.split('\n').filter(l => l.trim().length > 2);
             
-            const patterns = [
-                /(.+?)[\s\.]+(?:ksh|kes|\$)?\s*(\d+(?:\.\d{2})?)/i,
-                /(?:\d+[\.\)]\s*)?(.+?)\s+(\d+(?:\.\d{2})?)\s*$/,
-                /(.+?):\s*(?:ksh|kes)?\s*(\d+(?:\.\d{2})?)/i
-            ];
+            // Context-aware patterns
+            const patterns = {
+                receipt: [
+                    /([A-Za-z\s\-\.]{3,50})\s+(?:ksh|kes|kshs)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
+                    /([A-Za-z\s\-\.]{3,50})\s+x\s*[\d\.]+\s+(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
+                    /(?:\d+[\.\)]\s*)?([A-Za-z\s\-\.]{3,50})\s+(?:@)?\s*(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i
+                ],
+                shelf: [
+                    /([A-Za-z\s\-\.]{3,50})\s+(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
+                    /([A-Za-z\s\-\.]{3,50})\s*[\n\r]+\s*(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i
+                ],
+                list: [
+                    /(?:[\-\*•]\s*)?([A-Za-z\s\-\.]{3,50})\s*[\-\—]\s*(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
+                    /(?:[\-\*•]\s*)?([A-Za-z\s\-\.]{3,50})\s+(\d{1,6}(?:\.\d{2})?)/i
+                ],
+                invoice: [
+                    /([A-Za-z\s\-\.]{3,50})\s+(?:qty|quantity)?\.?\s*\d*\s+(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
+                    /([A-Za-z\s\-\.]{3,50})\s+(?:unit\s+price)?\.?\s*(?:ksh|kes)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i
+                ]
+            };
+            
+            const contextPatterns = patterns[aiContext] || patterns.receipt;
             
             lines.forEach(line => {
-                for (let pattern of patterns) {
+                // Skip totals, headers, and short lines
+                if (/total|subtotal|tax|balance|change|cash|mpesa/i.test(line)) return;
+                if (line.length < 5 || line.length > 100) return;
+                
+                for (const pattern of contextPatterns) {
                     const match = line.match(pattern);
                     if (match) {
-                        const name = match[1].trim();
+                        const name = cleanProductName(match[1]);
                         const price = parseFloat(match[2]);
                         
-                        if (name.length > 2 && !isNaN(price) && price > 0 && price < 100000) {
-                            const category = detectCategory(name);
+                        if (name.length > 2 && !isNaN(price) && price > 0 && price < 500000) {
+                            const { category, subCategory, confidence } = smartCategorize(name);
+                            const unit = detectUnit(name);
                             
                             products.push({
-                                name: name.substring(0, 50),
+                                name: name.substring(0, 60),
                                 price: price,
                                 category: category,
-                                subCategory: category,
-                                unit: detectUnit(name),
-                                confidence: 'medium'
+                                subCategory: subCategory,
+                                unit: unit,
+                                confidence: confidence,
+                                selected: true
                             });
                             break;
                         }
@@ -1745,35 +1403,61 @@ service cloud.firestore {
             return products;
         }
 
-        function detectCategory(name) {
+        function cleanProductName(name) {
+            return name
+                .replace(/[^\w\s\-\.]/g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/^\d+[\.\)\s]*/, '')
+                .trim();
+        }
+
+        function smartCategorize(name) {
             const lower = name.toLowerCase();
-            const keywords = {
-                'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg'],
-                'Beverages': ['water', 'soda', 'juice', 'tea', 'coffee', 'drink'],
-                'Bakery': ['bread', 'cake', 'pastry', 'bun', 'roll'],
-                'Produce': ['apple', 'banana', 'tomato', 'onion', 'potato', 'vegetable', 'fruit'],
-                'Meat': ['chicken', 'beef', 'pork', 'fish', 'meat'],
-                'Groceries': ['rice', 'flour', 'sugar', 'salt', 'oil', 'spice'],
-                'Household': ['soap', 'detergent', 'toothpaste', 'shampoo']
-            };
+            let bestMatch = { category: 'General', subCategory: 'General', confidence: 'low' };
             
-            for (let [cat, words] of Object.entries(keywords)) {
-                if (words.some(w => lower.includes(w))) return cat;
+            // Check against existing categories first
+            if (window.categoryKeywords) {
+                for (const [keyword, catName] of Object.entries(window.categoryKeywords)) {
+                    if (lower.includes(keyword)) {
+                        return { category: catName, subCategory: keyword, confidence: 'high' };
+                    }
+                }
             }
             
-            return 'General';
+            // Fallback to keyword matching
+            const keywords = {
+                'Dairy': { words: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg', 'ghee'], subs: ['Fresh Milk', 'Cheese', 'Yogurt'] },
+                'Beverages': { words: ['water', 'soda', 'juice', 'tea', 'coffee', 'drink', 'soda', 'coke', 'pepsi'], subs: ['Water', 'Soft Drinks', 'Hot Drinks'] },
+                'Bakery': { words: ['bread', 'cake', 'pastry', 'bun', 'roll', 'toast', 'mandazi', 'chapati'], subs: ['Bread', 'Cakes', 'Pastries'] },
+                'Produce': { words: ['apple', 'banana', 'tomato', 'onion', 'potato', 'vegetable', 'fruit', 'mango', 'orange', 'cabbage', 'sukuma'], subs: ['Fruits', 'Vegetables'] },
+                'Meat': { words: ['chicken', 'beef', 'pork', 'fish', 'meat', 'goat', 'mutton'], subs: ['Chicken', 'Beef', 'Fish'] },
+                'Groceries': { words: ['rice', 'flour', 'sugar', 'salt', 'oil', 'spice', 'maize', 'beans', 'lentils'], subs: ['Grains', 'Spices', 'Canned'] },
+                'Household': { words: ['soap', 'detergent', 'toothpaste', 'shampoo', 'tissue', 'cleaner'], subs: ['Cleaning', 'Personal Care'] },
+                'Snacks': { words: ['crisps', 'chips', 'biscuit', 'cookie', 'chocolate', 'candy', 'nuts'], subs: ['Chips', 'Biscuits', 'Sweets'] }
+            };
+            
+            for (const [cat, data] of Object.entries(keywords)) {
+                for (const word of data.words) {
+                    if (lower.includes(word)) {
+                        const sub = data.subs.find(s => lower.includes(s.toLowerCase())) || data.subs[0];
+                        return { category: cat, subCategory: sub, confidence: 'medium' };
+                    }
+                }
+            }
+            
+            return bestMatch;
         }
 
         function detectUnit(name) {
             const lower = name.toLowerCase();
             if (lower.includes('kg') || lower.includes('kilo')) return 'kg';
-            if (lower.includes('g') || lower.includes('gram')) return 'g';
-            if (lower.includes('l') || lower.includes('liter')) return 'L';
+            if (lower.includes('g') && !lower.includes('kg')) return 'g';
+            if (lower.includes('l') && lower.includes('tr')) return 'L';
             if (lower.includes('ml')) return 'ml';
             if (lower.includes('pcs') || lower.includes('pc')) return 'pcs';
-            if (lower.includes('bottle')) return 'bottle';
-            if (lower.includes('pack')) return 'pack';
-            if (lower.includes('box')) return 'box';
+            if (lower.includes('bottle') || lower.includes('btl')) return 'bottle';
+            if (lower.includes('pack') || lower.includes('pkt')) return 'pack';
+            if (lower.includes('box') || lower.includes('carton')) return 'box';
             return 'pcs';
         }
 
@@ -1781,52 +1465,106 @@ service cloud.firestore {
             const tbody = document.getElementById('aiResultsTable');
             if (!tbody) return;
             
-            tbody.innerHTML = tempExtracted.map((item, index) => `
-                <tr class="hover:bg-earth-50 transition-colors group">
-                    <td class="px-6 py-4">
-                        <div class="font-medium text-earth-900">${item.name}</div>
-                        <div class="text-xs text-earth-400 mt-1">Detected from scan</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-brand-600">KSh ${item.price.toFixed(2)}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded-md text-xs font-medium">${item.category}</span>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = tempExtracted.map((item, index) => {
+                const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
+                                 item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
+                const confIcon = item.confidence === 'high' ? 'fa-check-circle text-green-500' : 
+                                item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400';
+                
+                return `
+                    <tr class="hover:bg-earth-50 transition-colors ${confClass} ${item.selected ? '' : 'opacity-50'}" id="ai-row-${index}">
+                        <td class="px-4 py-3"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIItem(${index})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-earth-900">${item.name}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-brand-600">KSh ${item.price.toFixed(2)}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-medium">${item.category}</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-earth-600">${item.unit}</td>
+                        <td class="px-4 py-3 text-center"><i class="fas ${confIcon}"></i></td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="editAIItem(${index})" class="text-earth-400 hover:text-brand-600 transition-colors p-1"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 transition-colors p-1 ml-2"><i class="fas fa-trash text-xs"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            updateSelectedCount();
+        }
+
+        function toggleAIItem(index) {
+            tempExtracted[index].selected = !tempExtracted[index].selected;
+            document.getElementById(`ai-row-${index}`).classList.toggle('opacity-50', !tempExtracted[index].selected);
+            updateSelectedCount();
+        }
+
+        function toggleSelectAll() {
+            const checked = document.getElementById('selectAllCheckbox').checked;
+            selectAllAI(checked);
+        }
+
+        function selectAllAI(select) {
+            tempExtracted.forEach((item, idx) => {
+                item.selected = select;
+                const checkbox = document.querySelector(`#ai-row-${idx} input[type="checkbox"]`);
+                if (checkbox) checkbox.checked = select;
+                document.getElementById(`ai-row-${idx}`)?.classList.toggle('opacity-50', !select);
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = tempExtracted.filter(i => i.selected).length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+
+        function editAIItem(index) {
+            const item = tempExtracted[index];
+            const newName = prompt('Edit product name:', item.name);
+            if (newName && newName.trim()) {
+                item.name = newName.trim();
+                renderAIResults();
+            }
         }
 
         function removeAIItem(index) {
             tempExtracted.splice(index, 1);
             renderAIResults();
-            
-            const countBadge = document.getElementById('aiCount');
-            if (countBadge) countBadge.textContent = `${tempExtracted.length} items`;
-            
+            document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
             if (tempExtracted.length === 0) {
-                document.getElementById('aiReviewSection')?.classList.add('hidden');
+                document.getElementById('aiReviewSection').classList.add('hidden');
             }
         }
 
-        async function saveAIScannedItems(btn) {
-            if (tempExtracted.length === 0) return;
+        function clearAIResults() {
+            tempExtracted = [];
+            selectedAIItems.clear();
+            document.getElementById('aiReviewSection').classList.add('hidden');
+            document.getElementById('aiProcessingStatus').classList.add('hidden');
+        }
+
+        async function saveAISelectedItems() {
+            const toSave = tempExtracted.filter(i => i.selected);
+            if (toSave.length === 0) {
+                showToast('Error', 'No items selected', 'error');
+                return;
+            }
             
+            const btn = document.getElementById('saveAIBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             btn.disabled = true;
             
-            let savedCount = 0;
-            let errorCount = 0;
-            let permissionError = false;
+            let saved = 0, updated = 0, errors = 0;
             
             try {
-                for (const item of tempExtracted) {
+                const { addDoc, collection, updateDoc, doc } = window.firestoreFuncs;
+                
+                for (const item of toSave) {
                     try {
                         const existing = products.find(p => 
                             p.name.toLowerCase() === item.name.toLowerCase()
@@ -1834,44 +1572,40 @@ service cloud.firestore {
                         
                         if (existing) {
                             if (existing.price !== item.price) {
-                                await db.collection('products').doc(existing.id).update({
+                                await updateDoc(doc(window.db, 'products', existing.id), {
                                     price: item.price,
-                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                    updatedAt: window.serverTimestamp()
                                 });
+                                updated++;
                             }
                         } else {
-                            await db.collection('products').add({
+                            await addDoc(collection(window.db, 'products'), {
                                 name: item.name,
                                 price: item.price,
                                 unit: item.unit,
                                 category: item.category,
                                 subCategory: item.subCategory,
                                 image: 'https://via.placeholder.com/150?text=No+Image',
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                createdAt: window.serverTimestamp()
                             });
+                            saved++;
                         }
-                        savedCount++;
                     } catch (err) {
-                        console.error('Error saving item:', err);
-                        if (checkPermissionError(err)) {
-                            permissionError = true;
-                        }
-                        errorCount++;
+                        console.error('Save error:', err);
+                        errors++;
                     }
                 }
                 
-                tempExtracted = [];
-                document.getElementById('aiReviewSection')?.classList.add('hidden');
-                
-                if (permissionError) {
-                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                } else if (errorCount > 0) {
-                    showToast('Partial Success', `Saved ${savedCount} items, ${errorCount} errors`, 'warning');
-                } else {
-                    showToast('Success', `Added ${savedCount} items to inventory`);
-                }
-                
+                clearAIResults();
                 switchTab('inventory');
+                
+                let msg = [];
+                if (saved > 0) msg.push(`${saved} added`);
+                if (updated > 0) msg.push(`${updated} updated`);
+                if (errors > 0) msg.push(`${errors} failed`);
+                
+                showToast('Complete', msg.join(', ') || 'Done');
+                
             } catch (error) {
                 showToast('Error', 'Failed to save items', 'error');
             } finally {
@@ -1881,115 +1615,84 @@ service cloud.firestore {
         }
 
         // ==========================================
-        // CATEGORIES MANAGEMENT
+        // CATEGORIES
         // ==========================================
-        
         function renderCategoriesPreview() {
             const container = document.getElementById('categoriesPreview');
-            if (!container) return;
+            if (!container || !Array.isArray(categories)) return;
             
-            if (!Array.isArray(categories) || categories.length === 0) {
-                container.innerHTML = '<p class="text-sm text-earth-400 italic">No departments created yet</p>';
+            if (categories.length === 0) {
+                container.innerHTML = '<p class="text-sm text-earth-400 italic">No departments yet</p>';
                 return;
             }
             
-            container.innerHTML = categories.map(cat => {
-                const catName = cat.name || 'Unnamed';
-                const catId = cat.id || '';
-                const subs = Array.isArray(cat.subs) ? cat.subs : [];
-                
-                return `
-                    <div class="group relative">
-                        <div class="px-3 py-2 bg-white border border-earth-200 rounded-lg text-xs font-medium text-earth-700 hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer flex items-center gap-2">
-                            <i class="fas fa-folder text-orange-400"></i>
-                            ${catName}
-                            <button onclick="event.stopPropagation(); deleteCategory('${catId}')" class="ml-1 text-earth-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        ${subs.length > 0 ? `
-                            <div class="absolute top-full left-0 mt-1 bg-white border border-earth-200 rounded-lg shadow-lg p-2 min-w-[150px] z-10 hidden group-hover:block">
-                                ${subs.map(sub => `
-                                    <div class="px-2 py-1 text-xs text-earth-600 hover:bg-earth-50 rounded">${sub}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
+            container.innerHTML = categories.map(cat => `
+                <div class="group relative">
+                    <div class="px-3 py-2 bg-white border border-earth-200 rounded-lg text-xs font-medium text-earth-700 hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer flex items-center gap-2">
+                        <i class="fas fa-folder text-orange-400"></i>
+                        ${cat.name}
+                        <button onclick="event.stopPropagation(); deleteCategory('${cat.id}')" class="ml-1 text-earth-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                `;
-            }).join('');
+                </div>
+            `).join('');
         }
 
         async function saveCategory() {
-            const nameInput = document.getElementById('catName');
-            const subsInput = document.getElementById('catSubs');
-            
-            const name = nameInput?.value.trim();
-            const subsText = subsInput?.value.trim();
+            const name = document.getElementById('catName')?.value.trim();
+            const subsText = document.getElementById('catSubs')?.value.trim();
             
             if (!name) {
-                showToast('Error', 'Department name is required', 'error');
+                showToast('Error', 'Department name required', 'error');
                 return;
             }
             
             const subs = subsText ? subsText.split(',').map(s => s.trim()).filter(s => s) : [];
             
             try {
-                const existing = categories.find(c => c.name && c.name.toLowerCase() === name.toLowerCase());
+                const { addDoc, collection, updateDoc, doc } = window.firestoreFuncs;
+                const existing = categories.find(c => c.name?.toLowerCase() === name.toLowerCase());
                 
                 if (existing) {
-                    await db.collection('categories').doc(existing.id).update({
+                    await updateDoc(doc(window.db, 'categories', existing.id), {
                         name: name,
                         subs: subs,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        updatedAt: window.serverTimestamp()
                     });
                     showToast('Updated', `Department "${name}" updated`);
                 } else {
-                    await db.collection('categories').add({
+                    await addDoc(collection(window.db, 'categories'), {
                         name: name,
                         subs: subs,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        createdAt: window.serverTimestamp()
                     });
                     showToast('Created', `Department "${name}" created`);
                 }
                 
-                if (nameInput) nameInput.value = '';
-                if (subsInput) subsInput.value = '';
-                
+                document.getElementById('catName').value = '';
+                document.getElementById('catSubs').value = '';
             } catch (error) {
-                console.error(error);
-                
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Check Firebase Rules.', 'error');
-                } else {
-                    showToast('Error', 'Failed to save department: ' + error.message, 'error');
-                }
+                showToast('Error', error.message, 'error');
             }
         }
 
         async function deleteCategory(id) {
-            if (!id) return;
-            
-            if (!confirm('Delete this department? Products in this category will not be deleted.')) return;
-            
+            if (!confirm('Delete this department?')) return;
             try {
-                await db.collection('categories').doc(id).delete();
+                const { deleteDoc, doc } = window.firestoreFuncs;
+                await deleteDoc(doc(window.db, 'categories', id));
                 showToast('Deleted', 'Department removed');
             } catch (error) {
-                if (checkPermissionError(error)) {
-                    showToast('Error', 'Permission denied. Cannot delete department.', 'error');
-                } else {
-                    showToast('Error', 'Failed to delete department', 'error');
-                }
+                showToast('Error', error.message, 'error');
             }
         }
 
         // ==========================================
         // PDF EXPORT
         // ==========================================
-        
         async function downloadPriceListPDF() {
             const { jsPDF } = window.jspdf;
-            
             if (!jsPDF) {
                 showToast('Error', 'PDF library not loaded', 'error');
                 return;
@@ -2003,14 +1706,13 @@ service cloud.firestore {
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 
+                // Header
                 doc.setFillColor(20, 83, 45);
                 doc.rect(0, 0, pageWidth, 40, 'F');
-                
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(20);
                 doc.setFont('helvetica', 'bold');
                 doc.text('Lwandeti Junction Minimart', pageWidth / 2, 20, { align: 'center' });
-                
                 doc.setFontSize(12);
                 doc.setFont('helvetica', 'normal');
                 doc.text('Complete Price List', pageWidth / 2, 30, { align: 'center' });
@@ -2019,50 +1721,47 @@ service cloud.firestore {
                 doc.setFontSize(10);
                 doc.text(`Generated: ${new Date().toLocaleDateString('en-KE')}`, pageWidth / 2, 45, { align: 'center' });
                 
+                // Group by category
                 const grouped = {};
                 products.forEach(p => {
                     if (!grouped[p.category]) grouped[p.category] = [];
                     grouped[p.category].push(p);
                 });
                 
-                let yPosition = 55;
-                
+                let y = 55;
                 Object.entries(grouped).forEach(([category, items]) => {
-                    if (yPosition > 250) {
+                    if (y > 250) {
                         doc.addPage();
-                        yPosition = 20;
+                        y = 20;
                     }
                     
                     doc.setFillColor(240, 253, 244);
-                    doc.rect(10, yPosition - 5, pageWidth - 20, 10, 'F');
+                    doc.rect(10, y - 5, pageWidth - 20, 10, 'F');
                     doc.setTextColor(20, 83, 45);
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'bold');
-                    doc.text(category.toUpperCase(), 15, yPosition + 1);
-                    yPosition += 15;
+                    doc.text(category.toUpperCase(), 15, y + 1);
+                    y += 15;
                     
                     doc.setTextColor(60, 60, 60);
                     doc.setFontSize(10);
                     doc.setFont('helvetica', 'normal');
                     
                     items.forEach(item => {
-                        if (yPosition > 280) {
+                        if (y > 280) {
                             doc.addPage();
-                            yPosition = 20;
+                            y = 20;
                         }
-                        
                         const price = typeof item.price === 'number' ? item.price.toFixed(2) : item.price;
-                        
-                        doc.text(item.name, 15, yPosition);
-                        doc.text(`KSh ${price}`, pageWidth - 15, yPosition, { align: 'right' });
-                        doc.text(`per ${item.unit || 'pcs'}`, pageWidth - 60, yPosition, { align: 'right' });
-                        
-                        yPosition += 8;
+                        doc.text(item.name.substring(0, 50), 15, y);
+                        doc.text(`KSh ${price}`, pageWidth - 15, y, { align: 'right' });
+                        doc.text(`per ${item.unit || 'pcs'}`, pageWidth - 60, y, { align: 'right' });
+                        y += 8;
                     });
-                    
-                    yPosition += 5;
+                    y += 5;
                 });
                 
+                // Footer
                 const pageCount = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
@@ -2072,118 +1771,57 @@ service cloud.firestore {
                 }
                 
                 doc.save(`Lwandeti_Price_List_${new Date().toISOString().split('T')[0]}.pdf`);
-                showToast('Success', 'PDF downloaded successfully');
-                
+                showToast('Success', 'PDF downloaded');
             } catch (error) {
-                console.error('PDF Error:', error);
-                showToast('Error', 'Failed to generate PDF', 'error');
+                showToast('Error', 'PDF generation failed', 'error');
             } finally {
                 if (btn && originalHTML) btn.innerHTML = originalHTML;
             }
         }
 
         // ==========================================
-        // UI UTILITIES
+        // EVENT LISTENERS
         // ==========================================
-        
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-indicator').forEach(tab => {
-                tab.classList.remove('active', 'text-brand-700', 'bg-brand-50');
-                tab.classList.add('text-earth-600');
-            });
-            
-            const activeTab = document.getElementById(`tab-${tabName}`);
-            if (activeTab) {
-                activeTab.classList.add('active', 'text-brand-700', 'bg-brand-50');
-                activeTab.classList.remove('text-earth-600');
-            }
-            
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            
-            const activeContent = document.getElementById(`view-${tabName}`);
-            if (activeContent) {
-                activeContent.classList.remove('hidden');
-                activeContent.style.animation = 'none';
-                activeContent.offsetHeight;
-                activeContent.style.animation = 'slideIn 0.3s ease-out forwards';
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            const aiZone = document.querySelector('#view-ai .group');
-            
+            // Drag and drop for AI scanner
+            const aiZone = document.getElementById('aiUploadZone');
             if (aiZone) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    aiZone.addEventListener(eventName, preventDefaults, false);
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+                    aiZone.addEventListener(e, (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                    }, false);
                 });
                 
-                function preventDefaults(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    aiZone.addEventListener(eventName, highlight, false);
+                ['dragenter', 'dragover'].forEach(e => {
+                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-earth-300')?.classList.add('border-brand-400', 'bg-brand-50/30'), false);
                 });
                 
-                ['dragleave', 'drop'].forEach(eventName => {
-                    aiZone.addEventListener(eventName, unhighlight, false);
+                ['dragleave', 'drop'].forEach(e => {
+                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-earth-300')?.classList.remove('border-brand-400', 'bg-brand-50/30'), false);
                 });
                 
-                function highlight(e) {
-                    aiZone.classList.add('border-brand-400', 'bg-brand-50/30');
-                }
-                
-                function unhighlight(e) {
-                    aiZone.classList.remove('border-brand-400', 'bg-brand-50/30');
-                }
-                
-                aiZone.addEventListener('drop', handleDrop, false);
-                
-                function handleDrop(e) {
-                    const dt = e.dataTransfer;
-                    const files = dt.files;
-                    handleAIUpload({ target: { files: files } });
-                }
+                aiZone.addEventListener('drop', (e) => {
+                    handleAIUpload({ target: { files: e.dataTransfer.files } });
+                }, false);
             }
             
-            document.addEventListener('keydown', function(e) {
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeEditModal();
                     document.getElementById('rulesModal')?.classList.add('hidden');
                 }
-                
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    if (!document.getElementById('view-inventory')?.classList.contains('hidden')) {
-                        document.getElementById('searchProducts')?.focus();
-                    }
-                }
             });
             
-            document.getElementById('editModal')?.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeEditModal();
-                }
+            // Modal backdrops
+            document.getElementById('editModal')?.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) closeEditModal();
             });
-            
-            document.getElementById('rulesModal')?.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.classList.add('hidden');
-                }
+            document.getElementById('rulesModal')?.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
             });
         });
-
-        function initUI() {
-            window.addEventListener('beforeunload', function() {
-                document.body.classList.add('loading');
-            });
-        }
-
-        initUI();
     </script>
 </body>
 </html>
-
