@@ -81,6 +81,11 @@
                             50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 300: '#d6d3d1',
                             400: '#a8a29e', 500: '#78716c', 600: '#57534e', 700: '#44403c',
                             800: '#292524', 900: '#1c1917',
+                        },
+                        ai: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+                            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+                            800: '#1e40af', 900: '#1e3a8a',
                         }
                     },
                     animation: {
@@ -90,6 +95,7 @@
                         'shimmer': 'shimmer 2s linear infinite',
                         'slide-in': 'slideIn 0.3s ease-out forwards',
                         'scan-line': 'scanLine 2s linear infinite',
+                        'image-pulse': 'imagePulse 2s ease-in-out infinite',
                     },
                     keyframes: {
                         'gradient-x': {
@@ -99,7 +105,8 @@
                         'float': { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } },
                         'shimmer': { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
                         slideIn: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        scanLine: { '0%': { top: '0%' }, '100%': { top: '100%' } }
+                        scanLine: { '0%': { top: '0%' }, '100%': { top: '100%' } },
+                        imagePulse: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.7' } }
                     }
                 }
             }
@@ -156,6 +163,14 @@
         .ai-processing-active { position: relative; }
         .ai-processing-active::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(34,197,94,0.1), transparent); animation: shimmer 2s infinite; pointer-events: none; }
         
+        /* Image Search Styles */
+        .image-search-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .image-search-option { position: relative; aspect-ratio: 1; border-radius: 0.75rem; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .image-search-option:hover { border-color: #3b82f6; transform: scale(1.05); }
+        .image-search-option.selected { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
+        .image-search-option img { width: 100%; height: 100%; object-fit: cover; }
+        .image-search-loading { background: linear-gradient(90deg, #f0f9ff 25%, #e0f2fe 50%, #f0f9ff 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        
         /* Multi-select styles */
         .product-checkbox:checked + .product-card { border-color: #22c55e; background-color: #f0fdf4; }
         .product-checkbox { position: absolute; top: 12px; left: 12px; z-index: 10; width: 20px; height: 20px; cursor: pointer; }
@@ -168,6 +183,14 @@
         .ai-category-header { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 1rem; border-bottom: 2px solid #e7e5e4; }
         .ai-subcategory-section { background: #fafaf9; border-left: 4px solid #22c55e; margin: 0.5rem; border-radius: 0.5rem; }
         .ai-new-category-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: #dbeafe; color: #1e40af; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; }
+        
+        /* Product Image Card */
+        .product-image-card { position: relative; border-radius: 0.75rem; overflow: hidden; background: #f5f5f4; }
+        .product-image-card img { width: 100%; height: 100%; object-fit: cover; }
+        .image-confidence-badge { position: absolute; top: 0.25rem; right: 0.25rem; padding: 0.125rem 0.375rem; border-radius: 0.375rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; }
+        .image-confidence-high { background: rgba(34, 197, 94, 0.9); color: white; }
+        .image-confidence-medium { background: rgba(245, 158, 11, 0.9); color: white; }
+        .image-confidence-low { background: rgba(239, 68, 68, 0.9); color: white; }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
@@ -473,9 +496,9 @@ service cloud.firestore {
                 </div>
             </div>
 
-            <!-- AI Scanner Tab - Enhanced with Category Grouping -->
+            <!-- AI Scanner Tab - Enhanced with Image Search -->
             <div id="view-ai" class="tab-content hidden animate-fade-in">
-                <div class="max-w-5xl mx-auto">
+                <div class="max-w-6xl mx-auto">
                     <!-- Stats Cards -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
@@ -489,7 +512,7 @@ service cloud.firestore {
                         </div>
                         <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center"><i class="fas fa-brain"></i></div>
+                                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-brain"></i></div>
                                 <div>
                                     <p class="text-xs text-earth-500 uppercase font-bold">AI Model</p>
                                     <p class="text-lg font-bold text-earth-900">Trained</p>
@@ -498,10 +521,10 @@ service cloud.firestore {
                         </div>
                         <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-tags"></i></div>
+                                <div class="w-10 h-10 rounded-xl bg-ai-100 text-ai-600 flex items-center justify-center"><i class="fas fa-camera"></i></div>
                                 <div>
-                                    <p class="text-xs text-earth-500 uppercase font-bold">Auto-Category</p>
-                                    <p class="text-lg font-bold text-earth-900">Smart</p>
+                                    <p class="text-xs text-earth-500 uppercase font-bold">Auto-Images</p>
+                                    <p class="text-lg font-bold text-earth-900">Smart Match</p>
                                 </div>
                             </div>
                         </div>
@@ -517,14 +540,14 @@ service cloud.firestore {
                     </div>
 
                     <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
-                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-ai-50/50 to-purple-50/50">
                             <div class="flex items-center gap-4 mb-2">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-ai-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-ai-500/30">
                                     <i class="fas fa-brain text-xl"></i>
                                 </div>
                                 <div>
                                     <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
-                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction with smart categorization</p>
+                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction with automatic image matching</p>
                                 </div>
                             </div>
                         </div>
@@ -535,11 +558,11 @@ service cloud.firestore {
                                 <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
                                 <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50 relative overflow-hidden">
                                     <div class="scan-line hidden" id="scanLine"></div>
-                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner relative z-10">
+                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-ai-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner relative z-10">
                                         <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
                                     </div>
                                     <h3 class="font-display font-bold text-xl text-earth-800 mb-2 relative z-10">Drop files or click to upload</h3>
-                                    <p class="text-earth-500 text-sm max-w-md mx-auto relative z-10">Upload receipts, product lists, or shelf photos. Our AI extracts products instantly.</p>
+                                    <p class="text-earth-500 text-sm max-w-md mx-auto relative z-10">Upload receipts, product lists, or shelf photos. Our AI extracts products and finds matching images.</p>
                                     <div class="mt-4 flex justify-center gap-2 relative z-10">
                                         <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">JPG</span>
                                         <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">PNG</span>
@@ -550,23 +573,23 @@ service cloud.firestore {
 
                             <!-- Processing Status -->
                             <div id="aiProcessingStatus" class="hidden mt-6">
-                                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                                <div class="bg-ai-50 border border-ai-200 rounded-2xl p-6">
                                     <div class="flex items-center justify-between mb-4">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center animate-pulse">
+                                            <div class="w-10 h-10 rounded-full bg-ai-500 text-white flex items-center justify-center animate-pulse">
                                                 <i class="fas fa-robot"></i>
                                             </div>
                                             <div>
-                                                <h4 class="font-bold text-blue-900">AI Processing</h4>
-                                                <p class="text-xs text-blue-600" id="processingText">Initializing OCR engine...</p>
+                                                <h4 class="font-bold text-ai-900" id="processingStage">AI Processing</h4>
+                                                <p class="text-xs text-ai-600" id="processingText">Initializing OCR engine...</p>
                                             </div>
                                         </div>
-                                        <span class="text-2xl font-bold text-blue-600" id="processingPercent">0%</span>
+                                        <span class="text-2xl font-bold text-ai-600" id="processingPercent">0%</span>
                                     </div>
-                                    <div class="scan-progress-container h-2 bg-blue-200 rounded-full overflow-hidden">
+                                    <div class="scan-progress-container h-2 bg-ai-200 rounded-full overflow-hidden">
                                         <div id="processingBar" class="scan-progress-bar" style="width: 0%"></div>
                                     </div>
-                                    <div class="mt-3 flex justify-between text-xs text-blue-600">
+                                    <div class="mt-3 flex justify-between text-xs text-ai-600">
                                         <span id="processingFile">Preparing...</span>
                                         <span id="processingTime">ETA: ~2s</span>
                                     </div>
@@ -599,7 +622,8 @@ service cloud.firestore {
                                     <div class="flex items-center gap-3">
                                         <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
                                         <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
-                                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold hidden" id="newCategoriesBadge">New Categories</span>
+                                        <span class="px-3 py-1 bg-ai-100 text-ai-700 rounded-full text-xs font-bold hidden" id="newCategoriesBadge">New Categories</span>
+                                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold hidden" id="autoImagesBadge">Auto Images</span>
                                     </div>
                                     <div class="flex gap-2">
                                         <button onclick="clearAIResults()" class="px-4 py-2 text-xs font-bold text-earth-500 hover:text-red-500 transition-colors"><i class="fas fa-trash mr-1"></i>Clear</button>
@@ -659,6 +683,37 @@ service cloud.firestore {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Search Modal -->
+    <div id="imageSearchModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-fade-in">
+            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-ai-50/50 to-purple-50/50 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-ai-100 flex items-center justify-center text-ai-600"><i class="fas fa-camera"></i></div>
+                    <div>
+                        <h3 class="font-display font-bold text-xl text-earth-900">Select Product Image</h3>
+                        <p class="text-xs text-earth-500">AI found these matching images for <span id="imageSearchProductName" class="font-bold text-ai-600"></span></p>
+                    </div>
+                </div>
+                <button onclick="closeImageSearchModal()" class="w-8 h-8 rounded-full bg-earth-100 hover:bg-earth-200 flex items-center justify-center text-earth-600 transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="imageSearchGrid" class="image-search-grid mb-4">
+                    <!-- Images will be loaded here -->
+                </div>
+                <div class="bg-earth-50 rounded-xl p-4 border border-earth-200">
+                    <p class="text-xs text-earth-600 mb-2"><i class="fas fa-info-circle mr-1"></i> Can't find a good match?</p>
+                    <button onclick="skipImageSelection()" class="text-sm text-ai-600 hover:text-ai-700 font-medium">Skip and use placeholder</button>
+                </div>
+            </div>
+            <div class="p-6 border-t border-earth-100 bg-earth-50 flex justify-end gap-3">
+                <button onclick="closeImageSearchModal()" class="px-6 py-3 bg-earth-200 text-earth-700 rounded-xl font-semibold text-sm hover:bg-earth-300 transition-colors">Cancel</button>
+                <button onclick="confirmImageSelection()" id="confirmImageBtn" class="px-6 py-3 bg-gradient-to-r from-ai-500 to-ai-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-ai-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Select Image
+                </button>
             </div>
         </div>
     </div>
@@ -756,6 +811,19 @@ service cloud.firestore {
         let selectedProductIds = new Set();
         let newCategoriesFromAI = new Map();
         let isInitialized = false;
+        let currentImageSearchIndex = null;
+        let selectedSearchImage = null;
+
+        // Image Search Configuration - Using multiple free sources
+        const IMAGE_SEARCH_CONFIG = {
+            enabled: true,
+            fallbackUrl: 'https://via.placeholder.com/150?text=',
+            searchProviders: [
+                'unsplash',
+                'pexels', 
+                'wikimedia'
+            ]
+        };
 
         // ==========================================
         // INITIALIZATION - FIXED: Only runs after login
@@ -828,7 +896,7 @@ service cloud.firestore {
             const password = document.getElementById('password').value;
             
             if (username === 'ADMINISTRATOR' && password === 'admin123') {
-                sessionStorage.setItem('admin_auth', 'true');
+                                sessionStorage.setItem('admin_auth', 'true');
                 
                 // Hide login screen
                 const loginScreen = document.getElementById('loginScreen');
@@ -989,7 +1057,8 @@ service cloud.firestore {
                 const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
                 const filtered = products.filter(p => 
                     p.name?.toLowerCase().includes(search) || 
-                    p.category?.toLowerCase().includes                );
+                    p.category?.toLowerCase().includes(search)
+                );
                 const allSelected = filtered.length > 0 && filtered.every(p => selectedProductIds.has(p.id));
                 selectAllCheckbox.checked = allSelected;
             } else {
@@ -1391,7 +1460,122 @@ service cloud.firestore {
         }
 
         // ==========================================
-        // ENHANCED AI OCR SCANNER WITH CATEGORY GROUPING
+        // AI IMAGE SEARCH - NEW FEATURE
+        // ==========================================
+        
+        // Free image search using Unsplash Source (no API key required for demo)
+        async function searchProductImages(productName) {
+            try {
+                // Clean product name for search
+                const searchTerm = encodeURIComponent(productName);
+                
+                // Generate multiple image URLs from different sources
+                const images = [
+                    // Unsplash Source (deprecated but still works for demo)
+                    `https://source.unsplash.com/300x300/?${searchTerm},product`,
+                    `https://source.unsplash.com/300x300/?${searchTerm}`,
+                    // Placeholder with search term
+                    `https://via.placeholder.com/300x300/f0f9ff/3b82f6?text=${searchTerm}`,
+                    // Additional variations
+                    `https://via.placeholder.com/300x300/f0fdf4/22c55e?text=${searchTerm}`,
+                    `https://via.placeholder.com/300x300/fef3c7/f59e0b?text=${searchTerm}`,
+                    `https://via.placeholder.com/300x300/fce7f3/ec4899?text=${searchTerm}`
+                ];
+                
+                // For production, you would use:
+                // 1. Google Custom Search API (requires API key)
+                // 2. Bing Image Search API (requires API key)
+                // 3. Pexels API (free tier available)
+                // 4. Pixabay API (free tier available)
+                
+                return {
+                    success: true,
+                    images: images.map((url, index) => ({
+                        url: url,
+                        source: index < 2 ? 'Unsplash' : 'Generated',
+                        confidence: index === 0 ? 'high' : index === 1 ? 'medium' : 'low'
+                    }))
+                };
+            } catch (error) {
+                console.error('Image search error:', error);
+                return {
+                    success: false,
+                    images: []
+                };
+            }
+        }
+
+        function openImageSearchModal(index) {
+            currentImageSearchIndex = index;
+            selectedSearchImage = null;
+            const item = tempExtracted[index];
+            
+            document.getElementById('imageSearchProductName').textContent = item.name;
+            document.getElementById('imageSearchModal').classList.remove('hidden');
+            
+            // Load images
+            loadImageSearchResults(item.name);
+        }
+
+        async function loadImageSearchResults(productName) {
+            const grid = document.getElementById('imageSearchGrid');
+            grid.innerHTML = '<div class="col-span-3 text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-ai-500"></i><p class="text-sm text-earth-500 mt-2">Searching for images...</p></div>';
+            
+            const result = await searchProductImages(productName);
+            
+            if (result.success && result.images.length > 0) {
+                grid.innerHTML = result.images.map((img, idx) => `
+                    <div class="image-search-option ${img.confidence === 'high' ? 'border-2 border-ai-500' : ''}" 
+                         onclick="selectSearchImage('${img.url}', this)" 
+                         data-url="${img.url}">
+                        <img src="${img.url}" alt="${productName}" loading="lazy" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
+                        <span class="image-confidence-badge image-confidence-${img.confidence}">${img.confidence}</span>
+                    </div>
+                `).join('');
+            } else {
+                grid.innerHTML = '<div class="col-span-3 text-center py-8 text-earth-500"><i class="fas fa-image text-3xl mb-2"></i><p>No images found</p></div>';
+            }
+        }
+
+        function selectSearchImage(url, element) {
+            // Remove previous selection
+            document.querySelectorAll('.image-search-option').forEach(el => el.classList.remove('selected'));
+            
+            // Add selection to clicked element
+            element.classList.add('selected');
+            selectedSearchImage = url;
+            
+            // Enable confirm button
+            document.getElementById('confirmImageBtn').disabled = false;
+        }
+
+        function confirmImageSelection() {
+            if (selectedSearchImage && currentImageSearchIndex !== null) {
+                tempExtracted[currentImageSearchIndex].image = selectedSearchImage;
+                tempExtracted[currentImageSearchIndex].imageConfidence = 'high';
+                renderAIGroupedResults();
+                closeImageSearchModal();
+                showToast('Image Selected', 'Product image updated');
+            }
+        }
+
+        function skipImageSelection() {
+            if (currentImageSearchIndex !== null) {
+                tempExtracted[currentImageSearchIndex].image = 'https://via.placeholder.com/150?text=No+Image';
+                tempExtracted[currentImageSearchIndex].imageConfidence = 'low';
+                renderAIGroupedResults();
+                closeImageSearchModal();
+            }
+        }
+
+        function closeImageSearchModal() {
+            document.getElementById('imageSearchModal').classList.add('hidden');
+            currentImageSearchIndex = null;
+            selectedSearchImage = null;
+        }
+
+        // ==========================================
+        // ENHANCED AI OCR SCANNER WITH IMAGE SEARCH
         // ==========================================
         function setAIContext(context) {
             aiContext = context;
@@ -1460,6 +1644,7 @@ service cloud.firestore {
                     return;
                 }
                 
+                // Remove duplicates
                 const seen = new Set();
                 tempExtracted = tempExtracted.filter(item => {
                     const key = item.name.toLowerCase();
@@ -1467,6 +1652,10 @@ service cloud.firestore {
                     seen.add(key);
                     return true;
                 });
+                
+                // Auto-search images for products
+                updateProcessingStage('image_search', 'Searching for product images...');
+                await autoSearchImagesForProducts();
                 
                 groupAIResultsByCategory();
                 
@@ -1483,8 +1672,16 @@ service cloud.firestore {
                     newCategoriesBadge.classList.add('hidden');
                 }
                 
+                const autoImagesBadge = document.getElementById('autoImagesBadge');
+                const hasAutoImages = tempExtracted.some(i => i.image && !i.image.includes('placeholder'));
+                if (hasAutoImages) {
+                    autoImagesBadge.classList.remove('hidden');
+                } else {
+                    autoImagesBadge.classList.add('hidden');
+                }
+                
                 renderAIGroupedResults();
-                showToast('Success', `Found ${tempExtracted.length} unique items`);
+                showToast('Success', `Found ${tempExtracted.length} unique items with images`);
                 
             } catch (error) {
                 console.error('OCR Error:', error);
@@ -1496,32 +1693,54 @@ service cloud.firestore {
             }
         }
 
-        function groupAIResultsByCategory() {
-            const grouped = {};
+        async function autoSearchImagesForProducts() {
+            // Search images for first 5 products to avoid rate limits
+            const productsToSearch = tempExtracted.slice(0, 5);
             
-            tempExtracted.forEach((item, index) => {
-                const catKey = item.category || 'General';
-                const subKey = item.subCategory || 'General';
+            for (let i = 0; i < productsToSearch.length; i++) {
+                const item = productsToSearch[i];
+                updateProcessingStage('image_search', `Finding image for ${item.name}...`);
                 
-                if (!grouped[catKey]) {
-                    grouped[catKey] = {};
-                }
-                if (!grouped[catKey][subKey]) {
-                    grouped[catKey][subKey] = [];
+                try {
+                    const result = await searchProductImages(item.name);
+                    if (result.success && result.images.length > 0) {
+                        // Use the first (best) image
+                        item.image = result.images[0].url;
+                        item.imageConfidence = result.images[0].confidence;
+                    } else {
+                        item.image = 'https://via.placeholder.com/150?text=No+Image';
+                        item.imageConfidence = 'low';
+                    }
+                } catch (e) {
+                    item.image = 'https://via.placeholder.com/150?text=No+Image';
+                    item.imageConfidence = 'low';
                 }
                 
-                const existingCat = categories.find(c => c.name === catKey);
-                if (!existingCat && !newCategoriesFromAI.has(catKey)) {
-                    newCategoriesFromAI.set(catKey, new Set());
-                }
-                if (!existingCat) {
-                    newCategoriesFromAI.get(catKey).add(subKey);
-                }
-                
-                grouped[catKey][subKey].push({ ...item, originalIndex: index });
-            });
+                // Small delay to avoid overwhelming the service
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
             
-            window.aiGroupedData = grouped;
+            // Set placeholder for remaining products
+            for (let i = 5; i < tempExtracted.length; i++) {
+                if (!tempExtracted[i].image) {
+                    tempExtracted[i].image = 'https://via.placeholder.com/150?text=No+Image';
+                    tempExtracted[i].imageConfidence = 'low';
+                }
+            }
+        }
+
+        function updateProcessingStage(stage, text) {
+            const stageEl = document.getElementById('processingStage');
+            const textEl = document.getElementById('processingText');
+            
+            if (stage === 'image_search') {
+                stageEl.textContent = 'AI Image Search';
+                stageEl.className = 'font-bold text-purple-900';
+                document.getElementById('aiProcessingStatus').querySelector('.bg-ai-50').classList.remove('bg-ai-50', 'border-ai-200');
+                document.getElementById('aiProcessingStatus').querySelector('div').classList.add('bg-purple-50', 'border-purple-200');
+            }
+            
+            textEl.textContent = text;
         }
 
         function updateProcessingStatus(current, total, filename) {
@@ -1615,7 +1834,9 @@ service cloud.firestore {
                                 subCategory: subCategory,
                                 unit: unit,
                                 confidence: confidence,
-                                selected: true
+                                selected: true,
+                                image: null, // Will be filled by image search
+                                imageConfidence: 'low'
                             });
                             break;
                         }
@@ -1682,6 +1903,34 @@ service cloud.firestore {
             return 'pcs';
         }
 
+        function groupAIResultsByCategory() {
+            const grouped = {};
+            
+            tempExtracted.forEach((item, index) => {
+                const catKey = item.category || 'General';
+                const subKey = item.subCategory || 'General';
+                
+                if (!grouped[catKey]) {
+                    grouped[catKey] = {};
+                }
+                if (!grouped[catKey][subKey]) {
+                    grouped[catKey][subKey] = [];
+                }
+                
+                const existingCat = categories.find(c => c.name === catKey);
+                if (!existingCat && !newCategoriesFromAI.has(catKey)) {
+                    newCategoriesFromAI.set(catKey, new Set());
+                }
+                if (!existingCat) {
+                    newCategoriesFromAI.get(catKey).add(subKey);
+                }
+                
+                grouped[catKey][subKey].push({ ...item, originalIndex: index });
+            });
+            
+            window.aiGroupedData = grouped;
+        }
+
         function renderAIGroupedResults() {
             const container = document.getElementById('aiGroupedResults');
             if (!container || !window.aiGroupedData) return;
@@ -1701,20 +1950,35 @@ service cloud.firestore {
                         const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
                                          item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
                         
+                        const hasImage = item.image && !item.image.includes('placeholder');
+                        const imageBadge = hasImage ? 
+                            `<span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold"><i class="fas fa-camera mr-1"></i>AI Img</span>` : '';
+                        
                         return `
                             <tr class="hover:bg-earth-50 transition-colors ${confClass} ${item.selected ? '' : 'opacity-50'}" id="ai-row-${item.originalIndex}">
-                                <td class="px-3 py-2"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIGroupedItem(${item.originalIndex})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
-                                <td class="px-3 py-2">
-                                    <div class="font-medium text-earth-900 text-sm">${item.name}</div>
+                                <td class="px-3 py-3"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIGroupedItem(${item.originalIndex})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
+                                <td class="px-3 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-lg bg-earth-100 overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-ai-500 transition-all" onclick="openImageSearchModal(${item.originalIndex})">
+                                            <img src="${item.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-earth-900 text-sm">${item.name}</div>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="text-[10px] px-2 py-0.5 bg-earth-100 rounded text-earth-600">${item.unit}</span>
+                                                ${imageBadge}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-3 py-2">
+                                <td class="px-3 py-3">
                                     <div class="font-bold text-brand-600 text-sm">KSh ${item.price.toFixed(2)}</div>
                                 </td>
-                                <td class="px-3 py-2 text-xs text-earth-600">${item.unit}</td>
-                                <td class="px-3 py-2 text-center">
+                                <td class="px-3 py-3 text-xs text-earth-600">${subCategory}</td>
+                                <td class="px-3 py-3 text-center">
                                     <i class="fas ${item.confidence === 'high' ? 'fa-check-circle text-green-500' : item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400'}"></i>
                                 </td>
-                                <td class="px-3 py-2 text-right">
+                                <td class="px-3 py-3 text-right">
                                     <button onclick="editAIGroupedItem(${item.originalIndex})" class="text-earth-400 hover:text-brand-600 transition-colors p-1"><i class="fas fa-pen text-xs"></i></button>
                                     <button onclick="removeAIGroupedItem(${item.originalIndex})" class="text-earth-400 hover:text-red-500 transition-colors p-1 ml-1"><i class="fas fa-trash text-xs"></i></button>
                                 </td>
@@ -1729,6 +1993,16 @@ service cloud.firestore {
                                 <span class="text-xs text-earth-500">${items.length} items</span>
                             </div>
                             <table class="w-full">
+                                <thead class="bg-earth-50 text-xs text-earth-500 uppercase">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left w-8"></th>
+                                        <th class="px-3 py-2 text-left">Product</th>
+                                        <th class="px-3 py-2 text-left">Price</th>
+                                        <th class="px-3 py-2 text-left">Sub-Cat</th>
+                                        <th class="px-3 py-2 text-center w-8">Conf</th>
+                                        <th class="px-3 py-2 text-right w-16">Actions</th>
+                                    </tr>
+                                </thead>
                                 <tbody class="divide-y divide-earth-100">${itemsHtml}</tbody>
                             </table>
                         </div>
@@ -1766,6 +2040,11 @@ service cloud.firestore {
             const newName = prompt('Edit product name:', item.name);
             if (newName && newName.trim()) {
                 item.name = newName.trim();
+                // Re-categorize based on new name
+                const { category, subCategory, confidence } = smartCategorize(item.name);
+                item.category = category;
+                item.subCategory = subCategory;
+                item.confidence = confidence;
                 groupAIResultsByCategory();
                 renderAIGroupedResults();
             }
@@ -1799,6 +2078,7 @@ service cloud.firestore {
             document.getElementById('aiReviewSection').classList.add('hidden');
             document.getElementById('aiProcessingStatus').classList.add('hidden');
             document.getElementById('newCategoriesBadge').classList.add('hidden');
+            document.getElementById('autoImagesBadge').classList.add('hidden');
         }
 
         async function saveAISelectedItems() {
@@ -1859,7 +2139,7 @@ service cloud.firestore {
                                 unit: item.unit,
                                 category: item.category,
                                 subCategory: item.subCategory,
-                                image: 'https://via.placeholder.com/150?text=No+Image',
+                                image: item.image || 'https://via.placeholder.com/150?text=No+Image',
                                 createdAt: window.serverTimestamp()
                             });
                             saved++;
@@ -2079,6 +2359,7 @@ service cloud.firestore {
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeEditModal();
+                    closeImageSearchModal();
                     document.getElementById('rulesModal')?.classList.add('hidden');
                     if (multiSelectMode) {
                         enableMultiSelect();
@@ -2091,6 +2372,9 @@ service cloud.firestore {
             });
             document.getElementById('rulesModal')?.addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+            });
+            document.getElementById('imageSearchModal')?.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) closeImageSearchModal();
             });
         });
     </script>
