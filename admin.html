@@ -20,7 +20,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -51,7 +51,7 @@
         window.db = db;
         window.rtdb = rtdb;
         window.serverTimestamp = serverTimestamp;
-        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy };
+        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, writeBatch };
         window.rtdbFuncs = { ref, onValue, set, push, remove, update };
         
         // Initialize app when DOM ready
@@ -149,6 +149,19 @@
         .ocr-confidence-low { border-left: 4px solid #ef4444; }
         .ai-processing-active { position: relative; }
         .ai-processing-active::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(34,197,94,0.1), transparent); animation: shimmer 2s infinite; pointer-events: none; }
+        
+        /* Multi-select styles */
+        .product-checkbox:checked + .product-card { border-color: #22c55e; background-color: #f0fdf4; }
+        .product-checkbox { position: absolute; top: 12px; left: 12px; z-index: 10; width: 20px; height: 20px; cursor: pointer; }
+        .product-card-wrapper { position: relative; }
+        .bulk-actions-bar { transform: translateY(100%); transition: transform 0.3s ease; }
+        .bulk-actions-bar.active { transform: translateY(0); }
+        
+        /* AI Grouped Results */
+        .ai-category-group { border: 2px solid #e7e5e4; border-radius: 1rem; overflow: hidden; margin-bottom: 1rem; }
+        .ai-category-header { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 1rem; border-bottom: 2px solid #e7e5e4; }
+        .ai-subcategory-section { background: #fafaf9; border-left: 4px solid #22c55e; margin: 0.5rem; border-radius: 0.5rem; }
+        .ai-new-category-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: #dbeafe; color: #1e40af; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
@@ -267,6 +280,26 @@ service cloud.firestore {
             </div>
         </div>
 
+        <!-- Bulk Actions Bar -->
+        <div id="bulkActionsBar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-earth-200 shadow-2xl z-40 bulk-actions-bar px-6 py-4">
+            <div class="container mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="selectAllProducts" onchange="toggleSelectAllProducts()" class="w-5 h-5 rounded border-earth-300 text-brand-600 focus:ring-brand-500">
+                        <label for="selectAllProducts" class="text-sm font-medium text-earth-700 cursor-pointer">Select All</label>
+                    </div>
+                    <span class="text-sm text-earth-500" id="selectedCountDisplay">0 selected</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearSelection()" class="px-4 py-2 text-sm font-medium text-earth-600 hover:text-earth-800 transition-colors">Cancel</button>
+                    <button onclick="deleteSelectedProducts()" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-red-500/30 transition-all flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i>
+                        Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
             <div class="container mx-auto px-6 py-4">
                 <div class="flex justify-between items-center">
@@ -290,7 +323,7 @@ service cloud.firestore {
             </div>
         </header>
 
-        <div class="container mx-auto px-4 sm:px-6 py-8">
+        <div class="container mx-auto px-4 sm:px-6 py-8 pb-24">
             <div class="mb-8 overflow-x-auto scroll-hide">
                 <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
                     <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
@@ -416,9 +449,14 @@ service cloud.firestore {
                                     <h2 class="font-display font-bold text-earth-900 text-lg">Current Stock</h2>
                                     <p class="text-sm text-earth-500" id="productCount">Loading items...</p>
                                 </div>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                <div class="flex gap-2">
+                                    <div class="relative">
+                                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                        <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                    </div>
+                                    <button onclick="enableMultiSelect()" id="multiSelectBtn" class="px-4 py-3 bg-earth-100 hover:bg-earth-200 text-earth-700 rounded-xl text-sm font-medium transition-all border border-earth-200">
+                                        <i class="fas fa-check-square mr-2"></i>Select
+                                    </button>
                                 </div>
                             </div>
                             <div class="p-6">
@@ -429,7 +467,7 @@ service cloud.firestore {
                 </div>
             </div>
 
-            <!-- AI Scanner Tab - Enhanced -->
+            <!-- AI Scanner Tab - Enhanced with Category Grouping -->
             <div id="view-ai" class="tab-content hidden animate-fade-in">
                 <div class="max-w-5xl mx-auto">
                     <!-- Stats Cards -->
@@ -549,12 +587,13 @@ service cloud.firestore {
                                 </button>
                             </div>
 
-                            <!-- Results Section -->
+                            <!-- Results Section - Grouped by Category -->
                             <div id="aiReviewSection" class="hidden mt-8">
                                 <div class="flex items-center justify-between mb-6">
                                     <div class="flex items-center gap-3">
                                         <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
                                         <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
+                                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold hidden" id="newCategoriesBadge">New Categories</span>
                                     </div>
                                     <div class="flex gap-2">
                                         <button onclick="clearAIResults()" class="px-4 py-2 text-xs font-bold text-earth-500 hover:text-red-500 transition-colors"><i class="fas fa-trash mr-1"></i>Clear</button>
@@ -562,22 +601,8 @@ service cloud.firestore {
                                     </div>
                                 </div>
                                 
-                                <div class="overflow-hidden rounded-2xl border border-earth-200 bg-white">
-                                    <table class="w-full text-left">
-                                        <thead class="bg-earth-50 border-b border-earth-200">
-                                            <tr>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider w-10"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Unit</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-center">Conf</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100"></tbody>
-                                    </table>
-                                </div>
+                                <!-- Grouped Results Container -->
+                                <div id="aiGroupedResults" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
 
                                 <div class="mt-6 flex gap-3">
                                     <button onclick="saveAISelectedItems()" id="saveAIBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
@@ -721,6 +746,9 @@ service cloud.firestore {
         let aiContext = 'receipt';
         let selectedAIItems = new Set();
         let ocrWorker = null;
+        let multiSelectMode = false;
+        let selectedProductIds = new Set();
+        let newCategoriesFromAI = new Map(); // Track new categories to be created
 
         // ==========================================
         // INITIALIZATION
@@ -856,6 +884,122 @@ service cloud.firestore {
         }
 
         // ==========================================
+        // MULTI-SELECT & BULK DELETE
+        // ==========================================
+        function enableMultiSelect() {
+            multiSelectMode = !multiSelectMode;
+            const btn = document.getElementById('multiSelectBtn');
+            
+            if (multiSelectMode) {
+                btn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
+                btn.classList.remove('bg-earth-100', 'text-earth-700');
+                btn.innerHTML = '<i class="fas fa-times mr-2"></i>Done';
+                renderProducts();
+            } else {
+                btn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
+                btn.classList.add('bg-earth-100', 'text-earth-700');
+                btn.innerHTML = '<i class="fas fa-check-square mr-2"></i>Select';
+                selectedProductIds.clear();
+                updateBulkActionsBar();
+                renderProducts();
+            }
+        }
+
+        function toggleProductSelection(productId) {
+            if (selectedProductIds.has(productId)) {
+                selectedProductIds.delete(productId);
+            } else {
+                selectedProductIds.add(productId);
+            }
+            updateBulkActionsBar();
+            renderProducts();
+        }
+
+        function toggleSelectAllProducts() {
+            const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
+            const filtered = products.filter(p => 
+                p.name?.toLowerCase().includes(search) || 
+                p.category?.toLowerCase().includes(search)
+            );
+            
+            const allSelected = filtered.every(p => selectedProductIds.has(p.id));
+            
+            if (allSelected) {
+                filtered.forEach(p => selectedProductIds.delete(p.id));
+            } else {
+                filtered.forEach(p => selectedProductIds.add(p.id));
+            }
+            
+            updateBulkActionsBar();
+            renderProducts();
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const countDisplay = document.getElementById('selectedCountDisplay');
+            const selectAllCheckbox = document.getElementById('selectAllProducts');
+            
+            if (selectedProductIds.size > 0) {
+                bar.classList.add('active');
+                countDisplay.textContent = `${selectedProductIds.size} selected`;
+                
+                // Update select all checkbox state
+                const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
+                const filtered = products.filter(p => 
+                    p.name?.toLowerCase().includes(search) || 
+                    p.category?.toLowerCase().includes(search)
+                );
+                const allSelected = filtered.length > 0 && filtered.every(p => selectedProductIds.has(p.id));
+                selectAllCheckbox.checked = allSelected;
+            } else {
+                bar.classList.remove('active');
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        function clearSelection() {
+            selectedProductIds.clear();
+            updateBulkActionsBar();
+            renderProducts();
+        }
+
+        async function deleteSelectedProducts() {
+            if (selectedProductIds.size === 0) return;
+            
+            if (!confirm(`Delete ${selectedProductIds.size} selected products? This cannot be undone.`)) return;
+            
+            const { deleteDoc, doc, writeBatch } = window.firestoreFuncs;
+            const batch = writeBatch(window.db);
+            let deleted = 0;
+            
+            try {
+                // Firestore batches limited to 500 operations
+                const ids = Array.from(selectedProductIds);
+                for (let i = 0; i < ids.length; i += 500) {
+                                        const chunk = ids.slice(i, i + 500);
+                    const batch = writeBatch(window.db);
+                    
+                    chunk.forEach(id => {
+                        batch.delete(doc(window.db, 'products', id));
+                    });
+                    
+                    await batch.commit();
+                    deleted += chunk.length;
+                }
+                
+                showToast('Deleted', `${deleted} products removed`);
+                selectedProductIds.clear();
+                updateBulkActionsBar();
+                multiSelectMode = false;
+                document.getElementById('multiSelectBtn').innerHTML = '<i class="fas fa-check-square mr-2"></i>Select';
+                document.getElementById('multiSelectBtn').classList.remove('bg-brand-100', 'text-brand-700');
+                document.getElementById('multiSelectBtn').classList.add('bg-earth-100', 'text-earth-700');
+            } catch (error) {
+                showToast('Error', error.message, 'error');
+            }
+        }
+
+        // ==========================================
         // INVENTORY MANAGEMENT
         // ==========================================
         function updateSelects() {
@@ -900,27 +1044,35 @@ service cloud.firestore {
                 return;
             }
             
-            container.innerHTML = filtered.map(p => `
-                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
-                    <div class="relative flex-shrink-0">
-                        <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" loading="lazy">
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
-                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
-                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
-                            <span>•</span>
-                            <span>${p.subCategory || '-'}</span>
+            container.innerHTML = filtered.map(p => {
+                const isSelected = selectedProductIds.has(p.id);
+                const checkboxHtml = multiSelectMode ? 
+                    `<input type="checkbox" class="product-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleProductSelection('${p.id}')" onclick="event.stopPropagation()">` : '';
+                
+                return `
+                <div class="product-card-wrapper">
+                    ${checkboxHtml}
+                    <div class="group flex items-center gap-4 p-4 ${isSelected ? 'bg-brand-50 border-brand-200' : 'bg-earth-50 hover:bg-white border-transparent hover:border-brand-200'} border rounded-2xl transition-all duration-300 card-hover cursor-pointer product-card" onclick="${multiSelectMode ? `toggleProductSelection('${p.id}')` : `openEditModal('${p.id}')`}">
+                        <div class="relative flex-shrink-0">
+                            <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" loading="lazy">
+                            ${multiSelectMode ? '' : '<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></div>'}
                         </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
+                            <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
+                                <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
+                                <span>•</span>
+                                <span>${p.subCategory || '-'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
+                            <div class="text-xs text-earth-400">per ${p.unit}</div>
+                        </div>
+                        ${multiSelectMode ? '' : `<button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0"><i class="fas fa-trash-alt"></i></button>`}
                     </div>
-                    <div class="text-right">
-                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
-                        <div class="text-xs text-earth-400">per ${p.unit}</div>
-                    </div>
-                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0"><i class="fas fa-trash-alt"></i></button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // ==========================================
@@ -960,7 +1112,6 @@ service cloud.firestore {
             const reader = new FileReader();
             reader.onload = (e) => {
                 currentImageBase64 = e.target.result;
-               
                 showImagePreview(currentImageBase64);
                 document.getElementById('finalImageUrl').value = currentImageBase64;
             };
@@ -1201,7 +1352,7 @@ service cloud.firestore {
         }
 
         // ==========================================
-        // ENHANCED AI OCR SCANNER
+        // ENHANCED AI OCR SCANNER WITH CATEGORY GROUPING
         // ==========================================
         function setAIContext(context) {
             aiContext = context;
@@ -1249,6 +1400,7 @@ service cloud.firestore {
             isProcessingOCR = true;
             tempExtracted = [];
             selectedAIItems.clear();
+            newCategoriesFromAI.clear();
             
             // Show processing UI
             document.getElementById('aiProcessingStatus').classList.remove('hidden');
@@ -1280,12 +1432,24 @@ service cloud.firestore {
                     return true;
                 });
                 
+                // Group by category and subcategory
+                groupAIResultsByCategory();
+                
                 document.getElementById('aiProcessingStatus').classList.add('hidden');
                 document.getElementById('scanLine').classList.add('hidden');
                 document.getElementById('aiReviewSection').classList.remove('hidden');
                 document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
                 
-                renderAIResults();
+                // Show new categories badge if any
+                const newCategoriesBadge = document.getElementById('newCategoriesBadge');
+                if (newCategoriesFromAI.size > 0) {
+                    newCategoriesBadge.textContent = `${newCategoriesFromAI.size} New Categories`;
+                    newCategoriesBadge.classList.remove('hidden');
+                } else {
+                    newCategoriesBadge.classList.add('hidden');
+                }
+                
+                renderAIGroupedResults();
                 showToast('Success', `Found ${tempExtracted.length} unique items`);
                 
             } catch (error) {
@@ -1296,6 +1460,36 @@ service cloud.firestore {
                 document.getElementById('aiFileInput').value = '';
                 document.getElementById('scanLine').classList.add('hidden');
             }
+        }
+
+        function groupAIResultsByCategory() {
+            // Group items by category and subcategory
+            const grouped = {};
+            
+            tempExtracted.forEach((item, index) => {
+                const catKey = item.category || 'General';
+                const subKey = item.subCategory || 'General';
+                
+                if (!grouped[catKey]) {
+                    grouped[catKey] = {};
+                }
+                if (!grouped[catKey][subKey]) {
+                    grouped[catKey][subKey] = [];
+                }
+                
+                // Check if this is a new category
+                const existingCat = categories.find(c => c.name === catKey);
+                if (!existingCat && !newCategoriesFromAI.has(catKey)) {
+                    newCategoriesFromAI.set(catKey, new Set());
+                }
+                if (!existingCat) {
+                    newCategoriesFromAI.get(catKey).add(subKey);
+                }
+                
+                grouped[catKey][subKey].push({ ...item, originalIndex: index });
+            });
+            
+            window.aiGroupedData = grouped;
         }
 
         function updateProcessingStatus(current, total, filename) {
@@ -1461,90 +1655,125 @@ service cloud.firestore {
             return 'pcs';
         }
 
-        function renderAIResults() {
-            const tbody = document.getElementById('aiResultsTable');
-            if (!tbody) return;
+        function renderAIGroupedResults() {
+            const container = document.getElementById('aiGroupedResults');
+            if (!container || !window.aiGroupedData) return;
             
-            tbody.innerHTML = tempExtracted.map((item, index) => {
-                const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
-                                 item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
-                const confIcon = item.confidence === 'high' ? 'fa-check-circle text-green-500' : 
-                                item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400';
+            let totalSelected = 0;
+            
+            const html = Object.entries(window.aiGroupedData).map(([category, subcategories]) => {
+                const isNewCategory = newCategoriesFromAI.has(category);
+                const newBadge = isNewCategory ? '<span class="ai-new-category-badge ml-2"><i class="fas fa-plus-circle"></i>New</span>' : '';
+                
+                let subcategoriesHtml = Object.entries(subcategories).map(([subCategory, items]) => {
+                    const isNewSub = isNewCategory && newCategoriesFromAI.get(category).has(subCategory);
+                    const subNewBadge = isNewSub ? '<span class="ai-new-category-badge ml-2"><i class="fas fa-plus-circle"></i>New</span>' : '';
+                    
+                    const itemsHtml = items.map(item => {
+                        if (item.selected) totalSelected++;
+                        const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
+                                         item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
+                        
+                        return `
+                            <tr class="hover:bg-earth-50 transition-colors ${confClass} ${item.selected ? '' : 'opacity-50'}" id="ai-row-${item.originalIndex}">
+                                <td class="px-3 py-2"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIGroupedItem(${item.originalIndex})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
+                                <td class="px-3 py-2">
+                                    <div class="font-medium text-earth-900 text-sm">${item.name}</div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <div class="font-bold text-brand-600 text-sm">KSh ${item.price.toFixed(2)}</div>
+                                </td>
+                                <td class="px-3 py-2 text-xs text-earth-600">${item.unit}</td>
+                                <td class="px-3 py-2 text-center">
+                                    <i class="fas ${item.confidence === 'high' ? 'fa-check-circle text-green-500' : item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400'}"></i>
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    <button onclick="editAIGroupedItem(${item.originalIndex})" class="text-earth-400 hover:text-brand-600 transition-colors p-1"><i class="fas fa-pen text-xs"></i></button>
+                                    <button onclick="removeAIGroupedItem(${item.originalIndex})" class="text-earth-400 hover:text-red-500 transition-colors p-1 ml-1"><i class="fas fa-trash text-xs"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    return `
+                        <div class="ai-subcategory-section mb-3">
+                            <div class="px-4 py-2 bg-earth-100 rounded-t-lg flex items-center justify-between">
+                                <span class="font-semibold text-earth-700 text-sm">${subCategory}${subNewBadge}</span>
+                                <span class="text-xs text-earth-500">${items.length} items</span>
+                            </div>
+                            <table class="w-full">
+                                <tbody class="divide-y divide-earth-100">${itemsHtml}</tbody>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
                 
                 return `
-                    <tr class="hover:bg-earth-50 transition-colors ${confClass} ${item.selected ? '' : 'opacity-50'}" id="ai-row-${index}">
-                        <td class="px-4 py-3"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIItem(${index})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
-                        <td class="px-4 py-3">
-                            <div class="font-medium text-earth-900">${item.name}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="font-bold text-brand-600">KSh ${item.price.toFixed(2)}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-medium">${item.category}</span>
-                        </td>
-                        <td class="px-4 py-3 text-xs text-earth-600">${item.unit}</td>
-                        <td class="px-4 py-3 text-center"><i class="fas ${confIcon}"></i></td>
-                        <td class="px-4 py-3 text-right">
-                            <button onclick="editAIItem(${index})" class="text-earth-400 hover:text-brand-600 transition-colors p-1"><i class="fas fa-pen text-xs"></i></button>
-                            <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 transition-colors p-1 ml-2"><i class="fas fa-trash text-xs"></i></button>
-                        </td>
-                    </tr>
+                    <div class="ai-category-group">
+                        <div class="ai-category-header flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-folder text-brand-500 mr-2"></i>
+                                <span class="font-display font-bold text-earth-900">${category}</span>
+                                ${newBadge}
+                            </div>
+                            <span class="text-sm text-earth-600 bg-white px-3 py-1 rounded-full border border-earth-200">${Object.values(subcategories).flat().length} items</span>
+                        </div>
+                        <div class="p-4">
+                            ${subcategoriesHtml}
+                        </div>
+                    </div>
                 `;
             }).join('');
             
-            updateSelectedCount();
+            container.innerHTML = html;
+            document.getElementById('selectedCount').textContent = totalSelected;
         }
 
-        function toggleAIItem(index) {
+        function toggleAIGroupedItem(index) {
             tempExtracted[index].selected = !tempExtracted[index].selected;
-            document.getElementById(`ai-row-${index}`).classList.toggle('opacity-50', !tempExtracted[index].selected);
-            updateSelectedCount();
+            renderAIGroupedResults();
         }
 
-        function toggleSelectAll() {
-            const checked = document.getElementById('selectAllCheckbox').checked;
-            selectAllAI(checked);
-        }
-
-        function selectAllAI(select) {
-            tempExtracted.forEach((item, idx) => {
-                item.selected = select;
-                const checkbox = document.querySelector(`#ai-row-${idx} input[type="checkbox"]`);
-                if (checkbox) checkbox.checked = select;
-                document.getElementById(`ai-row-${idx}`)?.classList.toggle('opacity-50', !select);
-            });
-            updateSelectedCount();
-        }
-
-        function updateSelectedCount() {
-            const count = tempExtracted.filter(i => i.selected).length;
-            document.getElementById('selectedCount').textContent = count;
-        }
-
-        function editAIItem(index) {
+        function editAIGroupedItem(index) {
             const item = tempExtracted[index];
             const newName = prompt('Edit product name:', item.name);
             if (newName && newName.trim()) {
                 item.name = newName.trim();
-                renderAIResults();
+                // Re-group after edit
+                groupAIResultsByCategory();
+                renderAIGroupedResults();
             }
         }
 
-        function removeAIItem(index) {
+        function removeAIGroupedItem(index) {
             tempExtracted.splice(index, 1);
-            renderAIResults();
+            // Re-index and re-group
+            tempExtracted.forEach((item, i) => {
+                item.originalIndex = i;
+            });
+            groupAIResultsByCategory();
+            renderAIGroupedResults();
             document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
             if (tempExtracted.length === 0) {
                 document.getElementById('aiReviewSection').classList.add('hidden');
             }
         }
 
+        function selectAllAI(select) {
+            tempExtracted.forEach(item => {
+                item.selected = select;
+            });
+            renderAIGroupedResults();
+        }
+
         function clearAIResults() {
             tempExtracted = [];
             selectedAIItems.clear();
+            newCategoriesFromAI.clear();
+            window.aiGroupedData = {};
             document.getElementById('aiReviewSection').classList.add('hidden');
             document.getElementById('aiProcessingStatus').classList.add('hidden');
+            document.getElementById('newCategoriesBadge').classList.add('hidden');
         }
 
         async function saveAISelectedItems() {
@@ -1560,26 +1789,48 @@ service cloud.firestore {
             btn.disabled = true;
             
             let saved = 0, updated = 0, errors = 0;
+            let categoriesCreated = 0;
             
             try {
-                const { addDoc, collection, updateDoc, doc } = window.firestoreFuncs;
+                const { addDoc, collection, updateDoc, doc, writeBatch } = window.firestoreFuncs;
                 
-                for (const item of toSave) {
-                    try {
+                // First, create any new categories
+                if (newCategoriesFromAI.size > 0) {
+                    for (const [catName, subSet] of newCategoriesFromAI) {
+                        const existing = categories.find(c => c.name === catName);
+                        if (!existing) {
+                            await addDoc(collection(window.db, 'categories'), {
+                                name: catName,
+                                subs: Array.from(subSet),
+                                createdAt: window.serverTimestamp()
+                            });
+                            categoriesCreated++;
+                        }
+                    }
+                }
+                
+                // Then save products in batches
+                const batchSize = 500;
+                for (let i = 0; i < toSave.length; i += batchSize) {
+                    const batch = writeBatch(window.db);
+                    const chunk = toSave.slice(i, i + batchSize);
+                    
+                    for (const item of chunk) {
                         const existing = products.find(p => 
                             p.name.toLowerCase() === item.name.toLowerCase()
                         );
                         
                         if (existing) {
                             if (existing.price !== item.price) {
-                                await updateDoc(doc(window.db, 'products', existing.id), {
+                                batch.update(doc(window.db, 'products', existing.id), {
                                     price: item.price,
                                     updatedAt: window.serverTimestamp()
                                 });
                                 updated++;
                             }
                         } else {
-                            await addDoc(collection(window.db, 'products'), {
+                            const newRef = doc(collection(window.db, 'products'));
+                            batch.set(newRef, {
                                 name: item.name,
                                 price: item.price,
                                 unit: item.unit,
@@ -1590,10 +1841,9 @@ service cloud.firestore {
                             });
                             saved++;
                         }
-                    } catch (err) {
-                        console.error('Save error:', err);
-                        errors++;
                     }
+                    
+                    await batch.commit();
                 }
                 
                 clearAIResults();
@@ -1602,12 +1852,13 @@ service cloud.firestore {
                 let msg = [];
                 if (saved > 0) msg.push(`${saved} added`);
                 if (updated > 0) msg.push(`${updated} updated`);
+                if (categoriesCreated > 0) msg.push(`${categoriesCreated} categories created`);
                 if (errors > 0) msg.push(`${errors} failed`);
                 
                 showToast('Complete', msg.join(', ') || 'Done');
                 
             } catch (error) {
-                showToast('Error', 'Failed to save items', 'error');
+                showToast('Error', 'Failed to save items: ' + error.message, 'error');
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -1811,6 +2062,9 @@ service cloud.firestore {
                 if (e.key === 'Escape') {
                     closeEditModal();
                     document.getElementById('rulesModal')?.classList.add('hidden');
+                    if (multiSelectMode) {
+                        enableMultiSelect(); // Exit multi-select mode
+                    }
                 }
             });
             
@@ -1825,3 +2079,4 @@ service cloud.firestore {
     </script>
 </body>
 </html>
+
