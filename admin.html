@@ -20,7 +20,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -51,7 +51,7 @@
         window.db = db;
         window.rtdb = rtdb;
         window.serverTimestamp = serverTimestamp;
-        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, writeBatch };
+        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, writeBatch, getDocs };
         window.rtdbFuncs = { ref, onValue, set, push, remove, update };
         
         // Initialize app when DOM ready
@@ -168,15 +168,31 @@
         .batch-actions { transform: translateY(100%); transition: transform 0.3s ease; }
         .batch-actions.active { transform: translateY(0); }
         .select-mode .product-card { cursor: pointer; }
+        
+        /* Connection Status */
+        .connection-status { position: fixed; top: 80px; right: 20px; z-index: 50; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
+        .connection-status.online { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .connection-status.offline { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .connection-status.connecting { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
+
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status connecting hidden">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <span>Connecting...</span>
+    </div>
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="text-center">
             <div class="loader-modern mb-4"></div>
             <p class="text-earth-600 font-medium">Initializing...</p>
+            <p class="text-earth-400 text-sm mt-2" id="loadingStatus">Connecting to database...</p>
+            <button onclick="forceLoadApp()" class="mt-4 px-4 py-2 bg-brand-100 text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-200 transition-colors hidden" id="forceLoadBtn">
+                Continue Anyway
+            </button>
         </div>
     </div>
 
@@ -779,36 +795,150 @@ service cloud.firestore {
         // Live OCR state
         let liveItems = [];
         let liveItemIdCounter = 0;
+        
+        // Initialization tracking
+        let initAttempts = 0;
+        const MAX_INIT_ATTEMPTS = 3;
+        let isInitialized = false;
 
         // ==========================================
-        // INITIALIZATION
+        // INITIALIZATION - FIXED VERSION
         // ==========================================
-        window.initAdminApp = function() {
-            const { onSnapshot, collection, query, orderBy } = window.firestoreFuncs;
+        window.initAdminApp = async function() {
+            if (isInitialized) return;
             
-            // Subscribe to categories
-            const catQuery = query(collection(window.db, 'categories'), orderBy('name'));
-            const unsubCats = onSnapshot(catQuery, (snap) => {
-                categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateSelects();
-                renderCategoriesPreview();
-                updateAICategoryHints();
-            }, handleFirestoreError);
-            dataListeners.push(unsubCats);
+            const loadingStatus = document.getElementById('loadingStatus');
+            const forceLoadBtn = document.getElementById('forceLoadBtn');
+            
+            try {
+                loadingStatus.textContent = 'Connecting to Firebase...';
+                updateConnectionStatus('connecting');
+                
+                const { onSnapshot, collection, query, orderBy, getDocs } = window.firestoreFuncs;
+                
+                // First try to fetch data once to check connection
+                loadingStatus.textContent = 'Testing database connection...';
+                
+                // Try to get categories first (usually smaller collection)
+                let catSnapshot;
+                try {
+                    const catQuery = query(collection(window.db, 'categories'), orderBy('name'));
+                    catSnapshot = await getDocs(catQuery);
+                } catch (err) {
+                    console.warn('Categories fetch failed, trying products:', err);
+                }
+                
+                // Set up real-time listeners
+                loadingStatus.textContent = 'Setting up real-time sync...';
+                
+                // Subscribe to categories
+                const catQuery = query(collection(window.db, 'categories'), orderBy('name'));
+                const unsubCats = onSnapshot(catQuery, (snap) => {
+                    categories = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateSelects();
+                    renderCategoriesPreview();
+                    updateAICategoryHints();
+                    checkInitComplete();
+                }, (err) => {
+                    console.error('Categories error:', err);
+                    handleFirestoreError(err);
+                });
+                dataListeners.push(unsubCats);
 
-            // Subscribe to products
-            const prodQuery = query(collection(window.db, 'products'), orderBy('createdAt', 'desc'));
-            const unsubProds = onSnapshot(prodQuery, (snap) => {
-                products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderProducts();
-                document.getElementById('productCount').textContent = `${products.length} items in stock`;
-                document.getElementById('loadingOverlay').classList.remove('active');
-            }, handleFirestoreError);
-            dataListeners.push(unsubProds);
+                // Subscribe to products
+                const prodQuery = query(collection(window.db, 'products'), orderBy('createdAt', 'desc'));
+                const unsubProds = onSnapshot(prodQuery, (snap) => {
+                    products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderProducts();
+                    document.getElementById('productCount').textContent = `${products.length} items in stock`;
+                    checkInitComplete();
+                }, (err) => {
+                    console.error('Products error:', err);
+                    handleFirestoreError(err);
+                });
+                dataListeners.push(unsubProds);
 
-            // Initialize Tesseract worker for faster OCR
-            initOCRWorker();
+                // Initialize Tesseract worker
+                loadingStatus.textContent = 'Initializing OCR engine...';
+                await initOCRWorker();
+                
+                // Set timeout for initialization
+                setTimeout(() => {
+                    if (!isInitialized) {
+                        loadingStatus.textContent = 'Connection slow... Showing force load option';
+                        forceLoadBtn.classList.remove('hidden');
+                    }
+                }, 8000);
+                
+                // Another timeout to auto-hide if still stuck
+                setTimeout(() => {
+                    if (!isInitialized) {
+                        forceLoadApp();
+                    }
+                }, 15000);
+                
+            } catch (error) {
+                console.error('Init error:', error);
+                loadingStatus.textContent = 'Connection failed. Retrying...';
+                initAttempts++;
+                
+                if (initAttempts < MAX_INIT_ATTEMPTS) {
+                    setTimeout(() => window.initAdminApp(), 2000);
+                } else {
+                    loadingStatus.textContent = 'Unable to connect. Check Firebase rules.';
+                    forceLoadBtn.classList.remove('hidden');
+                    document.getElementById('permissionBanner').classList.remove('hidden');
+                }
+            }
         };
+
+        function checkInitComplete() {
+            if (!isInitialized && products.length >= 0 && categories.length >= 0) {
+                // We have data (even if empty arrays), so we're connected
+                isInitialized = true;
+                hideLoadingOverlay();
+                updateConnectionStatus('online');
+                showToast('Connected', 'Real-time sync active');
+            }
+        }
+
+        function forceLoadApp() {
+            isInitialized = true;
+            hideLoadingOverlay();
+            updateConnectionStatus('online');
+            
+            // Render empty states if no data
+            if (products.length === 0) {
+                renderProducts();
+                document.getElementById('productCount').textContent = '0 items in stock';
+            }
+            if (categories.length === 0) {
+                renderCategoriesPreview();
+            }
+            
+            showToast('Offline Mode', 'Working with local data');
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.classList.remove('active'), 300);
+        }
+
+        function updateConnectionStatus(status) {
+            const indicator = document.getElementById('connectionStatus');
+            indicator.classList.remove('hidden', 'online', 'offline', 'connecting');
+            indicator.classList.add(status);
+            
+            if (status === 'online') {
+                indicator.innerHTML = '<i class="fas fa-wifi"></i><span>Online</span>';
+                setTimeout(() => indicator.classList.add('hidden'), 3000);
+            } else if (status === 'offline') {
+                indicator.innerHTML = '<i class="fas fa-wifi-slash"></i><span>Offline</span>';
+            } else {
+                indicator.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Connecting...</span>';
+            }
+        }
 
         async function initOCRWorker() {
             try {
@@ -828,9 +958,14 @@ service cloud.firestore {
 
         function handleFirestoreError(err) {
             console.error('Firestore error:', err);
-            if (err.code === 'permission-denied' || err.message?.includes('permissions')) {
+            updateConnectionStatus('offline');
+            
+            if (err.code === 'permission-denied' || err.message?.includes('permissions') || err.code === 'unauthenticated') {
                 document.getElementById('permissionBanner').classList.remove('hidden');
+                document.getElementById('loadingStatus').textContent = 'Firebase permissions required';
                 showToast('Error', 'Firebase permissions required', 'error');
+            } else if (err.code === 'unavailable' || err.code === 'resource-exhausted') {
+                showToast('Warning', 'Connection unstable. Working offline.', 'warning');
             }
         }
 
@@ -877,7 +1012,8 @@ service cloud.firestore {
         function showToast(title, message, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-check-circle';
-            const colorClass = type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-orange-400' : 'text-brand-400';
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'warning' ? '
+text-orange-400' : 'text-brand-400';
             
             document.getElementById('toastTitle').textContent = title;
             document.getElementById('toastMessage').textContent = message;
@@ -927,7 +1063,7 @@ service cloud.firestore {
                 btn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
                 btn.classList.remove('bg-white/10', 'text-white');
                 document.body.classList.add('select-mode');
-                showToast('Batch Mode', 'Click products to select for batch operations');
+                showToast('Batch Mode', 'Click products to select');
             } else {
                 btn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
                 btn.classList.add('bg-white/10', 'text-white');
@@ -1003,17 +1139,14 @@ service cloud.firestore {
         async function deleteSelectedProducts() {
             if (selectedProductIds.size === 0) return;
             
-            if (!confirm(`Delete ${selectedProductIds.size} selected products? This cannot be undone.`)) return;
+            if (!confirm(`Delete ${selectedProductIds.size} selected products?`)) return;
             
             const { deleteDoc, doc, writeBatch } = window.firestoreFuncs;
             let deleted = 0;
             let failed = 0;
             
-            // Use batch for better performance with many deletions
-            const batch = writeBatch(window.db);
             const idsArray = Array.from(selectedProductIds);
             
-            // Process in batches of 500 (Firestore limit)
             for (let i = 0; i < idsArray.length; i += 500) {
                 const chunk = idsArray.slice(i, i + 500);
                 const chunkBatch = writeBatch(window.db);
@@ -1035,7 +1168,7 @@ service cloud.firestore {
             toggleBatchMode();
             
             let msg = [];
-                        if (deleted > 0) msg.push(`${deleted} deleted`);
+            if (deleted > 0) msg.push(`${deleted} deleted`);
             if (failed > 0) msg.push(`${failed} failed`);
             showToast('Batch Delete', msg.join(', ') || 'Complete', failed > 0 ? 'warning' : 'success');
         }
@@ -1487,7 +1620,6 @@ service cloud.firestore {
         async function processImageLive(file) {
             const imageData = await fileToDataURL(file);
             
-            // Show processing card immediately
             const processingId = `processing-${Date.now()}`;
             addLiveItem({
                 id: processingId,
@@ -1518,7 +1650,6 @@ service cloud.firestore {
                 throw err;
             }
             
-            // Remove processing card
             removeLiveItem(processingId);
             
             const text = result.data.text;
@@ -1526,7 +1657,6 @@ service cloud.firestore {
             
             const extractedProducts = parseOCRTextToProducts(text);
             
-            // Add each extracted product as a live item
             extractedProducts.forEach(product => {
                 const liveItem = {
                     id: `live-${liveItemIdCounter++}`,
@@ -1744,9 +1874,6 @@ service cloud.firestore {
             if (card) {
                 card.classList.add('confirmed');
                 card.classList.remove('processing');
-                card.querySelector('.fa-check-circle, .fa-check, .fa-question-circle')?.parentElement?.insertAdjacentHTML('beforeend', 
-                    '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-bold ml-2"><i class="fas fa-check mr-1"></i>Confirmed</span>'
-                );
                 const btn = card.querySelector('button[onclick^="confirmLiveItem"]');
                 if (btn) {
                     btn.disabled = true;
@@ -1810,11 +1937,7 @@ service cloud.firestore {
             }
             
             const saveBtn = document.getElementById('saveLiveBtn');
-            if (confirmed > 0) {
-                saveBtn.disabled = false;
-            } else {
-                saveBtn.disabled = true;
-            }
+            saveBtn.disabled = confirmed === 0;
         }
 
         function clearLiveResults() {
@@ -1875,24 +1998,17 @@ service cloud.firestore {
                             saved++;
                         }
                         
-                        // Mark as saved in UI
                         item.status = 'saved';
-                        const card = document.getElementById(`live-item-${item.id}`);
-                        if (card) {
-                            card.style.opacity = '0.5';
-                            card.innerHTML += '<div class="absolute inset-0 bg-green-500/10 flex items-center justify-center rounded-xl"><span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold"><i class="fas fa-check mr-1"></i>Saved</span></div>';
-                        }
                     } catch (err) {
                         console.error('Save error:', err);
                         errors++;
                     }
                 }
                 
-                // Remove saved items from array after a delay
                 setTimeout(() => {
                     liveItems = liveItems.filter(i => i.status !== 'saved');
                     document.querySelectorAll('#liveResultsContainer > div').forEach(card => {
-                        if (card.innerHTML.includes('Saved')) {
+                        if (card.innerHTML && card.innerHTML.includes('Saved')) {
                             card.style.transform = 'translateX(100%)';
                             setTimeout(() => card.remove(), 300);
                         }
@@ -2009,7 +2125,6 @@ service cloud.firestore {
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 
-                // Header
                 doc.setFillColor(20, 83, 45);
                 doc.rect(0, 0, pageWidth, 40, 'F');
                 doc.setTextColor(255, 255, 255);
@@ -2024,7 +2139,6 @@ service cloud.firestore {
                 doc.setFontSize(10);
                 doc.text(`Generated: ${new Date().toLocaleDateString('en-KE')}`, pageWidth / 2, 45, { align: 'center' });
                 
-                // Group by category
                 const grouped = {};
                 products.forEach(p => {
                     if (!grouped[p.category]) grouped[p.category] = [];
@@ -2064,7 +2178,6 @@ service cloud.firestore {
                     y += 5;
                 });
                 
-                // Footer
                 const pageCount = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
@@ -2086,7 +2199,6 @@ service cloud.firestore {
         // EVENT LISTENERS
         // ==========================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Drag and drop for AI scanner
             const aiZone = document.getElementById('aiUploadZone');
             if (aiZone) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
@@ -2101,7 +2213,7 @@ service cloud.firestore {
                 });
                 
                 ['dragleave', 'drop'].forEach(e => {
-                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-earth-400')?.classList.remove('border-brand-400', 'bg-brand-50/30'), false);
+                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-brand-400')?.classList.remove('border-brand-400', 'bg-brand-50/30'), false);
                 });
                 
                 aiZone.addEventListener('drop', (e) => {
@@ -2109,7 +2221,6 @@ service cloud.firestore {
                 }, false);
             }
             
-            // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeEditModal();
@@ -2118,7 +2229,6 @@ service cloud.firestore {
                 }
             });
             
-            // Modal backdrops
             document.getElementById('editModal')?.addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) closeEditModal();
             });
@@ -2129,4 +2239,3 @@ service cloud.firestore {
     </script>
 </body>
 </html>
-
