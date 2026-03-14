@@ -20,7 +20,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, enableIndexedDbPersistence, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -51,7 +51,7 @@
         window.db = db;
         window.rtdb = rtdb;
         window.serverTimestamp = serverTimestamp;
-        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy };
+        window.firestoreFuncs = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy, writeBatch };
         window.rtdbFuncs = { ref, onValue, set, push, remove, update };
         
         // Initialize app when DOM ready
@@ -89,6 +89,7 @@
                         'shimmer': 'shimmer 2s linear infinite',
                         'slide-in': 'slideIn 0.3s ease-out forwards',
                         'scan-line': 'scanLine 2s linear infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
                     },
                     keyframes: {
                         'gradient-x': {
@@ -98,7 +99,11 @@
                         'float': { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } },
                         'shimmer': { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
                         slideIn: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        scanLine: { '0%': { top: '0%' }, '100%': { top: '100%' } }
+                        scanLine: { '0%': { top: '0%' }, '100%': { top: '100%' } },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '1' },
+                            '100%': { transform: 'scale(1.3)', opacity: '0' }
+                        }
                     }
                 }
             }
@@ -149,6 +154,20 @@
         .ocr-confidence-low { border-left: 4px solid #ef4444; }
         .ai-processing-active { position: relative; }
         .ai-processing-active::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(34,197,94,0.1), transparent); animation: shimmer 2s infinite; pointer-events: none; }
+        
+        /* Live OCR Styles */
+        .live-item-card { animation: slideIn 0.3s ease-out; }
+        .live-item-card.processing { opacity: 0.6; }
+        .live-item-card.confirmed { background: #f0fdf4; border-color: #22c55e; }
+        .live-item-card.rejected { opacity: 0.4; background: #fef2f2; }
+        .pulse-indicator { position: relative; }
+        .pulse-indicator::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #22c55e; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        
+        /* Batch Selection Styles */
+        .product-checkbox:checked + .product-card { border-color: #22c55e; background: #f0fdf4; }
+        .batch-actions { transform: translateY(100%); transition: transform 0.3s ease; }
+        .batch-actions.active { transform: translateY(0); }
+        .select-mode .product-card { cursor: pointer; }
     </style>
 </head>
 <body class="text-earth-800 antialiased">
@@ -267,6 +286,29 @@ service cloud.firestore {
             </div>
         </div>
 
+        <!-- Batch Delete Actions Bar -->
+        <div id="batchActionsBar" class="batch-actions fixed bottom-0 left-0 right-0 bg-white border-t border-earth-200 shadow-2xl z-40 p-4">
+            <div class="container mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
+                        <i class="fas fa-check-square"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-earth-900"><span id="selectedCountDisplay">0</span> items selected</p>
+                        <p class="text-xs text-earth-500">Batch operations available</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="cancelBatchSelection()" class="px-4 py-2 bg-earth-100 text-earth-700 rounded-xl text-sm font-bold hover:bg-earth-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="deleteSelectedProducts()" class="px-6 py-2 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30 flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i> Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <header class="sticky top-0 z-40 glass-dark text-white shadow-xl">
             <div class="container mx-auto px-6 py-4">
                 <div class="flex justify-between items-center">
@@ -278,6 +320,10 @@ service cloud.firestore {
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
+                        <button onclick="toggleBatchMode()" id="batchModeBtn" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
+                            <i class="fas fa-check-square text-brand-400 group-hover:scale-110 transition-transform"></i>
+                            <span class="hidden sm:inline">Select Multiple</span>
+                        </button>
                         <button onclick="downloadPriceListPDF()" class="group flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all duration-300 border border-white/10 hover:border-white/30">
                             <i class="fas fa-file-pdf text-red-400 group-hover:scale-110 transition-transform"></i>
                             <span class="hidden sm:inline">Export PDF</span>
@@ -290,7 +336,7 @@ service cloud.firestore {
             </div>
         </header>
 
-        <div class="container mx-auto px-4 sm:px-6 py-8">
+        <div class="container mx-auto px-4 sm:px-6 py-8 pb-24">
             <div class="mb-8 overflow-x-auto scroll-hide">
                 <div class="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-earth-200 inline-flex min-w-max">
                     <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-indicator active flex items-center gap-2 px-6 py-3 rounded-xl font-display font-semibold text-sm transition-all duration-300 text-brand-700 bg-brand-50">
@@ -416,9 +462,14 @@ service cloud.firestore {
                                     <h2 class="font-display font-bold text-earth-900 text-lg">Current Stock</h2>
                                     <p class="text-sm text-earth-500" id="productCount">Loading items...</p>
                                 </div>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
-                                    <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                <div class="flex gap-3">
+                                    <div class="relative">
+                                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-earth-400"></i>
+                                        <input type="text" id="searchProducts" placeholder="Search products..." oninput="renderProducts()" class="pl-11 pr-4 py-3 bg-earth-50 border border-earth-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all duration-300 text-sm w-full sm:w-64">
+                                    </div>
+                                    <button onclick="selectAllProducts()" id="selectAllBtn" class="hidden px-4 py-3 bg-brand-100 text-brand-700 rounded-xl text-sm font-bold hover:bg-brand-200 transition-colors">
+                                        Select All
+                                    </button>
                                 </div>
                             </div>
                             <div class="p-6">
@@ -429,9 +480,9 @@ service cloud.firestore {
                 </div>
             </div>
 
-            <!-- AI Scanner Tab - Enhanced -->
+            <!-- AI Scanner Tab - Enhanced with Live Processing -->
             <div id="view-ai" class="tab-content hidden animate-fade-in">
-                <div class="max-w-5xl mx-auto">
+                <div class="max-w-6xl mx-auto">
                     <!-- Stats Cards -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-white rounded-2xl p-4 border border-earth-200 shadow-sm">
@@ -472,119 +523,119 @@ service cloud.firestore {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
-                        <div class="p-8 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
-                            <div class="flex items-center gap-4 mb-2">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                                    <i class="fas fa-brain text-xl"></i>
+                    <div class="grid lg:grid-cols-2 gap-6">
+                        <!-- Left: Upload & Processing -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden">
+                            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="font-display font-bold text-xl text-earth-900">Live AI Scanner</h2>
+                                        <p class="text-earth-500 text-sm">Real-time product extraction</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 class="font-display font-bold text-2xl text-earth-900">Intelligent Mass Scanner</h2>
-                                    <p class="text-earth-500 text-sm">AI-powered inventory extraction with smart categorization</p>
+                            </div>
+
+                            <div class="p-6">
+                                <!-- Upload Zone -->
+                                <div id="aiUploadZone" class="relative group cursor-pointer mb-6" onclick="document.getElementById('aiFileInput').click()">
+                                    <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
+                                    <div class="border-2 border-dashed border-earth-300 rounded-2xl p-8 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50 relative overflow-hidden">
+                                        <div class="scan-line hidden" id="scanLine"></div>
+                                        <div class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-2xl shadow-inner relative z-10">
+                                            <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
+                                        </div>
+                                        <h3 class="font-display font-bold text-lg text-earth-800 mb-1 relative z-10">Drop or click to upload</h3>
+                                        <p class="text-earth-500 text-sm relative z-10">Receipts, invoices, shelf photos</p>
+                                    </div>
+                                </div>
+
+                                <!-- Processing Status -->
+                                <div id="aiProcessingStatus" class="hidden">
+                                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <div class="flex items-center gap-3">
+                                                <div class="pulse-indicator w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                                                    <i class="fas fa-robot text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-bold text-blue-900 text-sm">AI Processing</h4>
+                                                    <p class="text-xs text-blue-600" id="processingText">Initializing...</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-xl font-bold text-blue-600" id="processingPercent">0%</span>
+                                        </div>
+                                        <div class="scan-progress-container h-2 bg-blue-200 rounded-full overflow-hidden">
+                                            <div id="processingBar" class="scan-progress-bar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="mt-2 flex justify-between text-xs text-blue-600">
+                                            <span id="processingFile">Preparing...</span>
+                                            <span id="processingTime">ETA: ~2s</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Context Selectors -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="setAIContext('receipt')" class="ai-context-btn flex items-center gap-2 p-3 rounded-xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 transition-all" data-context="receipt">
+                                        <i class="fas fa-receipt text-orange-500"></i>
+                                        <span class="text-xs font-bold text-earth-700">Receipt</span>
+                                    </button>
+                                    <button onclick="setAIContext('shelf')" class="ai-context-btn flex items-center gap-2 p-3 rounded-xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 transition-all" data-context="shelf">
+                                        <i class="fas fa-store text-blue-500"></i>
+                                        <span class="text-xs font-bold text-earth-700">Shelf</span>
+                                    </button>
+                                    <button onclick="setAIContext('list')" class="ai-context-btn flex items-center gap-2 p-3 rounded-xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 transition-all" data-context="list">
+                                        <i class="fas fa-list-ul text-emerald-500"></i>
+                                        <span class="text-xs font-bold text-earth-700">List</span>
+                                    </button>
+                                    <button onclick="setAIContext('invoice')" class="ai-context-btn flex items-center gap-2 p-3 rounded-xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 transition-all" data-context="invoice">
+                                        <i class="fas fa-file-invoice-dollar text-purple-500"></i>
+                                        <span class="text-xs font-bold text-earth-700">Invoice</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="p-8">
-                            <!-- Upload Zone -->
-                            <div id="aiUploadZone" class="relative group cursor-pointer" onclick="document.getElementById('aiFileInput').click()">
-                                <input type="file" id="aiFileInput" class="hidden" accept="image/*" multiple onchange="handleAIUpload(event)">
-                                <div class="border-2 border-dashed border-earth-300 rounded-3xl p-12 text-center transition-all duration-300 group-hover:border-brand-400 group-hover:bg-brand-50/30 bg-earth-50/50 relative overflow-hidden">
-                                    <div class="scan-line hidden" id="scanLine"></div>
-                                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 flex items-center justify-center text-brand-600 text-3xl shadow-inner relative z-10">
-                                        <i class="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform duration-300"></i>
+                        <!-- Right: Live Results -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-earth-200 overflow-hidden flex flex-col">
+                            <div class="p-6 border-b border-earth-100 bg-gradient-to-r from-brand-50/50 to-transparent flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
+                                        <i class="fas fa-list-check"></i>
                                     </div>
-                                    <h3 class="font-display font-bold text-xl text-earth-800 mb-2 relative z-10">Drop files or click to upload</h3>
-                                    <p class="text-earth-500 text-sm max-w-md mx-auto relative z-10">Upload receipts, product lists, or shelf photos. Our AI extracts products instantly.</p>
-                                    <div class="mt-4 flex justify-center gap-2 relative z-10">
-                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">JPG</span>
-                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">PNG</span>
-                                        <span class="px-3 py-1 bg-white rounded-full text-xs text-earth-500 border border-earth-200">WebP</span>
+                                    <div>
+                                        <h2 class="font-display font-bold text-lg text-earth-900">Detected Items</h2>
+                                        <p class="text-xs text-earth-500"><span id="liveItemCount">0</span> items found • <span id="confirmedCount">0</span> confirmed</p>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Processing Status -->
-                            <div id="aiProcessingStatus" class="hidden mt-6">
-                                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center animate-pulse">
-                                                <i class="fas fa-robot"></i>
-                                            </div>
-                                            <div>
-                                                <h4 class="font-bold text-blue-900">AI Processing</h4>
-                                                <p class="text-xs text-blue-600" id="processingText">Initializing OCR engine...</p>
-                                            </div>
-                                        </div>
-                                        <span class="text-2xl font-bold text-blue-600" id="processingPercent">0%</span>
-                                    </div>
-                                    <div class="scan-progress-container h-2 bg-blue-200 rounded-full overflow-hidden">
-                                        <div id="processingBar" class="scan-progress-bar" style="width: 0%"></div>
-                                    </div>
-                                    <div class="mt-3 flex justify-between text-xs text-blue-600">
-                                        <span id="processingFile">Preparing...</span>
-                                        <span id="processingTime">ETA: ~2s</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Quick Type Selectors -->
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                                <button onclick="setAIContext('receipt')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="receipt">
-                                    <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-receipt"></i></div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Receipt</span>
-                                </button>
-                                <button onclick="setAIContext('shelf')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="shelf">
-                                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-store"></i></div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Shelf Photo</span>
-                                </button>
-                                <button onclick="setAIContext('list')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="list">
-                                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-list-ul"></i></div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Written List</span>
-                                </button>
-                                <button onclick="setAIContext('invoice')" class="flex flex-col items-center p-4 rounded-2xl bg-earth-50 border-2 border-earth-200 hover:border-brand-300 hover:shadow-md transition-all duration-300 group ai-context-btn" data-context="invoice">
-                                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><i class="fas fa-file-invoice-dollar"></i></div>
-                                    <span class="text-xs font-bold text-earth-600 uppercase tracking-wider">Invoice</span>
-                                </button>
-                            </div>
-
-                            <!-- Results Section -->
-                            <div id="aiReviewSection" class="hidden mt-8">
-                                <div class="flex items-center justify-between mb-6">
-                                    <div class="flex items-center gap-3">
-                                        <h3 class="font-display font-bold text-lg text-earth-900">Detected Items</h3>
-                                        <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold" id="aiCount">0 items</span>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button onclick="clearAIResults()" class="px-4 py-2 text-xs font-bold text-earth-500 hover:text-red-500 transition-colors"><i class="fas fa-trash mr-1"></i>Clear</button>
-                                        <button onclick="selectAllAI(true)" class="px-4 py-2 text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">Select All</button>
-                                    </div>
-                                </div>
-                                
-                                <div class="overflow-hidden rounded-2xl border border-earth-200 bg-white">
-                                    <table class="w-full text-left">
-                                        <thead class="bg-earth-50 border-b border-earth-200">
-                                            <tr>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider w-10"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Product</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Category</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider">Unit</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-center">Conf</th>
-                                                <th class="px-4 py-4 text-xs font-bold text-earth-500 uppercase tracking-wider text-right">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="aiResultsTable" class="divide-y divide-earth-100"></tbody>
-                                    </table>
-                                </div>
-
-                                <div class="mt-6 flex gap-3">
-                                    <button onclick="saveAISelectedItems()" id="saveAIBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-4 rounded-xl font-display font-bold text-sm uppercase tracking-wider shadow-lg shadow-brand-500/25 btn-shine transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
-                                        <i class="fas fa-save"></i> Save Selected (<span id="selectedCount">0</span>)
+                                <div class="flex gap-2">
+                                    <button onclick="confirmAllLiveItems()" id="confirmAllBtn" class="hidden px-4 py-2 bg-brand-600 text-white rounded-lg text-xs font-bold hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/30">
+                                        <i class="fas fa-check-double mr-1"></i> Confirm All
                                     </button>
-                                    <button onclick="switchTab('inventory')" class="px-6 py-4 bg-earth-200 text-earth-700 rounded-xl font-bold text-sm hover:bg-earth-300 transition-colors">
-                                        Cancel
+                                </div>
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto max-h-[500px] p-4">
+                                <div id="liveResultsContainer" class="space-y-3">
+                                    <!-- Live items appear here -->
+                                    <div id="emptyLiveState" class="text-center py-12 text-earth-400">
+                                        <i class="fas fa-camera text-4xl mb-3 opacity-50"></i>
+                                        <p class="text-sm">Upload an image to see<br>detected products here</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Action Bar -->
+                            <div class="p-4 border-t border-earth-100 bg-earth-50">
+                                <div class="flex gap-3">
+                                    <button onclick="saveConfirmedItems()" id="saveLiveBtn" class="flex-1 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-xl font-display font-bold text-sm shadow-lg shadow-brand-500/25 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                        <i class="fas fa-save"></i> Save Confirmed (<span id="saveConfirmedCount">0</span>)
+                                    </button>
+                                    <button onclick="clearLiveResults()" class="px-4 py-3 bg-earth-200 text-earth-700 rounded-xl font-bold text-sm hover:bg-earth-300 transition-colors">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
@@ -719,8 +770,15 @@ service cloud.firestore {
         let isProcessingOCR = false;
         let dataListeners = [];
         let aiContext = 'receipt';
-        let selectedAIItems = new Set();
         let ocrWorker = null;
+        
+        // Batch selection state
+        let batchMode = false;
+        let selectedProductIds = new Set();
+        
+        // Live OCR state
+        let liveItems = [];
+        let liveItemIdCounter = 0;
 
         // ==========================================
         // INITIALIZATION
@@ -856,6 +914,133 @@ service cloud.firestore {
         }
 
         // ==========================================
+        // BATCH SELECTION & MULTIPLE DELETE
+        // ==========================================
+        function toggleBatchMode() {
+            batchMode = !batchMode;
+            selectedProductIds.clear();
+            updateBatchUI();
+            renderProducts();
+            
+            const btn = document.getElementById('batchModeBtn');
+            if (batchMode) {
+                btn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-200');
+                btn.classList.remove('bg-white/10', 'text-white');
+                document.body.classList.add('select-mode');
+                showToast('Batch Mode', 'Click products to select for batch operations');
+            } else {
+                btn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-200');
+                btn.classList.add('bg-white/10', 'text-white');
+                document.body.classList.remove('select-mode');
+            }
+        }
+
+        function toggleProductSelection(productId) {
+            if (!batchMode) return;
+            
+            if (selectedProductIds.has(productId)) {
+                selectedProductIds.delete(productId);
+            } else {
+                selectedProductIds.add(productId);
+            }
+            
+            updateBatchUI();
+            renderProducts();
+        }
+
+        function selectAllProducts() {
+            if (!batchMode) toggleBatchMode();
+            
+            const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
+            const filtered = products.filter(p => 
+                p.name?.toLowerCase().includes(search) || 
+                p.category?.toLowerCase().includes(search)
+            );
+            
+            const allSelected = filtered.every(p => selectedProductIds.has(p.id));
+            
+            if (allSelected) {
+                filtered.forEach(p => selectedProductIds.delete(p.id));
+            } else {
+                filtered.forEach(p => selectedProductIds.add(p.id));
+            }
+            
+            updateBatchUI();
+            renderProducts();
+        }
+
+        function updateBatchUI() {
+            const bar = document.getElementById('batchActionsBar');
+            const countDisplay = document.getElementById('selectedCountDisplay');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            
+            if (selectedProductIds.size > 0) {
+                bar.classList.add('active');
+                countDisplay.textContent = selectedProductIds.size;
+            } else {
+                bar.classList.remove('active');
+            }
+            
+            if (batchMode) {
+                selectAllBtn.classList.remove('hidden');
+                const search = document.getElementById('searchProducts')?.value?.toLowerCase() || '';
+                const filtered = products.filter(p => 
+                    p.name?.toLowerCase().includes(search) || 
+                    p.category?.toLowerCase().includes(search)
+                );
+                const allSelected = filtered.every(p => selectedProductIds.has(p.id));
+                selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
+            } else {
+                selectAllBtn.classList.add('hidden');
+            }
+        }
+
+        function cancelBatchSelection() {
+            selectedProductIds.clear();
+            toggleBatchMode();
+        }
+
+        async function deleteSelectedProducts() {
+            if (selectedProductIds.size === 0) return;
+            
+            if (!confirm(`Delete ${selectedProductIds.size} selected products? This cannot be undone.`)) return;
+            
+            const { deleteDoc, doc, writeBatch } = window.firestoreFuncs;
+            let deleted = 0;
+            let failed = 0;
+            
+            // Use batch for better performance with many deletions
+            const batch = writeBatch(window.db);
+            const idsArray = Array.from(selectedProductIds);
+            
+            // Process in batches of 500 (Firestore limit)
+            for (let i = 0; i < idsArray.length; i += 500) {
+                const chunk = idsArray.slice(i, i + 500);
+                const chunkBatch = writeBatch(window.db);
+                
+                chunk.forEach(id => {
+                    chunkBatch.delete(doc(window.db, 'products', id));
+                });
+                
+                try {
+                    await chunkBatch.commit();
+                    deleted += chunk.length;
+                } catch (error) {
+                    console.error('Batch delete error:', error);
+                    failed += chunk.length;
+                }
+            }
+            
+            selectedProductIds.clear();
+            toggleBatchMode();
+            
+            let msg = [];
+                        if (deleted > 0) msg.push(`${deleted} deleted`);
+            if (failed > 0) msg.push(`${failed} failed`);
+            showToast('Batch Delete', msg.join(', ') || 'Complete', failed > 0 ? 'warning' : 'success');
+        }
+
+        // ==========================================
         // INVENTORY MANAGEMENT
         // ==========================================
         function updateSelects() {
@@ -900,27 +1085,45 @@ service cloud.firestore {
                 return;
             }
             
-            container.innerHTML = filtered.map(p => `
-                <div class="group flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border border-transparent hover:border-brand-200 rounded-2xl transition-all duration-300 card-hover cursor-pointer" onclick="openEditModal('${p.id}')">
-                    <div class="relative flex-shrink-0">
-                        <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" loading="lazy">
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
-                        <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
-                            <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
-                            <span>•</span>
-                            <span>${p.subCategory || '-'}</span>
+            container.innerHTML = filtered.map(p => {
+                const isSelected = selectedProductIds.has(p.id);
+                const selectionClass = isSelected ? 'border-brand-500 bg-brand-50' : 'border-transparent hover:border-brand-200';
+                const checkboxHtml = batchMode ? `
+                    <div class="absolute top-3 left-3 z-10">
+                        <div class="w-6 h-6 rounded-lg ${isSelected ? 'bg-brand-500 text-white' : 'bg-white border-2 border-earth-300'} flex items-center justify-center transition-all">
+                            ${isSelected ? '<i class="fas fa-check text-xs"></i>' : ''}
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
-                        <div class="text-xs text-earth-400">per ${p.unit}</div>
+                ` : '';
+                
+                return `
+                    <div class="product-card group relative flex items-center gap-4 p-4 bg-earth-50 hover:bg-white border-2 ${selectionClass} rounded-2xl transition-all duration-300 card-hover ${batchMode ? 'cursor-pointer' : ''}" 
+                         onclick="${batchMode ? `toggleProductSelection('${p.id}')` : `openEditModal('${p.id}')`}">
+                        ${checkboxHtml}
+                        <div class="relative flex-shrink-0 ${batchMode ? 'ml-8' : ''}">
+                            <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" class="w-14 h-14 object-cover rounded-xl shadow-sm group-hover:shadow-md transition-shadow bg-earth-200" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" loading="lazy">
+                            ${!batchMode ? `<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pen"></i></div>` : ''}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-display font-bold text-earth-900 truncate group-hover:text-brand-700 transition-colors">${p.name}</h3>
+                            <div class="flex items-center gap-2 text-xs text-earth-500 mt-1">
+                                <span class="px-2 py-0.5 bg-white rounded-md border border-earth-200">${p.category}</span>
+                                <span>•</span>
+                                <span>${p.subCategory || '-'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-display font-bold text-brand-600 text-lg">KSh ${p.price}</div>
+                            <div class="text-xs text-earth-400">per ${p.unit}</div>
+                        </div>
+                        ${!batchMode ? `
+                            <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        ` : ''}
                     </div>
-                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 flex-shrink-0"><i class="fas fa-trash-alt"></i></button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // ==========================================
@@ -960,7 +1163,6 @@ service cloud.firestore {
             const reader = new FileReader();
             reader.onload = (e) => {
                 currentImageBase64 = e.target.result;
-               
                 showImagePreview(currentImageBase64);
                 document.getElementById('finalImageUrl').value = currentImageBase64;
             };
@@ -1201,7 +1403,7 @@ service cloud.firestore {
         }
 
         // ==========================================
-        // ENHANCED AI OCR SCANNER
+        // ENHANCED LIVE AI OCR SCANNER
         // ==========================================
         function setAIContext(context) {
             aiContext = context;
@@ -1217,7 +1419,6 @@ service cloud.firestore {
         }
 
         function updateAICategoryHints() {
-            // Pre-compute category keywords for faster lookup
             window.categoryKeywords = {};
             categories.forEach(cat => {
                 if (cat.name) {
@@ -1247,54 +1448,26 @@ service cloud.firestore {
             }
             
             isProcessingOCR = true;
-            tempExtracted = [];
-            selectedAIItems.clear();
-            
-            // Show processing UI
+            document.getElementById('emptyLiveState')?.classList.add('hidden');
             document.getElementById('aiProcessingStatus').classList.remove('hidden');
             document.getElementById('scanLine').classList.remove('hidden');
-            document.getElementById('aiReviewSection').classList.add('hidden');
             
             try {
                 for (let i = 0; i < validFiles.length; i++) {
                     updateProcessingStatus(i + 1, validFiles.length, validFiles[i].name);
-                    const results = await processImageWithOCR(validFiles[i]);
-                    if (results?.length > 0) {
-                        tempExtracted.push(...results);
-                    }
+                    await processImageLive(validFiles[i]);
                 }
                 
-                if (tempExtracted.length === 0) {
-                    showToast('Warning', 'No products detected. Try clearer images.', 'warning');
-                    document.getElementById('aiProcessingStatus').classList.add('hidden');
-                    document.getElementById('scanLine').classList.add('hidden');
-                    return;
-                }
-                
-                // Deduplicate by name
-                const seen = new Set();
-                tempExtracted = tempExtracted.filter(item => {
-                    const key = item.name.toLowerCase();
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
-                
-                document.getElementById('aiProcessingStatus').classList.add('hidden');
-                document.getElementById('scanLine').classList.add('hidden');
-                document.getElementById('aiReviewSection').classList.remove('hidden');
-                document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
-                
-                renderAIResults();
-                showToast('Success', `Found ${tempExtracted.length} unique items`);
+                showToast('Scan Complete', `Processed ${validFiles.length} images`);
                 
             } catch (error) {
                 console.error('OCR Error:', error);
                 showToast('Error', 'OCR failed: ' + error.message, 'error');
             } finally {
                 isProcessingOCR = false;
-                document.getElementById('aiFileInput').value = '';
+                document.getElementById('aiProcessingStatus').classList.add('hidden');
                 document.getElementById('scanLine').classList.add('hidden');
+                document.getElementById('aiFileInput').value = '';
             }
         }
 
@@ -1311,27 +1484,61 @@ service cloud.firestore {
             document.getElementById('processingPercent').textContent = `${progress}%`;
         }
 
-        async function processImageWithOCR(file) {
+        async function processImageLive(file) {
             const imageData = await fileToDataURL(file);
             
-            // Use worker if available, otherwise fallback to recognize
+            // Show processing card immediately
+            const processingId = `processing-${Date.now()}`;
+            addLiveItem({
+                id: processingId,
+                name: 'Processing...',
+                price: 0,
+                category: 'Scanning',
+                unit: '-',
+                confidence: 'low',
+                status: 'processing',
+                image: imageData
+            });
+            
             let result;
-            if (ocrWorker) {
-                result = await ocrWorker.recognize(imageData);
-            } else {
-                result = await Tesseract.recognize(imageData, 'eng', {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            updateProcessingProgress(Math.round(m.progress * 100));
+            try {
+                if (ocrWorker) {
+                    result = await ocrWorker.recognize(imageData);
+                } else {
+                    result = await Tesseract.recognize(imageData, 'eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                updateProcessingProgress(Math.round(m.progress * 100));
+                            }
                         }
-                    }
-                });
+                    });
+                }
+            } catch (err) {
+                removeLiveItem(processingId);
+                throw err;
             }
+            
+            // Remove processing card
+            removeLiveItem(processingId);
             
             const text = result.data.text;
             console.log('OCR Raw:', text.substring(0, 200));
             
-            return parseOCRTextToProducts(text);
+            const extractedProducts = parseOCRTextToProducts(text);
+            
+            // Add each extracted product as a live item
+            extractedProducts.forEach(product => {
+                const liveItem = {
+                    id: `live-${liveItemIdCounter++}`,
+                    ...product,
+                    status: 'pending',
+                    originalImage: imageData
+                };
+                liveItems.push(liveItem);
+                addLiveItem(liveItem);
+            });
+            
+            updateLiveStats();
         }
 
         function fileToDataURL(file) {
@@ -1347,7 +1554,6 @@ service cloud.firestore {
             const products = [];
             const lines = text.split('\n').filter(l => l.trim().length > 2);
             
-            // Context-aware patterns
             const patterns = {
                 receipt: [
                     /([A-Za-z\s\-\.]{3,50})\s+(?:ksh|kes|kshs)?\.?\s*(\d{1,6}(?:\.\d{2})?)/i,
@@ -1371,7 +1577,6 @@ service cloud.firestore {
             const contextPatterns = patterns[aiContext] || patterns.receipt;
             
             lines.forEach(line => {
-                // Skip totals, headers, and short lines
                 if (/total|subtotal|tax|balance|change|cash|mpesa/i.test(line)) return;
                 if (line.length < 5 || line.length > 100) return;
                 
@@ -1391,8 +1596,7 @@ service cloud.firestore {
                                 category: category,
                                 subCategory: subCategory,
                                 unit: unit,
-                                confidence: confidence,
-                                selected: true
+                                confidence: confidence
                             });
                             break;
                         }
@@ -1415,7 +1619,6 @@ service cloud.firestore {
             const lower = name.toLowerCase();
             let bestMatch = { category: 'General', subCategory: 'General', confidence: 'low' };
             
-            // Check against existing categories first
             if (window.categoryKeywords) {
                 for (const [keyword, catName] of Object.entries(window.categoryKeywords)) {
                     if (lower.includes(keyword)) {
@@ -1424,7 +1627,6 @@ service cloud.firestore {
                 }
             }
             
-            // Fallback to keyword matching
             const keywords = {
                 'Dairy': { words: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg', 'ghee'], subs: ['Fresh Milk', 'Cheese', 'Yogurt'] },
                 'Beverages': { words: ['water', 'soda', 'juice', 'tea', 'coffee', 'drink', 'soda', 'coke', 'pepsi'], subs: ['Water', 'Soft Drinks', 'Hot Drinks'] },
@@ -1461,105 +1663,187 @@ service cloud.firestore {
             return 'pcs';
         }
 
-        function renderAIResults() {
-            const tbody = document.getElementById('aiResultsTable');
-            if (!tbody) return;
+        // ==========================================
+        // LIVE ITEMS UI MANAGEMENT
+        // ==========================================
+        function addLiveItem(item) {
+            const container = document.getElementById('liveResultsContainer');
+            const emptyState = document.getElementById('emptyLiveState');
+            if (emptyState) emptyState.classList.add('hidden');
             
-            tbody.innerHTML = tempExtracted.map((item, index) => {
-                const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
-                                 item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
-                const confIcon = item.confidence === 'high' ? 'fa-check-circle text-green-500' : 
-                                item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400';
-                
-                return `
-                    <tr class="hover:bg-earth-50 transition-colors ${confClass} ${item.selected ? '' : 'opacity-50'}" id="ai-row-${index}">
-                        <td class="px-4 py-3"><input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleAIItem(${index})" class="rounded border-earth-300 text-brand-600 focus:ring-brand-500"></td>
-                        <td class="px-4 py-3">
-                            <div class="font-medium text-earth-900">${item.name}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="font-bold text-brand-600">KSh ${item.price.toFixed(2)}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-medium">${item.category}</span>
-                        </td>
-                        <td class="px-4 py-3 text-xs text-earth-600">${item.unit}</td>
-                        <td class="px-4 py-3 text-center"><i class="fas ${confIcon}"></i></td>
-                        <td class="px-4 py-3 text-right">
-                            <button onclick="editAIItem(${index})" class="text-earth-400 hover:text-brand-600 transition-colors p-1"><i class="fas fa-pen text-xs"></i></button>
-                            <button onclick="removeAIItem(${index})" class="text-earth-400 hover:text-red-500 transition-colors p-1 ml-2"><i class="fas fa-trash text-xs"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            const confClass = item.confidence === 'high' ? 'ocr-confidence-high' : 
+                             item.confidence === 'medium' ? 'ocr-confidence-medium' : 'ocr-confidence-low';
+            const confIcon = item.confidence === 'high' ? 'fa-check-circle text-green-500' : 
+                            item.confidence === 'medium' ? 'fa-check text-yellow-500' : 'fa-question-circle text-red-400';
             
-            updateSelectedCount();
+            const statusClass = item.status === 'processing' ? 'processing' : 
+                               item.status === 'confirmed' ? 'confirmed' : '';
+            
+            const actionButtons = item.status === 'processing' ? '' : `
+                <div class="flex gap-2 mt-3">
+                    <button onclick="confirmLiveItem('${item.id}')" class="flex-1 py-2 bg-brand-500 text-white rounded-lg text-xs font-bold hover:bg-brand-600 transition-colors ${item.status === 'confirmed' ? 'opacity-50 cursor-not-allowed' : ''}" ${item.status === 'confirmed' ? 'disabled' : ''}>
+                        <i class="fas fa-check mr-1"></i> Confirm
+                    </button>
+                    <button onclick="editLiveItem('${item.id}')" class="px-3 py-2 bg-earth-100 text-earth-600 rounded-lg text-xs hover:bg-earth-200 transition-colors">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button onclick="rejectLiveItem('${item.id}')" class="px-3 py-2 bg-red-100 text-red-500 rounded-lg text-xs hover:bg-red-200 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            const card = document.createElement('div');
+            card.id = `live-item-${item.id}`;
+            card.className = `live-item-card ${statusClass} bg-white border border-earth-200 rounded-xl p-4 ${confClass}`;
+            card.innerHTML = `
+                <div class="flex items-start gap-3">
+                    ${item.originalImage ? `<img src="${item.originalImage}" class="w-16 h-16 object-cover rounded-lg bg-earth-100 flex-shrink-0">` : ''}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <h4 class="font-bold text-earth-900 text-sm truncate">${item.name}</h4>
+                                <p class="text-xs text-earth-500 mt-0.5">${item.category} • ${item.subCategory}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-brand-600">KSh ${item.price?.toFixed(2) || '0.00'}</div>
+                                <div class="text-xs text-earth-400">per ${item.unit}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="px-2 py-0.5 bg-earth-100 text-earth-600 rounded text-[10px] font-medium uppercase">${item.unit}</span>
+                            <i class="fas ${confIcon} text-xs"></i>
+                            ${item.status === 'confirmed' ? '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-bold"><i class="fas fa-check mr-1"></i>Confirmed</span>' : ''}
+                            ${item.status === 'rejected' ? '<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold"><i class="fas fa-times mr-1"></i>Rejected</span>' : ''}
+                        </div>
+                        ${actionButtons}
+                    </div>
+                </div>
+            `;
+            
+            container.insertBefore(card, container.firstChild);
         }
 
-        function toggleAIItem(index) {
-            tempExtracted[index].selected = !tempExtracted[index].selected;
-            document.getElementById(`ai-row-${index}`).classList.toggle('opacity-50', !tempExtracted[index].selected);
-            updateSelectedCount();
+        function removeLiveItem(id) {
+            const card = document.getElementById(`live-item-${id}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-20px)';
+                setTimeout(() => card.remove(), 300);
+            }
+            liveItems = liveItems.filter(i => i.id !== id);
+            updateLiveStats();
         }
 
-        function toggleSelectAll() {
-            const checked = document.getElementById('selectAllCheckbox').checked;
-            selectAllAI(checked);
+        function confirmLiveItem(id) {
+            const item = liveItems.find(i => i.id === id);
+            if (!item) return;
+            
+            item.status = 'confirmed';
+            const card = document.getElementById(`live-item-${id}`);
+            if (card) {
+                card.classList.add('confirmed');
+                card.classList.remove('processing');
+                card.querySelector('.fa-check-circle, .fa-check, .fa-question-circle')?.parentElement?.insertAdjacentHTML('beforeend', 
+                    '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-bold ml-2"><i class="fas fa-check mr-1"></i>Confirmed</span>'
+                );
+                const btn = card.querySelector('button[onclick^="confirmLiveItem"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
+            updateLiveStats();
+            showToast('Confirmed', `${item.name} ready to save`);
         }
 
-        function selectAllAI(select) {
-            tempExtracted.forEach((item, idx) => {
-                item.selected = select;
-                const checkbox = document.querySelector(`#ai-row-${idx} input[type="checkbox"]`);
-                if (checkbox) checkbox.checked = select;
-                document.getElementById(`ai-row-${idx}`)?.classList.toggle('opacity-50', !select);
-            });
-            updateSelectedCount();
+        function rejectLiveItem(id) {
+            const item = liveItems.find(i => i.id === id);
+            if (!item) return;
+            
+            item.status = 'rejected';
+            const card = document.getElementById(`live-item-${id}`);
+            if (card) {
+                card.classList.add('rejected');
+                card.classList.remove('processing', 'confirmed');
+            }
+            updateLiveStats();
         }
 
-        function updateSelectedCount() {
-            const count = tempExtracted.filter(i => i.selected).length;
-            document.getElementById('selectedCount').textContent = count;
-        }
-
-        function editAIItem(index) {
-            const item = tempExtracted[index];
+        function editLiveItem(id) {
+            const item = liveItems.find(i => i.id === id);
+            if (!item) return;
+            
             const newName = prompt('Edit product name:', item.name);
             if (newName && newName.trim()) {
                 item.name = newName.trim();
-                renderAIResults();
+                const card = document.getElementById(`live-item-${id}`);
+                if (card) {
+                    card.querySelector('h4').textContent = item.name;
+                }
             }
         }
 
-        function removeAIItem(index) {
-            tempExtracted.splice(index, 1);
-            renderAIResults();
-            document.getElementById('aiCount').textContent = `${tempExtracted.length} items`;
-            if (tempExtracted.length === 0) {
-                document.getElementById('aiReviewSection').classList.add('hidden');
+        function confirmAllLiveItems() {
+            liveItems.forEach(item => {
+                if (item.status === 'pending') {
+                    confirmLiveItem(item.id);
+                }
+            });
+            showToast('Confirmed All', 'All items marked as confirmed');
+        }
+
+        function updateLiveStats() {
+            const total = liveItems.length;
+            const confirmed = liveItems.filter(i => i.status === 'confirmed').length;
+            const pending = liveItems.filter(i => i.status === 'pending').length;
+            
+            document.getElementById('liveItemCount').textContent = total;
+            document.getElementById('confirmedCount').textContent = confirmed;
+            document.getElementById('saveConfirmedCount').textContent = confirmed;
+            
+            const confirmAllBtn = document.getElementById('confirmAllBtn');
+            if (pending > 0) {
+                confirmAllBtn.classList.remove('hidden');
+            } else {
+                confirmAllBtn.classList.add('hidden');
+            }
+            
+            const saveBtn = document.getElementById('saveLiveBtn');
+            if (confirmed > 0) {
+                saveBtn.disabled = false;
+            } else {
+                saveBtn.disabled = true;
             }
         }
 
-        function clearAIResults() {
-            tempExtracted = [];
-            selectedAIItems.clear();
-            document.getElementById('aiReviewSection').classList.add('hidden');
-            document.getElementById('aiProcessingStatus').classList.add('hidden');
+        function clearLiveResults() {
+            liveItems = [];
+            liveItemIdCounter = 0;
+            document.getElementById('liveResultsContainer').innerHTML = `
+                <div id="emptyLiveState" class="text-center py-12 text-earth-400">
+                    <i class="fas fa-camera text-4xl mb-3 opacity-50"></i>
+                    <p class="text-sm">Upload an image to see<br>detected products here</p>
+                </div>
+            `;
+            updateLiveStats();
         }
 
-        async function saveAISelectedItems() {
-            const toSave = tempExtracted.filter(i => i.selected);
+        async function saveConfirmedItems() {
+            const toSave = liveItems.filter(i => i.status === 'confirmed');
             if (toSave.length === 0) {
-                showToast('Error', 'No items selected', 'error');
+                showToast('Error', 'No confirmed items to save', 'error');
                 return;
             }
             
-            const btn = document.getElementById('saveAIBtn');
+            const btn = document.getElementById('saveLiveBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
             btn.disabled = true;
             
-            let saved = 0, updated = 0, errors = 0;
+            let saved = 0;
+            let updated = 0;
+            let errors = 0;
             
             try {
                 const { addDoc, collection, updateDoc, doc } = window.firestoreFuncs;
@@ -1590,13 +1874,32 @@ service cloud.firestore {
                             });
                             saved++;
                         }
+                        
+                        // Mark as saved in UI
+                        item.status = 'saved';
+                        const card = document.getElementById(`live-item-${item.id}`);
+                        if (card) {
+                            card.style.opacity = '0.5';
+                            card.innerHTML += '<div class="absolute inset-0 bg-green-500/10 flex items-center justify-center rounded-xl"><span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold"><i class="fas fa-check mr-1"></i>Saved</span></div>';
+                        }
                     } catch (err) {
                         console.error('Save error:', err);
                         errors++;
                     }
                 }
                 
-                clearAIResults();
+                // Remove saved items from array after a delay
+                setTimeout(() => {
+                    liveItems = liveItems.filter(i => i.status !== 'saved');
+                    document.querySelectorAll('#liveResultsContainer > div').forEach(card => {
+                        if (card.innerHTML.includes('Saved')) {
+                            card.style.transform = 'translateX(100%)';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                    });
+                    updateLiveStats();
+                }, 1500);
+                
                 switchTab('inventory');
                 
                 let msg = [];
@@ -1798,7 +2101,7 @@ service cloud.firestore {
                 });
                 
                 ['dragleave', 'drop'].forEach(e => {
-                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-earth-300')?.classList.remove('border-brand-400', 'bg-brand-50/30'), false);
+                    aiZone.addEventListener(e, () => aiZone.querySelector('.border-earth-400')?.classList.remove('border-brand-400', 'bg-brand-50/30'), false);
                 });
                 
                 aiZone.addEventListener('drop', (e) => {
@@ -1811,6 +2114,7 @@ service cloud.firestore {
                 if (e.key === 'Escape') {
                     closeEditModal();
                     document.getElementById('rulesModal')?.classList.add('hidden');
+                    if (batchMode) cancelBatchSelection();
                 }
             });
             
@@ -1825,3 +2129,4 @@ service cloud.firestore {
     </script>
 </body>
 </html>
+
